@@ -1,16 +1,30 @@
 'use client'
-import { useState } from 'react'
-import { Form, Input, Button, Typography, Alert } from 'antd'
+import { useState, useEffect } from 'react'
+import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, ShopOutlined, CheckCircleFilled } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
 
-interface LoginForm { companyId: string; email: string; password: string }
+interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
+
+const SAVED_KEY = 'pos_saved_credentials'
 
 export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [form] = Form.useForm<LoginForm>()
+
+  // Pre-fill saved credentials on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(SAVED_KEY)
+      if (saved) {
+        const creds = JSON.parse(saved)
+        form.setFieldsValue({ ...creds, remember: true })
+      }
+    } catch {}
+  }, [form])
 
   async function onFinish(values: LoginForm) {
     setLoading(true)
@@ -18,6 +32,16 @@ export default function LoginPage() {
     try {
       const res = await getClient().post('/api/auth/login', values)
       if (res.data?.tenantSlug) setTenantSlug(res.data.tenantSlug)
+      // Save or clear credentials
+      if (values.remember) {
+        localStorage.setItem(SAVED_KEY, JSON.stringify({
+          companyId: values.companyId,
+          email:     values.email,
+          password:  values.password,
+        }))
+      } else {
+        localStorage.removeItem(SAVED_KEY)
+      }
       localStorage.setItem('companyId', values.companyId)
       if (res.data?.user) {
         localStorage.setItem('userId',      res.data.user.id)
@@ -181,7 +205,7 @@ export default function LoginPage() {
             />
           )}
 
-          <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
+          <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false}>
             <Form.Item
               name="companyId"
               label={<span style={{ color: '#24292f', fontWeight: 500, fontSize: 13 }}>ID de empresa</span>}
@@ -242,6 +266,12 @@ export default function LoginPage() {
                   height: 42,
                 }}
               />
+            </Form.Item>
+
+            <Form.Item name="remember" valuePropName="checked" style={{ marginBottom: 20 }}>
+              <Checkbox style={{ color: '#8b949e', fontSize: 13 }}>
+                Recordar mis credenciales
+              </Checkbox>
             </Form.Item>
 
             <Button
