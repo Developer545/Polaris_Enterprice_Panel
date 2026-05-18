@@ -194,10 +194,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {!collapsed && (
             <div style={{ marginLeft: 10, overflow: 'hidden' }}>
               <div style={{ color: '#37352f', fontWeight: 700, fontSize: 14, lineHeight: 1.2, whiteSpace: 'nowrap' }}>
-                POS DTE SV
+                Polaris
               </div>
               <div style={{ color: '#9b9b99', fontSize: 11, whiteSpace: 'nowrap' }}>
-                Speeddan System
+                Enterprise
               </div>
             </div>
           )}

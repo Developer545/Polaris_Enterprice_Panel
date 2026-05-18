@@ -3,8 +3,8 @@ import './globals.css'
 import { Providers } from '../providers'
 
 export const metadata: Metadata = {
-  title: 'POS DTE El Salvador',
-  description: 'Sistema POS con facturación electrónica DTE — Speeddan System',
+  title: 'Polaris Enterprise',
+  description: 'ERP · POS · Facturación electrónica DTE — El Salvador',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
