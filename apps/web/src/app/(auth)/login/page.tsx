@@ -1,7 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
-import { UserOutlined, LockOutlined, ShopOutlined, CheckCircleFilled } from '@ant-design/icons'
+import { UserOutlined, LockOutlined, ShopOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
 
@@ -9,13 +9,31 @@ interface LoginForm { companyId: string; email: string; password: string; rememb
 
 const SAVED_KEY = 'pos_saved_credentials'
 
+// Deterministic pseudo-random (no hydration mismatch)
+function seededRand(seed: number) {
+  let s = seed
+  return () => { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646 }
+}
+
+function buildStars(count: number, seed: number) {
+  const rand = seededRand(seed)
+  return Array.from({ length: count }, () => ({
+    x:    rand() * 100,
+    y:    rand() * 100,
+    r:    rand() * 1.5 + 0.4,
+    o:    rand() * 0.6 + 0.25,
+    twinkle: rand() > 0.7,
+  }))
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [form] = Form.useForm<LoginForm>()
+  const [error, setError]   = useState<string | null>(null)
+  const [form]              = Form.useForm<LoginForm>()
 
-  // Pre-fill saved credentials on mount
+  const stars = useMemo(() => buildStars(180, 42), [])
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(SAVED_KEY)
@@ -32,7 +50,6 @@ export default function LoginPage() {
     try {
       const res = await getClient().post('/api/auth/login', values)
       if (res.data?.tenantSlug) setTenantSlug(res.data.tenantSlug)
-      // Save or clear credentials
       if (values.remember) {
         localStorage.setItem(SAVED_KEY, JSON.stringify({
           companyId: values.companyId,
@@ -60,275 +77,250 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{
-      width: '100vw',
-      height: '100vh',
-      display: 'flex',
-      overflow: 'hidden',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    }}>
+    <>
+      <style>{`
+        @keyframes twinkle {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50%       { opacity: 0.3; transform: scale(0.6); }
+        }
+        @keyframes polarisGlow {
+          0%, 100% { box-shadow: 0 0 24px 8px rgba(147,197,253,0.6), 0 0 60px 20px rgba(59,130,246,0.3); }
+          50%       { box-shadow: 0 0 36px 14px rgba(147,197,253,0.9), 0 0 90px 30px rgba(59,130,246,0.5); }
+        }
+        @keyframes nebula {
+          0%, 100% { opacity: 0.35; }
+          50%       { opacity: 0.55; }
+        }
+      `}</style>
 
-      {/* ── LEFT — branding (45%) ──────────────────────────────────── */}
       <div style={{
-        width: '45%',
-        height: '100%',
-        background: 'linear-gradient(150deg, #0d1117 0%, #161b22 40%, #0d1b2e 100%)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: '52px 56px',
-        position: 'relative',
-        overflow: 'hidden',
-        flexShrink: 0,
+        width: '100vw', height: '100vh',
+        display: 'flex', overflow: 'hidden',
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       }}>
-        {/* Grid pattern — full panel, fades from top */}
+
+        {/* ══ LEFT — Galaxy panel (45%) ════════════════════════════════ */}
         <div style={{
-          position: 'absolute', inset: 0,
-          pointerEvents: 'none',
-          backgroundImage: [
-            'linear-gradient(rgba(35,131,226,0.22) 1px, transparent 1px)',
-            'linear-gradient(90deg, rgba(35,131,226,0.22) 1px, transparent 1px)',
-          ].join(', '),
-          backgroundSize: '44px 44px',
-          maskImage: 'linear-gradient(to bottom, transparent 0%, black 35%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 35%)',
-        }} />
-
-        {/* Dot intersections for extra depth */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          pointerEvents: 'none',
-          backgroundImage: 'radial-gradient(circle, rgba(35,131,226,0.35) 1.5px, transparent 1.5px)',
-          backgroundSize: '44px 44px',
-          maskImage: 'linear-gradient(to bottom, transparent 0%, black 35%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 35%)',
-        }} />
-
-        {/* Glow effects */}
-        <div style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: [
-            'radial-gradient(600px circle at 70% 10%, rgba(35,131,226,0.12) 0%, transparent 60%)',
-            'radial-gradient(400px circle at 20% 85%, rgba(35,131,226,0.10) 0%, transparent 50%)',
-          ].join(', '),
-        }} />
-
-        {/* Logo mark */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: 10,
-            background: '#2383e2',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <ShopOutlined style={{ color: '#fff', fontSize: 19 }} />
-          </div>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 17, letterSpacing: '-0.01em' }}>
-            POS DTE
-          </span>
-        </div>
-
-        {/* Hero text */}
-        <div style={{ position: 'relative' }}>
-          <div style={{
-            display: 'inline-block',
-            background: 'rgba(35,131,226,0.15)',
-            border: '1px solid rgba(35,131,226,0.25)',
-            borderRadius: 20,
-            padding: '4px 12px',
-            marginBottom: 20,
-          }}>
-            <span style={{ color: '#2383e2', fontSize: 12, fontWeight: 500 }}>
-              Facturación Electrónica · El Salvador
-            </span>
-          </div>
-
-          <Typography.Title style={{
-            color: '#ffffff',
-            fontSize: 36,
-            fontWeight: 800,
-            lineHeight: 1.15,
-            letterSpacing: '-0.02em',
-            margin: '0 0 20px',
-          }}>
-            Gestiona tu negocio<br />con facturación DTE
-          </Typography.Title>
-
-          <Typography.Text style={{
-            color: 'rgba(255,255,255,0.45)',
-            fontSize: 15,
-            lineHeight: 1.7,
-            display: 'block',
-            marginBottom: 36,
-          }}>
-            Para peluquerías, veterinarias,<br />
-            comercios, almacenes y más.
-          </Typography.Text>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[
-              'CF, CCF, Notas de Crédito y Débito',
-              'POS táctil con impresión térmica',
-              'Integración directa con Hacienda',
-            ].map(f => (
-              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <CheckCircleFilled style={{ color: '#2383e2', fontSize: 13, flexShrink: 0 }} />
-                <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13 }}>{f}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Bottom text */}
-        <div style={{ position: 'relative' }}>
-          <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>
-            © {new Date().getFullYear()} POS DTE El Salvador
-          </span>
-        </div>
-      </div>
-
-      {/* ── RIGHT — form (55%) ─────────────────────────────────────── */}
-      <div style={{
-        flex: 1,
-        height: '100%',
-        background: '#ffffff',
-        backgroundImage: 'radial-gradient(#c8c8c8 1.5px, transparent 1.5px)',
-        backgroundSize: '22px 22px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '40px 64px',
-        overflowY: 'auto',
-        position: 'relative',
-      }}>
-        <div style={{
-          width: '100%', maxWidth: 400,
-          background: '#ffffff',
-          borderRadius: 12,
-          padding: '40px 36px',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04)',
-          border: '1px solid #f0f0f0',
+          width: '45%', height: '100%', flexShrink: 0,
+          background: 'radial-gradient(ellipse at 50% 0%, #0a0f2e 0%, #04060f 60%, #000005 100%)',
+          position: 'relative', overflow: 'hidden',
+          display: 'flex', flexDirection: 'column',
+          justifyContent: 'space-between', padding: '52px 52px',
         }}>
 
-          <Typography.Title level={2} style={{
-            margin: '0 0 8px',
-            color: '#0d1117',
-            fontWeight: 700,
-            fontSize: 28,
-            letterSpacing: '-0.02em',
+          {/* Nebula clouds */}
+          <div style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none',
+            background: [
+              'radial-gradient(ellipse 60% 40% at 30% 60%, rgba(88,28,135,0.28) 0%, transparent 70%)',
+              'radial-gradient(ellipse 50% 35% at 75% 30%, rgba(29,78,216,0.22) 0%, transparent 65%)',
+              'radial-gradient(ellipse 40% 30% at 60% 80%, rgba(15,118,110,0.15) 0%, transparent 60%)',
+            ].join(', '),
+            animation: 'nebula 8s ease-in-out infinite',
+          }} />
+
+          {/* Stars */}
+          {stars.map((s, i) => (
+            <div key={i} style={{
+              position: 'absolute',
+              left: `${s.x}%`, top: `${s.y}%`,
+              width:  `${s.r * 2}px`, height: `${s.r * 2}px`,
+              borderRadius: '50%',
+              background: '#fff',
+              opacity: s.o,
+              animation: s.twinkle ? `twinkle ${2 + (i % 3)}s ease-in-out infinite ${i * 0.15}s` : 'none',
+              pointerEvents: 'none',
+            }} />
+          ))}
+
+          {/* Polaris — main star */}
+          <div style={{
+            position: 'absolute', top: '22%', left: '50%',
+            transform: 'translateX(-50%)',
+            pointerEvents: 'none',
           }}>
-            Bienvenido
-          </Typography.Title>
-          <Typography.Text style={{
-            color: '#8b949e',
-            fontSize: 15,
-            display: 'block',
-            marginBottom: 32,
+            {/* Cross rays */}
+            {[0, 90, 45, 135].map(deg => (
+              <div key={deg} style={{
+                position: 'absolute', top: '50%', left: '50%',
+                transform: `translate(-50%, -50%) rotate(${deg}deg)`,
+                width: deg % 90 === 0 ? 80 : 48,
+                height: 1.5,
+                background: 'linear-gradient(90deg, transparent, rgba(147,197,253,0.8), transparent)',
+              }} />
+            ))}
+            {/* Core */}
+            <div style={{
+              width: 14, height: 14, borderRadius: '50%',
+              background: 'radial-gradient(circle, #fff 30%, #93c5fd 70%, transparent 100%)',
+              animation: 'polarisGlow 3s ease-in-out infinite',
+            }} />
+          </div>
+
+          {/* Content */}
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backdropFilter: 'blur(8px)',
+            }}>
+              <ShopOutlined style={{ color: '#93c5fd', fontSize: 17 }} />
+            </div>
+            <div>
+              <div style={{ color: '#fff', fontWeight: 700, fontSize: 16, letterSpacing: '-0.01em' }}>
+                Polaris
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>Enterprise</div>
+            </div>
+          </div>
+
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: 'rgba(147,197,253,0.1)',
+              border: '1px solid rgba(147,197,253,0.2)',
+              borderRadius: 20, padding: '4px 14px', marginBottom: 24,
+            }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#93c5fd' }} />
+              <span style={{ color: '#93c5fd', fontSize: 12, fontWeight: 500 }}>
+                ERP · Facturación DTE · El Salvador
+              </span>
+            </div>
+
+            <Typography.Title style={{
+              color: '#fff', fontSize: 34, fontWeight: 800,
+              lineHeight: 1.15, letterSpacing: '-0.025em', margin: '0 0 18px',
+            }}>
+              Gestiona tu negocio<br />desde las estrellas
+            </Typography.Title>
+
+            <Typography.Text style={{
+              color: 'rgba(255,255,255,0.45)', fontSize: 14,
+              lineHeight: 1.7, display: 'block', marginBottom: 32,
+            }}>
+              POS, facturación electrónica y ERP<br />
+              para cualquier giro de empresa.
+            </Typography.Text>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                'CF, CCF, Notas de Crédito y Débito',
+                'POS táctil con impresión térmica',
+                'Integración directa con Hacienda',
+              ].map(f => (
+                <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#93c5fd', flexShrink: 0 }} />
+                  <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>{f}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}>
+              © {new Date().getFullYear()} Polaris Enterprise
+            </span>
+          </div>
+        </div>
+
+        {/* ══ RIGHT — Form panel (55%) ════════════════════════════════ */}
+        <div style={{
+          flex: 1, height: '100%',
+          background: '#ffffff',
+          backgroundImage: 'radial-gradient(#d1d5db 1.5px, transparent 1.5px)',
+          backgroundSize: '22px 22px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '40px 64px', overflowY: 'auto', position: 'relative',
+        }}>
+          <div style={{
+            width: '100%', maxWidth: 400,
+            background: '#ffffff', borderRadius: 14,
+            padding: '40px 36px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)',
+            border: '1px solid #f0f0f0',
           }}>
-            Ingresa tus credenciales para continuar
-          </Typography.Text>
+            <Typography.Title level={2} style={{
+              margin: '0 0 6px', color: '#0d1117',
+              fontWeight: 700, fontSize: 26, letterSpacing: '-0.02em',
+            }}>
+              Bienvenido
+            </Typography.Title>
+            <Typography.Text style={{
+              color: '#8b949e', fontSize: 14,
+              display: 'block', marginBottom: 28,
+            }}>
+              Ingresa tus credenciales para continuar
+            </Typography.Text>
 
-          {error && (
-            <Alert
-              message={error}
-              type="error"
-              showIcon
-              closable
-              onClose={() => setError(null)}
-              style={{ marginBottom: 24, borderRadius: 8, fontSize: 13 }}
-            />
-          )}
-
-          <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false}>
-            <Form.Item
-              name="companyId"
-              label={<span style={{ color: '#24292f', fontWeight: 500, fontSize: 13 }}>ID de empresa</span>}
-              rules={[{ required: true, message: 'Requerido' }]}
-              style={{ marginBottom: 16 }}
-            >
-              <Input
-                prefix={<ShopOutlined style={{ color: '#8b949e' }} />}
-                placeholder="company-demo-001"
-                size="large"
-                style={{
-                  borderRadius: 8,
-                  borderColor: '#d0d7de',
-                  background: '#f6f8fa',
-                  fontSize: 14,
-                  height: 42,
-                }}
+            {error && (
+              <Alert message={error} type="error" showIcon closable
+                onClose={() => setError(null)}
+                style={{ marginBottom: 20, borderRadius: 8, fontSize: 13 }}
               />
-            </Form.Item>
+            )}
 
-            <Form.Item
-              name="email"
-              label={<span style={{ color: '#24292f', fontWeight: 500, fontSize: 13 }}>Correo electrónico</span>}
-              rules={[{ required: true, type: 'email', message: 'Correo inválido' }]}
-              style={{ marginBottom: 16 }}
-            >
-              <Input
-                prefix={<UserOutlined style={{ color: '#8b949e' }} />}
-                placeholder="usuario@empresa.com"
-                autoComplete="email"
-                size="large"
+            <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false}>
+              <Form.Item
+                name="companyId"
+                label={<span style={{ color: '#24292f', fontWeight: 500, fontSize: 13 }}>ID de empresa</span>}
+                rules={[{ required: true, message: 'Requerido' }]}
+                style={{ marginBottom: 14 }}
+              >
+                <Input
+                  prefix={<ShopOutlined style={{ color: '#8b949e' }} />}
+                  placeholder="company-demo-001" size="large"
+                  style={{ borderRadius: 8, borderColor: '#d0d7de', background: '#f6f8fa', fontSize: 14, height: 42 }}
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="email"
+                label={<span style={{ color: '#24292f', fontWeight: 500, fontSize: 13 }}>Correo electrónico</span>}
+                rules={[{ required: true, type: 'email', message: 'Correo inválido' }]}
+                style={{ marginBottom: 14 }}
+              >
+                <Input
+                  prefix={<UserOutlined style={{ color: '#8b949e' }} />}
+                  placeholder="usuario@empresa.com" autoComplete="email" size="large"
+                  style={{ borderRadius: 8, borderColor: '#d0d7de', background: '#f6f8fa', fontSize: 14, height: 42 }}
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="password"
+                label={<span style={{ color: '#24292f', fontWeight: 500, fontSize: 13 }}>Contraseña</span>}
+                rules={[{ required: true, message: 'Requerido' }]}
+                style={{ marginBottom: 14 }}
+              >
+                <Input.Password
+                  prefix={<LockOutlined style={{ color: '#8b949e' }} />}
+                  placeholder="••••••••" autoComplete="current-password" size="large"
+                  style={{ borderRadius: 8, borderColor: '#d0d7de', background: '#f6f8fa', fontSize: 14, height: 42 }}
+                />
+              </Form.Item>
+
+              <Form.Item name="remember" valuePropName="checked" style={{ marginBottom: 22 }}>
+                <Checkbox style={{ color: '#8b949e', fontSize: 13 }}>
+                  Recordar mis credenciales
+                </Checkbox>
+              </Form.Item>
+
+              <Button type="primary" htmlType="submit" block loading={loading} size="large"
                 style={{
-                  borderRadius: 8,
-                  borderColor: '#d0d7de',
-                  background: '#f6f8fa',
-                  fontSize: 14,
-                  height: 42,
+                  height: 44, borderRadius: 8, fontWeight: 600, fontSize: 15,
+                  background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+                  borderColor: '#1d4ed8',
+                  boxShadow: '0 4px 12px rgba(37,99,235,0.35)',
                 }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="password"
-              label={<span style={{ color: '#24292f', fontWeight: 500, fontSize: 13 }}>Contraseña</span>}
-              rules={[{ required: true, message: 'Requerido' }]}
-              style={{ marginBottom: 28 }}
-            >
-              <Input.Password
-                prefix={<LockOutlined style={{ color: '#8b949e' }} />}
-                placeholder="••••••••"
-                autoComplete="current-password"
-                size="large"
-                style={{
-                  borderRadius: 8,
-                  borderColor: '#d0d7de',
-                  background: '#f6f8fa',
-                  fontSize: 14,
-                  height: 42,
-                }}
-              />
-            </Form.Item>
-
-            <Form.Item name="remember" valuePropName="checked" style={{ marginBottom: 20 }}>
-              <Checkbox style={{ color: '#8b949e', fontSize: 13 }}>
-                Recordar mis credenciales
-              </Checkbox>
-            </Form.Item>
-
-            <Button
-              type="primary"
-              htmlType="submit"
-              block
-              loading={loading}
-              size="large"
-              style={{
-                height: 44,
-                borderRadius: 8,
-                fontWeight: 600,
-                fontSize: 15,
-                background: '#2383e2',
-                borderColor: '#2383e2',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              Iniciar sesión
-            </Button>
-          </Form>
-
+              >
+                Iniciar sesión
+              </Button>
+            </Form>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
