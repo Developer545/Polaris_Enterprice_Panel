@@ -10,6 +10,15 @@ import { z } from 'zod'
 export class PosController {
   constructor(private readonly svc: PosService) {}
 
+  @Get('stats')
+  @RequirePermissions(PERMISSIONS.SALES_VIEW)
+  getStats(
+    @Query('companyId') companyId: string,
+    @Query('period') period: 'today' | 'month',
+  ) {
+    return this.svc.getStats(companyId, period ?? 'today')
+  }
+
   @Get('sales')
   @RequirePermissions(PERMISSIONS.SALES_VIEW)
   findSales(

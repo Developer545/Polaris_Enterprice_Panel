@@ -235,6 +235,86 @@ export class PosService {
     return this.findOne(sale.id)
   }
 
+  async getStats(companyId: string, period: 'today' | 'month') {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+
+    const now = new Date()
+    let from: Date
+    let to: Date
+
+    if (period === 'today') {
+      from = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
+      to   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
+    } else {
+      from = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
+      to   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
+    }
+
+    const saleWhere = {
+      tenantId,
+      companyId,
+      createdAt: { gte: from, lte: to },
+      dteDocument: { isNot: { status: 'ANNULLED' } as any },
+    }
+
+    const [salesAgg, activeClientsAgg, expensesAgg] = await Promise.all([
+      db.sale.aggregate({
+        where: saleWhere,
+        _sum: { totalPagar: true },
+        _count: { id: true },
+      }),
+      db.sale.groupBy({
+        by: ['clientId'],
+        where: { ...saleWhere, clientId: { not: null } },
+        _count: { clientId: true },
+      }),
+      db.expense.aggregate({
+        where: { tenantId, companyId, date: { gte: from, lte: to } },
+        _sum: { amount: true },
+      }),
+    ])
+
+    const totalSales   = Number(salesAgg._sum.totalPagar ?? 0)
+    const countSales   = salesAgg._count.id
+    const activeClients = activeClientsAgg.length
+    const totalExpenses = Number(expensesAgg._sum.amount ?? 0)
+
+    // last7Days only for month period
+    let last7Days: { day: string; total: number }[] = []
+    if (period === 'month') {
+      const days7from = new Date(now)
+      days7from.setDate(days7from.getDate() - 6)
+      days7from.setHours(0, 0, 0, 0)
+
+      const salesLast7 = await db.sale.findMany({
+        where: {
+          tenantId,
+          companyId,
+          createdAt: { gte: days7from, lte: new Date() },
+          dteDocument: { isNot: { status: 'ANNULLED' } as any },
+        },
+        select: { createdAt: true, totalPagar: true },
+      })
+
+      const dayMap: Record<string, number> = {}
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now)
+        d.setDate(d.getDate() - i)
+        const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
+        dayMap[key] = 0
+      }
+      for (const s of salesLast7) {
+        const d = s.createdAt
+        const key = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
+        if (key in dayMap) dayMap[key] += Number(s.totalPagar ?? 0)
+      }
+      last7Days = Object.entries(dayMap).map(([day, total]) => ({ day, total }))
+    }
+
+    return { totalSales, countSales, activeClients, totalExpenses, last7Days }
+  }
+
   private async getNextNumeroControl(companyId: string, branchId: string, tipoDte: string, tenantId: string) {
     const db = this.getDb()
 
