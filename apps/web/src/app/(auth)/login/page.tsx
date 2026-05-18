@@ -81,17 +81,27 @@ export default function LoginPage() {
         overflow: 'hidden',
         flexShrink: 0,
       }}>
-        {/* Grid pattern — bottom half */}
+        {/* Grid pattern — full panel, fades from top */}
         <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%',
+          position: 'absolute', inset: 0,
           pointerEvents: 'none',
           backgroundImage: [
-            'linear-gradient(rgba(35,131,226,0.08) 1px, transparent 1px)',
-            'linear-gradient(90deg, rgba(35,131,226,0.08) 1px, transparent 1px)',
+            'linear-gradient(rgba(35,131,226,0.22) 1px, transparent 1px)',
+            'linear-gradient(90deg, rgba(35,131,226,0.22) 1px, transparent 1px)',
           ].join(', '),
-          backgroundSize: '40px 40px',
-          maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0.6) 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0.6) 100%)',
+          backgroundSize: '44px 44px',
+          maskImage: 'linear-gradient(to bottom, transparent 0%, black 35%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 35%)',
+        }} />
+
+        {/* Dot intersections for extra depth */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          pointerEvents: 'none',
+          backgroundImage: 'radial-gradient(circle, rgba(35,131,226,0.35) 1.5px, transparent 1.5px)',
+          backgroundSize: '44px 44px',
+          maskImage: 'linear-gradient(to bottom, transparent 0%, black 35%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 35%)',
         }} />
 
         {/* Glow effects */}
@@ -181,8 +191,8 @@ export default function LoginPage() {
         flex: 1,
         height: '100%',
         background: '#ffffff',
-        backgroundImage: 'radial-gradient(#e4e4e4 1px, transparent 1px)',
-        backgroundSize: '24px 24px',
+        backgroundImage: 'radial-gradient(#c8c8c8 1.5px, transparent 1.5px)',
+        backgroundSize: '22px 22px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
