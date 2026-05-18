@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common'
+import { Controller, Get, Param, Query } from '@nestjs/common'
 import { CatalogsService } from './catalogs.service'
 
 /**
@@ -22,5 +22,10 @@ export class CatalogsController {
   @Get('actividades')
   findAllActividades() {
     return this.svc.findAllActividades()
+  }
+
+  @Get('zona')
+  getZona(@Query('depto') depto: string, @Query('municipio') municipio: string) {
+    return this.svc.getZona(depto, municipio)
   }
 }

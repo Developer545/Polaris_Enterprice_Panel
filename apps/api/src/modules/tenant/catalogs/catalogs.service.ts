@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getEnv } from '../../../config/env'
+import { getZona } from '@pos-dte/dte-core'
 
 /**
  * Catalog service — global data (no tenantId).
@@ -43,5 +44,12 @@ export class CatalogsService {
       select: { id: true, codigo: true, nombre: true },
       orderBy: { nombre: 'asc' },
     })
+  }
+
+  // ── Zona geográfica (derivada del catálogo estático dte-core) ─────────────
+
+  getZona(departamentoCod: string, municipioCod: string) {
+    const zona = getZona(departamentoCod, municipioCod)
+    return { zona: zona ?? null }
   }
 }

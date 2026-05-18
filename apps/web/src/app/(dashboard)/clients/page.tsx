@@ -56,7 +56,9 @@ export default function ClientsPage() {
   // Tipo persona (Natural / Jurídica)
   const [tipoPersona, setTipoPersona] = useState<'NATURAL' | 'JURIDICA'>('NATURAL')
   const [departamentoCod, setDepartamentoCod] = useState<string | undefined>()
+  const [municipioCod, setMunicipioCod] = useState<string | undefined>()
   const [municipios, setMunicipios] = useState<{ value: string; label: string }[]>([])
+  const [zona, setZona] = useState<string | undefined>()
 
   const { companyId } = useAppContext()
 
@@ -100,12 +102,22 @@ export default function ClientsPage() {
   // ── Municipios según departamento ────────────────────────────────────────────
 
   useEffect(() => {
-    if (!departamentoCod) { setMunicipios([]); return }
+    if (!departamentoCod) { setMunicipios([]); setZona(undefined); return }
     form.setFieldValue('municipioCod', undefined)
+    setMunicipioCod(undefined)
+    setZona(undefined)
     api.get('/api/catalogs/departamentos/' + departamentoCod + '/municipios')
       .then(r => setMunicipios((r.data as any[]).map((m: any) => ({ value: m.codigo, label: m.nombre }))))
       .catch(() => setMunicipios([]))
   }, [departamentoCod, form])
+
+  // Zona auto-derivada del municipio seleccionado (consulta la API de catálogos)
+  useEffect(() => {
+    if (!departamentoCod || !municipioCod) { setZona(undefined); return }
+    api.get(`/api/catalogs/zona?depto=${departamentoCod}&municipio=${municipioCod}`)
+      .then(r => setZona(r.data?.zona ?? undefined))
+      .catch(() => setZona(undefined))
+  }, [departamentoCod, municipioCod])
 
   // ── Mutations ────────────────────────────────────────────────────────────────
 
@@ -138,7 +150,9 @@ export default function ClientsPage() {
     form.resetFields()
     setTipoPersona('NATURAL')
     setDepartamentoCod(undefined)
+    setMunicipioCod(undefined)
     setMunicipios([])
+    setZona(undefined)
     form.setFieldsValue({ esCreditoFiscal: false, tipoPersona: 'NATURAL', isActive: true })
     setEditOpen(true)
   }
@@ -150,7 +164,9 @@ export default function ClientsPage() {
     setTipoPersona(tipo)
     if (record.departamentoCod) {
       setDepartamentoCod(record.departamentoCod)
-      // municipios se cargarán via useEffect cuando departamentoCod cambie
+    }
+    if (record.municipioCod) {
+      setMunicipioCod(record.municipioCod)
     }
     form.setFieldsValue({
       ...record,
@@ -166,7 +182,9 @@ export default function ClientsPage() {
     setEditOpen(false)
     setEditing(null)
     setDepartamentoCod(undefined)
+    setMunicipioCod(undefined)
     setMunicipios([])
+    setZona(undefined)
   }
 
   function onTipoPersonaChange(val: 'NATURAL' | 'JURIDICA') {
@@ -180,7 +198,13 @@ export default function ClientsPage() {
 
   function onDeptChange(cod: string) {
     setDepartamentoCod(cod)
+    setMunicipioCod(undefined)
     form.setFieldValue('departamentoCod', cod)
+  }
+
+  function onMunicipioChange(cod: string) {
+    setMunicipioCod(cod)
+    form.setFieldValue('municipioCod', cod)
   }
 
   function onFinish(values: any) {
@@ -580,7 +604,7 @@ export default function ClientsPage() {
             </Col>
           </Row>
 
-          {/* Departamento / Municipio */}
+          {/* Departamento / Municipio / Zona */}
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="departamentoCod" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Departamento</span>} style={{ marginBottom: 16 }}>
@@ -604,6 +628,7 @@ export default function ClientsPage() {
                   placeholder={departamentoCod ? 'Seleccionar municipio' : 'Primero elige departamento'}
                   disabled={!departamentoCod}
                   options={municipios}
+                  onChange={onMunicipioChange}
                   filterOption={(input, opt) =>
                     (opt?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
                   }
@@ -613,6 +638,24 @@ export default function ClientsPage() {
               </Form.Item>
             </Col>
           </Row>
+          {/* Zona geográfica — read-only, derivada del municipio */}
+          {zona && (
+            <Row gutter={16}>
+              <Col span={24}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  background: token.colorFillAlter, borderRadius: 8,
+                  padding: '8px 12px', marginBottom: 16,
+                  border: `1px solid ${token.colorBorder}`,
+                }}>
+                  <EnvironmentOutlined style={{ color: '#722ed1', fontSize: 13 }} />
+                  <Text style={{ fontSize: 12, color: '#555' }}>Zona:</Text>
+                  <Text strong style={{ fontSize: 12, color: '#722ed1' }}>{zona}</Text>
+                  <Text type="secondary" style={{ fontSize: 11, marginLeft: 4 }}>(referencia geográfica)</Text>
+                </div>
+              </Col>
+            </Row>
+          )}
 
           {/* Dirección */}
           <Row gutter={16}>

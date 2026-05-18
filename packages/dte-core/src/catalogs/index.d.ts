@@ -57,3 +57,25 @@ export declare const CAT_022_TIPO_DOCUMENTO_RECEPTOR: {
     readonly NRC: "36";
 };
 export declare const DEPARTAMENTOS: Record<string, string>;
+/**
+ * Municipios por departamento — CAT-012 Hacienda El Salvador
+ * Clave: { [departamentoCod]: { [municipioCod]: nombre } }
+ * Estos son los únicos códigos aceptados por el API de firma DTE.
+ */
+export declare const MUNICIPIOS: Record<string, Record<string, string>>;
+/** Helper: retorna municipios de un departamento como array { codigo, nombre } */
+export declare function getMunicipios(departamentoCod: string): {
+    codigo: string;
+    nombre: string;
+}[];
+/**
+ * Zona geográfica por municipio (clave: `${deptoCod}/${municipioCod}`)
+ * Referencia para formularios y complemento de dirección.
+ * NO es campo DTE — es orientación geográfica para el operador.
+ *
+ * San Salvador: Centro / Norte / Sur / Este / Oeste
+ * Resto de departamentos: cabecera o punto cardinal según ubicación
+ */
+export declare const ZONA_POR_MUNICIPIO: Record<string, string>;
+/** Retorna la zona geográfica dado departamento y municipio */
+export declare function getZona(departamentoCod: string, municipioCod: string): string | undefined;
