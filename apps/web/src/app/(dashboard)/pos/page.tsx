@@ -308,7 +308,7 @@ export default function PosPage() {
             type="email"
           />
           {newClientName.trim() && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: '#f0f7ff', borderRadius: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: '#f1f1ef', borderRadius: 6 }}>
               <Avatar style={{ background: token.colorPrimary }} size={28}>
                 {newClientName[0]?.toUpperCase()}
               </Avatar>
@@ -613,11 +613,13 @@ export default function PosPage() {
         onOk={() => payForm.submit()}
         confirmLoading={saleMutation.isPending || createClientMut.isPending}
         okText="Confirmar venta"
-        okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary } }}
+        okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={480}
+        style={{ top: 40 }}
+        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Form form={payForm} layout="vertical" onFinish={submitSale}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, padding: '10px 14px', background: '#fff7f0', borderRadius: 8, border: '1px solid #ffd591' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, padding: '10px 14px', background: '#f9f9f8', borderRadius: 8, border: '1px solid #e9e9e7' }}>
             <div>
               <div style={{ fontSize: 12, color: '#999' }}>Total a cobrar</div>
               <div style={{ fontSize: 24, fontWeight: 700, color: token.colorPrimary }}>${totalPagar.toFixed(2)}</div>
@@ -654,7 +656,7 @@ export default function PosPage() {
           </Form.List>
 
           {/* Calculadora de vuelto (efectivo) */}
-          <div style={{ marginTop: 16, padding: '10px 14px', background: '#f6ffed', borderRadius: 8, border: '1px solid #b7eb8f' }}>
+          <div style={{ marginTop: 16, padding: '10px 14px', background: '#f9f9f8', borderRadius: 8, border: '1px solid #e9e9e7' }}>
             <div style={{ fontSize: 12, color: '#666', marginBottom: 8, fontWeight: 500 }}>Calculadora de cambio (efectivo)</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ flex: 1 }}>
