@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.turbo/
+
+# Electron
+release/
+*.dmg
+*.exe
+*.AppImage
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+pino-*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Prisma
+prisma/migrations/
+generated/
+
+# Test coverage
+coverage/
+
+# Temp
+*.tmp
+*.temp

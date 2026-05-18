@@ -1,0 +1,675 @@
+// Tenant Schema — POS DTE El Salvador
+// All models include tenantId for row-level isolation
+// DB: SHARED_TENANT_DATABASE_URL (shared) or dynamic URL (dedicated)
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/tenant"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("SHARED_TENANT_DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum DteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  ANNULLED
+  ERROR
+}
+
+enum DteAmbiente {
+  TEST
+  PROD
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  PARTIAL
+  RECEIVED
+  CANCELLED
+}
+
+enum AccountPayableStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+}
+
+enum PayrollStatus {
+  DRAFT
+  APPROVED
+  PAID
+}
+
+// ─── Company & Branch ─────────────────────────────────────────────────────────
+
+model Company {
+  id                       String      @id @default(cuid())
+  tenantId                 String
+  name                     String
+  comercialName            String?
+  nit                      String?
+  nrc                      String?
+  actividadEconomica       String?
+  actividadEconomicaCodigo String?
+  logoUrl                  String?     // Cloudinary URL or local userData/ path
+  address                  String?
+  phone                    String?
+  email                    String?
+  // DTE — Hacienda credentials (AES-256 encrypted)
+  haciendaUserEnc          String?
+  haciendaPwdEnc           String?
+  certDataEnc              String?     // .p12 base64 encrypted
+  certPwdEnc               String?
+  dteAmbiente              DteAmbiente @default(TEST)
+  isActive                 Boolean     @default(true)
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
+
+  branches          Branch[]
+  roles             Role[]
+  users             User[]
+  clients           Client[]
+  categories        Category[]
+  services          Service[]
+  cashRegisters     CashRegister[]
+  sales             Sale[]
+  dteNumberControls DteNumberControl[]
+  suppliers         Supplier[]
+  purchaseOrders    PurchaseOrder[]
+  accountsPayable   AccountPayable[]
+  expenseCategories ExpenseCategory[]
+  expenses          Expense[]
+  employees         Employee[]
+  payrollPeriods    PayrollPeriod[]
+  auditLogs         AuditLog[]
+
+  @@index([tenantId])
+}
+
+model Branch {
+  id              String  @id @default(cuid())
+  tenantId        String
+  companyId       String
+  company         Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name            String
+  address         String?
+  phone           String?
+  // DTE — Point of sale codes
+  codEstableMH    String?
+  codPuntoVentaMH String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  users         UserBranch[]
+  cashRegisters CashRegister[]
+  sales         Sale[]
+
+  @@index([tenantId, companyId])
+}
+
+// ─── Auth & Users ────────────────────────────────────────────────────────────
+
+model Role {
+  id          String   @id @default(cuid())
+  tenantId    String
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  permissions Json     @default("{}")
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+
+  @@unique([companyId, name])
+  @@index([tenantId, companyId])
+}
+
+model User {
+  id           String     @id @default(cuid())
+  tenantId     String
+  companyId    String
+  company      Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  email        String
+  password     String
+  name         String
+  phone        String?
+  avatar       String?
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id])
+  isActive     Boolean    @default(true)
+  failedLogins Int        @default(0)
+  lockedUntil  DateTime?
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  sessions      Session[]
+  branches      UserBranch[]
+  sales         Sale[]
+  openedCashRegisters CashRegister[] @relation("OpenedBy")
+  closedCashRegisters CashRegister[] @relation("ClosedBy")
+
+  @@unique([email, companyId])
+  @@index([tenantId, companyId])
+}
+
+model UserBranch {
+  userId   String
+  branchId String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([userId, branchId])
+}
+
+model Session {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String    @unique
+  familyId     String
+  deviceInfo   String?
+  ip           String?
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+// ─── Clients ─────────────────────────────────────────────────────────────────
+
+model Client {
+  id                       String   @id @default(cuid())
+  tenantId                 String
+  companyId                String
+  company                  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name                     String
+  comercialName            String?
+  tipoDocumento            String?
+  numDocumento             String?
+  nrc                      String?
+  actividadEconomica       String?
+  actividadEconomicaCodigo String?
+  departamentoCod          String?
+  municipioCod             String?
+  email                    String?
+  phone                    String?
+  address                  String?
+  esCreditoFiscal          Boolean  @default(false)
+  isActive                 Boolean  @default(true)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  sales                    Sale[]
+
+  @@index([tenantId, companyId])
+}
+
+// ─── Services / Products ─────────────────────────────────────────────────────
+
+model Category {
+  id          String    @id @default(cuid())
+  tenantId    String
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  color       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  services    Service[]
+
+  @@index([tenantId, companyId])
+}
+
+model Service {
+  id          String    @id @default(cuid())
+  tenantId    String
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  name        String
+  description String?
+  sku         String?
+  barcode     String?
+  price       Decimal   @db.Decimal(10, 4)
+  cost        Decimal   @default(0) @db.Decimal(10, 4)
+  imageUrl    String?
+  // DTE
+  tipoItem    String    @default("2")  // "1"=bien "2"=servicio "3"=ambos "4"=otro
+  uniMedida   Int       @default(59)   // catálogo MH — 59=Unidad
+  // Inventory
+  trackStock  Boolean   @default(false)
+  stock       Int       @default(0)
+  minStock    Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  saleItems          SaleItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+
+  @@index([tenantId, companyId])
+}
+
+// ─── Cash Register ────────────────────────────────────────────────────────────
+
+model CashRegister {
+  id              String    @id @default(cuid())
+  tenantId        String
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId        String
+  branch          Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  openedById      String
+  openedBy        User      @relation("OpenedBy", fields: [openedById], references: [id])
+  closedById      String?
+  closedBy        User?     @relation("ClosedBy", fields: [closedById], references: [id])
+  openedAt        DateTime  @default(now())
+  closedAt        DateTime?
+  openingBalance     Decimal   @default(0) @db.Decimal(10, 2)
+  closingBalance     Decimal?  @db.Decimal(10, 2)
+  difference         Decimal?  @db.Decimal(10, 2)
+  montoEsperado      Decimal?  @db.Decimal(10, 2)
+  totalEfectivo      Decimal?  @db.Decimal(10, 2)
+  totalTarjeta       Decimal?  @db.Decimal(10, 2)
+  totalTransferencia Decimal?  @db.Decimal(10, 2)
+  totalQR            Decimal?  @db.Decimal(10, 2)
+  totalVentas        Decimal?  @db.Decimal(10, 2)
+  cantidadVentas     Int?
+  arqueoCaja         Json?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  sales              Sale[]
+
+  @@index([tenantId, branchId])
+}
+
+// ─── Sales ────────────────────────────────────────────────────────────────────
+
+model Sale {
+  id               String        @id @default(cuid())
+  tenantId         String
+  companyId        String
+  company          Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId         String
+  branch           Branch        @relation(fields: [branchId], references: [id])
+  cashRegisterId   String?
+  cashRegister     CashRegister? @relation(fields: [cashRegisterId], references: [id])
+  clientId         String?
+  client           Client?       @relation(fields: [clientId], references: [id])
+  userId           String
+  user             User          @relation(fields: [userId], references: [id])
+  tipoDte          String        @default("01")  // 01=CF 03=CCF 05=NC 06=ND
+  condicionOperacion String      @default("1")   // 1=Contado 2=Crédito
+  // Totals (Decimal — NO float arithmetic)
+  totalNoSuj       Decimal       @default(0) @db.Decimal(10, 2)
+  totalExenta      Decimal       @default(0) @db.Decimal(10, 2)
+  totalGravada     Decimal       @default(0) @db.Decimal(10, 2)
+  totalIva         Decimal       @default(0) @db.Decimal(10, 2)
+  totalDescuento   Decimal       @default(0) @db.Decimal(10, 2)
+  totalPagar       Decimal       @db.Decimal(10, 2)
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  items       SaleItem[]
+  payments    Payment[]
+  dteDocument DteDocument?
+
+  @@index([tenantId, companyId, branchId])
+  @@index([tenantId, companyId, createdAt])
+}
+
+model SaleItem {
+  id           String   @id @default(cuid())
+  saleId       String
+  sale         Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Service  @relation(fields: [productId], references: [id])
+  productName  String
+  quantity     Decimal  @db.Decimal(10, 4)
+  unitPrice    Decimal  @db.Decimal(10, 4)
+  discount     Decimal  @default(0) @db.Decimal(10, 4)
+  ventaNoSuj   Decimal  @default(0) @db.Decimal(10, 4)
+  ventaExenta  Decimal  @default(0) @db.Decimal(10, 4)
+  ventaGravada Decimal  @default(0) @db.Decimal(10, 4)
+  ivaItem      Decimal  @default(0) @db.Decimal(10, 4)
+  tipoItem     String   @default("2")
+  uniMedida    Int      @default(59)
+}
+
+model Payment {
+  id         String  @id @default(cuid())
+  saleId     String
+  sale       Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  formaPago  String  // 01=Efectivo 02=Tarjeta débito 03=Tarjeta crédito ...
+  amount     Decimal @db.Decimal(10, 2)
+  reference  String?
+}
+
+// ─── DTE ─────────────────────────────────────────────────────────────────────
+
+model DteDocument {
+  id               String    @id @default(cuid())
+  tenantId         String
+  companyId        String
+  branchId         String
+  saleId           String    @unique
+  sale             Sale      @relation(fields: [saleId], references: [id])
+  tipoDte          String
+  numeroControl    String
+  codigoGeneracion String    @unique
+  jsonOriginal     Json?
+  jsonFirmado      String?
+  selloRecibido    String?
+  status           DteStatus @default(PENDING)
+  observaciones    String[]
+  processedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([tenantId, companyId])
+  @@index([tenantId, status])
+}
+
+model DteNumberControl {
+  id            String   @id @default(cuid())
+  tenantId      String
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId      String
+  tipoDte       String
+  lastSequence  Int      @default(0)
+  codEstable    String   @default("M001")
+  codPuntoVenta String   @default("P001")
+  updatedAt     DateTime @updatedAt
+
+  @@unique([companyId, branchId, tipoDte])
+  @@index([tenantId, companyId])
+}
+
+// ─── Phase 3: Compras ─────────────────────────────────────────────────────────
+
+model Supplier {
+  id                       String   @id @default(cuid())
+  tenantId                 String
+  companyId                String
+  company                  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name                     String
+  contactName              String?
+  email                    String?
+  phone                    String?
+  address                  String?
+  nit                      String?
+  nrc                      String?
+  actividadEconomica       String?
+  actividadEconomicaCodigo String?
+  paymentTermDays          Int      @default(30)
+  notes                    String?
+  isActive                 Boolean  @default(true)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  purchaseOrders  PurchaseOrder[]
+  accountsPayable AccountPayable[]
+
+  @@index([tenantId, companyId])
+}
+
+model PurchaseOrder {
+  id             String              @id @default(cuid())
+  tenantId       String
+  companyId      String
+  company        Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  supplierId     String
+  supplier       Supplier            @relation(fields: [supplierId], references: [id])
+  orderNumber    String
+  status         PurchaseOrderStatus @default(DRAFT)
+  expectedDate   DateTime?
+  receivedDate   DateTime?
+  subtotal       Decimal             @default(0) @db.Decimal(10, 2)
+  tax            Decimal             @default(0) @db.Decimal(10, 2)
+  total          Decimal             @default(0) @db.Decimal(10, 2)
+  notes          String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  items           PurchaseOrderItem[]
+  accountsPayable AccountPayable[]
+
+  @@index([tenantId, companyId])
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Service       @relation(fields: [productId], references: [id])
+  productName     String
+  quantity        Decimal       @db.Decimal(10, 4)
+  unitCost        Decimal       @db.Decimal(10, 4)
+  total           Decimal       @db.Decimal(10, 2)
+  receivedQty     Decimal       @default(0) @db.Decimal(10, 4)
+}
+
+model AccountPayable {
+  id              String               @id @default(cuid())
+  tenantId        String
+  companyId       String
+  company         Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  supplierId      String
+  supplier        Supplier             @relation(fields: [supplierId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder?       @relation(fields: [purchaseOrderId], references: [id])
+  description     String
+  amount          Decimal              @db.Decimal(10, 2)
+  amountPaid      Decimal              @default(0) @db.Decimal(10, 2)
+  dueDate         DateTime
+  status          AccountPayableStatus @default(PENDING)
+  notes           String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([tenantId, companyId])
+  @@index([tenantId, companyId, status])
+}
+
+model ExpenseCategory {
+  id        String    @id @default(cuid())
+  tenantId  String
+  companyId String
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String
+  color     String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  expenses  Expense[]
+
+  @@index([tenantId, companyId])
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  tenantId    String
+  companyId   String
+  company     Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    ExpenseCategory? @relation(fields: [categoryId], references: [id])
+  description String
+  amount      Decimal         @db.Decimal(10, 2)
+  date        DateTime        @default(now())
+  receiptUrl  String?
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([tenantId, companyId])
+  @@index([tenantId, companyId, date])
+}
+
+// ─── Phase 4: RRHH ────────────────────────────────────────────────────────────
+
+model Employee {
+  id              String         @id @default(cuid())
+  tenantId        String
+  companyId       String
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId        String?
+  firstName       String
+  lastName        String
+  dui             String?
+  nit             String?
+  nssIsss         String?        // Número ISSS
+  nup             String?        // Número AFP
+  email           String?
+  phone           String?
+  address         String?
+  position        String         // Cargo
+  department      String?
+  salary          Decimal        @db.Decimal(10, 2)
+  salaryType      String         @default("MONTHLY") // MONTHLY / DAILY / HOURLY
+  hireDate        DateTime
+  terminationDate DateTime?
+  status          EmployeeStatus @default(ACTIVE)
+  // Deducción AFP
+  afpInstitution  String?        // "CONFIA" | "CRECER"
+  // Foto
+  photoUrl        String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  payrollItems PayrollItem[]
+
+  @@index([tenantId, companyId])
+}
+
+model PayrollPeriod {
+  id          String        @id @default(cuid())
+  tenantId    String
+  companyId   String
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String        // e.g. "Mayo 2026"
+  periodType  String        @default("MONTHLY") // MONTHLY | BIWEEKLY
+  startDate   DateTime
+  endDate     DateTime
+  payDate     DateTime
+  status      PayrollStatus @default(DRAFT)
+  totalBruto  Decimal       @default(0) @db.Decimal(10, 2)
+  totalNeto   Decimal       @default(0) @db.Decimal(10, 2)
+  totalIsss   Decimal       @default(0) @db.Decimal(10, 2)
+  totalAfp    Decimal       @default(0) @db.Decimal(10, 2)
+  totalRenta  Decimal       @default(0) @db.Decimal(10, 2)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  items PayrollItem[]
+
+  @@index([tenantId, companyId])
+}
+
+model PayrollItem {
+  id              String        @id @default(cuid())
+  tenantId        String
+  payrollPeriodId String
+  payrollPeriod   PayrollPeriod @relation(fields: [payrollPeriodId], references: [id], onDelete: Cascade)
+  employeeId      String
+  employee        Employee      @relation(fields: [employeeId], references: [id])
+  // Ingresos
+  salaryBase      Decimal       @db.Decimal(10, 2)
+  horasExtra      Decimal       @default(0) @db.Decimal(10, 2)
+  bonos           Decimal       @default(0) @db.Decimal(10, 2)
+  aguinaldo       Decimal       @default(0) @db.Decimal(10, 2)
+  otrosIngresos   Decimal       @default(0) @db.Decimal(10, 2)
+  totalBruto      Decimal       @db.Decimal(10, 2)
+  // Deducciones laborales (employee side)
+  isssEmpleado    Decimal       @default(0) @db.Decimal(10, 2)  // 3%
+  afpEmpleado     Decimal       @default(0) @db.Decimal(10, 2)  // 7.25%
+  rentaRetenida   Decimal       @default(0) @db.Decimal(10, 2)  // ISR tabla
+  otrosDeducciones Decimal      @default(0) @db.Decimal(10, 2)
+  totalDeducciones Decimal      @db.Decimal(10, 2)
+  salarioNeto     Decimal       @db.Decimal(10, 2)
+  // Aportes patronales (employer side)
+  isssPatronal    Decimal       @default(0) @db.Decimal(10, 2)  // 7.5%
+  afpPatronal     Decimal       @default(0) @db.Decimal(10, 2)  // 7.75%
+  insaforp        Decimal       @default(0) @db.Decimal(10, 2)  // 1%
+  createdAt       DateTime      @default(now())
+
+  @@index([payrollPeriodId])
+  @@index([employeeId])
+}
+
+// ─── Audit ───────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  payload   Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, companyId])
+  @@index([tenantId, companyId, entity])
+}
+
+// ─── Catálogos DTE (globales — sin tenantId, editables desde Configuración) ──
+
+model Departamento {
+  id        String       @id @default(cuid())
+  codigo    String       @unique  // CAT-012 Hacienda (ej. "06")
+  nombre    String
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  municipios Municipio[]
+}
+
+model Municipio {
+  id             String       @id @default(cuid())
+  codigo         String                           // código dentro del depto (ej. "01")
+  nombre         String
+  departamentoCod String
+  departamento   Departamento @relation(fields: [departamentoCod], references: [codigo], onDelete: Cascade)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([departamentoCod, codigo])
+  @@index([departamentoCod])
+}
+
+model ActividadEconomica {
+  id        String   @id @default(cuid())
+  codigo    String   @unique   // Código CIIU / Hacienda
+  nombre    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

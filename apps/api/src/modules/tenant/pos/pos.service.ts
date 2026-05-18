@@ -1,0 +1,275 @@
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common'
+import { InjectQueue } from '@nestjs/bullmq'
+import { Queue } from 'bullmq'
+import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
+import { getCurrentTenant } from '../tenant-resolver/tenant.context'
+import { calcLineTotals, calcSaleSummary } from '@pos-dte/dte-core'
+import { Decimal } from '@prisma/client/runtime/library'
+import { z } from 'zod'
+
+export const SaleLineSchema = z.object({
+  productId: z.string().cuid(),
+  quantity: z.number().positive(),
+  unitPrice: z.number().positive().optional(), // override if custom price
+  discount: z.number().nonnegative().default(0),
+})
+
+export const CreateSaleSchema = z.object({
+  companyId: z.string().cuid(),
+  branchId: z.string().cuid(),
+  cashRegisterId: z.string().cuid(),
+  clientId: z.string().cuid().optional().nullable(),
+  tipoDte: z.enum(['01', '03']).default('01'), // 01=CF, 03=CCF
+  condicionOperacion: z.enum(['1', '2', '3']).default('1'), // 1=Contado, 2=Crédito, 3=Otro
+  items: z.array(SaleLineSchema).min(1),
+  payments: z.array(z.object({
+    formaPago: z.string().length(2), // 01=Efectivo,02=Tarjeta,03=Transferencia,etc.
+    amount: z.number().positive(),
+    reference: z.string().optional(),
+  })),
+  notes: z.string().optional(),
+  emitDte: z.boolean().default(true),
+})
+
+export type CreateSaleDto = z.infer<typeof CreateSaleSchema>
+
+@Injectable()
+export class PosService {
+  constructor(
+    private readonly clientFactory: TenantClientFactory,
+    @InjectQueue('dte') private readonly dteQueue: Queue,
+  ) {}
+
+  private getDb() {
+    const { dbUrl } = getCurrentTenant()
+    return this.clientFactory.getClient(dbUrl)
+  }
+
+  async findSales(companyId: string, branchId?: string, from?: string, to?: string, page = 1, limit = 50) {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+    const skip = (page - 1) * limit
+
+    const where = {
+      tenantId,
+      companyId,
+      ...(branchId ? { branchId } : {}),
+      ...(from || to ? {
+        createdAt: {
+          ...(from ? { gte: new Date(from) } : {}),
+          ...(to ? { lte: new Date(to) } : {}),
+        },
+      } : {}),
+    }
+
+    const [sales, total] = await Promise.all([
+      db.sale.findMany({
+        where,
+        include: {
+          client: { select: { id: true, name: true } },
+          branch: { select: { id: true, name: true } },
+          dteDocument: { select: { id: true, tipoDte: true, numeroControl: true, selloRecibido: true, status: true } },
+          _count: { select: { items: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      db.sale.count({ where }),
+    ])
+
+    return { sales, total, page, limit }
+  }
+
+  async findOne(id: string) {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+    const sale = await db.sale.findFirst({
+      where: { id, tenantId },
+      include: {
+        client: true,
+        branch: { select: { id: true, name: true } },
+        items: { include: { product: { select: { id: true, name: true, sku: true } } } },
+        payments: true,
+        cashRegister: { select: { id: true, openedAt: true } },
+        dteDocument: true,
+      },
+    })
+    if (!sale) throw new NotFoundException('Venta no encontrada')
+    return sale
+  }
+
+  async create(dto: CreateSaleDto, userId: string) {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+
+    // Validate cash register is open
+    const register = await db.cashRegister.findFirst({
+      where: { id: dto.cashRegisterId, tenantId, closedAt: null },
+    })
+    if (!register) throw new BadRequestException('Caja cerrada o no encontrada')
+
+    // Load products
+    const productIds = dto.items.map(i => i.productId)
+    const products = await db.service.findMany({
+      where: { id: { in: productIds }, tenantId, isActive: true },
+    })
+    if (products.length !== productIds.length) throw new BadRequestException('Uno o más productos no encontrados')
+
+    // Build typed line totals
+    const lines = dto.items.map(item => {
+      const product = products.find(p => p.id === item.productId)!
+      const unitPrice = item.unitPrice ?? Number(product.price)
+      const totals = calcLineTotals(
+        {
+          quantity: item.quantity,
+          unitPrice,
+          discount: item.discount,
+        },
+        dto.tipoDte as '01' | '03',
+      )
+      return { item, product, unitPrice, totals }
+    })
+
+    const summary = calcSaleSummary({
+      lines: lines.map(l => l.totals),
+    })
+
+    // Validate payment total covers sale total
+    const totalPaid = dto.payments.reduce((s, p) => s + p.amount, 0)
+    if (new Decimal(totalPaid).lessThan(summary.totalPagar)) {
+      throw new BadRequestException('El total pagado no cubre el total de la venta')
+    }
+
+    // Check stock for tracked products
+    for (const { item, product } of lines) {
+      if (product.trackStock && (product.stock ?? 0) < item.quantity) {
+        throw new BadRequestException(`Stock insuficiente para "${product.name}"`)
+      }
+    }
+
+    // Get numero control
+    const dteNumberControl = await this.getNextNumeroControl(dto.companyId, dto.branchId, dto.tipoDte, tenantId)
+
+    // Create sale in transaction
+    const sale = await db.$transaction(async (tx) => {
+      const newSale = await tx.sale.create({
+        data: {
+          tenantId,
+          companyId: dto.companyId,
+          branchId: dto.branchId,
+          cashRegisterId: dto.cashRegisterId,
+          clientId: dto.clientId,
+          userId,
+          tipoDte: dto.tipoDte,
+          condicionOperacion: dto.condicionOperacion,
+          notes: dto.notes,
+          // Totals
+          totalNoSuj: new Decimal(summary.totalNoSuj),
+          totalExenta: new Decimal(summary.totalExenta),
+          totalGravada: new Decimal(summary.totalGravada),
+          totalIva: new Decimal(summary.totalIva),
+          totalDescuento: new Decimal(summary.totalDescu),
+          totalPagar: new Decimal(summary.totalPagar),
+          // Items
+          items: {
+            create: lines.map(({ item, product, unitPrice, totals }) => ({
+              productId: item.productId,
+              productName: product.name,
+              quantity: item.quantity,
+              unitPrice: new Decimal(unitPrice),
+              discount: new Decimal(item.discount),
+              ventaNoSuj: new Decimal(totals.ventaNoSujeta),
+              ventaExenta: new Decimal(totals.ventaExenta),
+              ventaGravada: new Decimal(totals.ventaGravada),
+              ivaItem: new Decimal(totals.ivaItem),
+              tipoItem: product.tipoItem,
+              uniMedida: product.uniMedida,
+            })),
+          },
+          // Payments
+          payments: {
+            create: dto.payments.map(p => ({
+              formaPago: p.formaPago,
+              amount: new Decimal(p.amount),
+              reference: p.reference,
+            })),
+          },
+        },
+      })
+
+      // Decrease stock
+      for (const { item, product } of lines) {
+        if (product.trackStock) {
+          await tx.service.update({
+            where: { id: product.id },
+            data: { stock: { decrement: item.quantity } },
+          })
+        }
+      }
+
+      // Update numero control sequence
+      await tx.dteNumberControl.update({
+        where: { id: dteNumberControl.id },
+        data: { lastSequence: { increment: 1 } },
+      })
+
+      return newSale
+    })
+
+    // Enqueue DTE emission
+    if (dto.emitDte) {
+      await this.dteQueue.add('emit', {
+        saleId: sale.id,
+        tenantId,
+        companyId: dto.companyId,
+        branchId: dto.branchId,
+        tipoDte: dto.tipoDte,
+        numeroControl: dteNumberControl.nextNumeroControl,
+      }, {
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 5000 },
+      })
+    }
+
+    return this.findOne(sale.id)
+  }
+
+  private async getNextNumeroControl(companyId: string, branchId: string, tipoDte: string, tenantId: string) {
+    const db = this.getDb()
+
+    let control = await db.dteNumberControl.findFirst({
+      where: { companyId, branchId, tipoDte },
+    })
+
+    if (!control) {
+      // Auto-create with sequence 0 — will be incremented on use
+      const branch = await db.branch.findFirst({
+        where: { id: branchId },
+        select: { codEstableMH: true, codPuntoVentaMH: true },
+      })
+      control = await db.dteNumberControl.create({
+        data: {
+          tenantId,
+          companyId,
+          branchId,
+          tipoDte,
+          lastSequence: 0,
+          codEstable: branch?.codEstableMH ?? 'M001',
+          codPuntoVenta: branch?.codPuntoVentaMH ?? 'P001',
+        },
+      })
+    }
+
+    const nextSeq = control.lastSequence + 1
+    const { buildNumeroControl } = await import('@pos-dte/dte-core')
+    const nextNumeroControl = buildNumeroControl({
+      tipoDte: tipoDte as import('@pos-dte/shared-types').TipoDte,
+      codEstable: control.codEstable,
+      codPuntoVenta: control.codPuntoVenta,
+      sequence: nextSeq,
+    })
+
+    return { ...control, nextNumeroControl }
+  }
+}

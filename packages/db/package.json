@@ -1,0 +1,16 @@
+{
+  "name": "@pos-dte/db",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "db:generate": "prisma generate --schema prisma/control-plane.prisma && prisma generate --schema prisma/tenant.prisma",
+    "db:push:cp": "dotenv -e ../../.env -- prisma db push --schema prisma/control-plane.prisma",
+    "db:push:tenant": "dotenv -e ../../.env -- prisma db push --schema prisma/tenant.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.8.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.8.0"
+  }
+}

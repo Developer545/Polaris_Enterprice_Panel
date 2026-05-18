@@ -1,0 +1,34 @@
+appId: com.speeddan.posdte
+productName: POS DTE El Salvador
+copyright: Copyright © 2025 Speeddan System
+
+directories:
+  output: release
+  buildResources: resources
+
+files:
+  - dist/**/*
+  - "!**/*.map"
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: resources/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  runAfterFinish: true
+  language: 3082
+
+publish:
+  provider: github
+  owner: Developer545
+  repo: pos-dte-releases
+
+protocols:
+  - name: POS DTE
+    schemes: [pos-dte]

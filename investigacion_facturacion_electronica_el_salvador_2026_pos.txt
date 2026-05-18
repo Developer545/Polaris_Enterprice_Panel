@@ -1,0 +1,1004 @@
+INVESTIGACIÓN TÉCNICA PROFESIONAL 2026
+IMPLEMENTACIÓN DE FACTURACIÓN ELECTRÓNICA DTE EN EL SALVADOR
+MÓDULO POS CON NESTJS, NEXT.JS, PRISMA, POSTGRESQL, REDIS, PINO, TANSTACK Y ANT DESIGN
+
+Preparado para: Daniel Gomez
+Objetivo: servir como documento base para diseñar una nueva sección o módulo POS que emita Documentos Tributarios Electrónicos (DTE) aceptados por el Ministerio de Hacienda de El Salvador.
+Fecha de elaboración: 2026-05-16
+
+================================================================================
+1. RESUMEN EJECUTIVO
+================================================================================
+
+La facturación electrónica en El Salvador funciona mediante Documentos Tributarios Electrónicos, conocidos como DTE. Un sistema POS moderno no debe limitarse a generar una factura visual o un PDF; debe generar un JSON tributario válido, firmarlo electrónicamente, transmitirlo al Ministerio de Hacienda, recibir una respuesta oficial, almacenar el sello de recepción y conservar evidencia fiscal completa.
+
+Para que el JSON sea aceptado por Hacienda, debe cumplir tres grandes condiciones:
+
+1. Requisito administrativo:
+   - El contribuyente debe estar autorizado como emisor DTE.
+   - Debe contar con usuario, contraseña o credenciales de acceso al ambiente de Hacienda.
+   - Debe tener firma/certificado electrónico habilitado para firmar los documentos.
+   - Debe tener configurados los datos fiscales correctos del emisor, establecimiento, punto de venta y actividad económica.
+
+2. Requisito técnico:
+   - El DTE debe construirse según el JSON Schema oficial correspondiente al tipo de documento.
+   - Debe firmarse mediante el mecanismo aceptado por Hacienda, normalmente en formato JWS.
+   - Debe enviarse a la API oficial de recepción con token válido.
+   - Deben respetarse catálogos oficiales: ambiente, tipo de DTE, tipo de operación, tipo de transmisión, departamento, municipio, tipo de documento, unidad de medida, forma de pago, tributos, entre otros.
+
+3. Requisito contable/fiscal:
+   - Los totales deben cuadrar exactamente.
+   - El cuerpo del documento debe coincidir con el resumen.
+   - El IVA, descuentos, retenciones, ventas gravadas, exentas y no sujetas deben calcularse correctamente.
+   - El documento debe conservarse con su JSON original, JSON firmado, respuesta de Hacienda, sello de recepción y representación gráfica.
+
+Para tu stack propuesto, la arquitectura recomendada es:
+
+- Backend: NestJS
+- Frontend: Next.js
+- ORM: Prisma
+- Base de datos: PostgreSQL
+- Cache y colas: Redis + BullMQ
+- Logs: Pino
+- Tablas avanzadas: TanStack Table
+- Estado de datos frontend: TanStack Query
+- UI empresarial: Ant Design
+- Validación JSON Schema: AJV
+- Validación de DTO: class-validator o Zod
+- Generación PDF: Playwright
+- Firma DTE: servicio interno separado o microservicio firmador
+
+================================================================================
+2. ESTADO ACTUALIZADO 2026
+================================================================================
+
+Durante la revisión de fuentes oficiales disponibles públicamente en 2026, se encontró lo siguiente:
+
+1. El Ministerio de Hacienda mantiene activa la sección oficial de Facturación Electrónica.
+2. El portal administrativo de factura electrónica continúa operando bajo admin.factura.gob.sv.
+3. El portal público de consulta de DTE permite validar documentos mediante fecha de generación y código de generación.
+4. El Plan Estratégico Institucional 2025-2029 del Ministerio de Hacienda, publicado en 2026, indica que Hacienda continuará ampliando la adopción de la facturación electrónica como herramienta para mejorar la trazabilidad de operaciones económicas y reducir incumplimientos.
+5. En el informe de seguimiento del primer trimestre 2026 se menciona como línea estratégica la implementación de la declaración IVA proforma a partir de facturación electrónica.
+6. No se encontró, en la búsqueda pública realizada, una nueva guía técnica 2026 que reemplace oficialmente la Guía de Integración de Factura Electrónica publicada en factura.gob.sv. Por tanto, para desarrollo técnico, la referencia principal sigue siendo la guía de integración y los anexos oficiales de JSON Schema que Hacienda proporciona para cada tipo de DTE.
+
+Conclusión 2026:
+El sistema debe diseñarse de manera flexible, porque Hacienda está ampliando el uso de facturación electrónica y podría aumentar integraciones relacionadas, como declaraciones proforma de IVA. Tu POS debe almacenar datos tributarios limpios y estructurados para que no solo emita DTE, sino que también pueda soportar reportes, auditoría, conciliación y futuras obligaciones digitales.
+
+================================================================================
+3. FUENTES OFICIALES CONSULTADAS
+================================================================================
+
+Fuentes principales:
+
+1. Ministerio de Hacienda - Facturación Electrónica
+   https://www.mh.gob.sv/facturacion-electronica/
+
+2. Portal administrativo de Facturación DTE
+   https://admin.factura.gob.sv/
+
+3. Consulta pública de DTE
+   https://admin.factura.gob.sv/consultaPublica
+
+4. Guía de Integración de Factura Electrónica El Salvador
+   https://factura.gob.sv/wp-content/uploads/2021/11/FESVDGIIMH_GuiaIntegracionFacturaElectronicasSV.pdf
+
+5. Plan Estratégico Institucional 2025-2029, publicado en 2026
+   https://transparencia.mh.gob.sv/downloads/pdf/700-UAIP-IF-2026-15644.pdf
+
+6. Informe de Seguimiento POA Primer Trimestre 2026
+   https://transparencia.mh.gob.sv/downloads/pdf/700-UAIP-IF-2026-15865.pdf
+
+7. Calendario Tributario 2026
+   https://www.mh.gob.sv/wp-content/uploads/2025/12/Calendario-Tributario-2026.pdf
+
+================================================================================
+4. CONCEPTOS CLAVE
+================================================================================
+
+DTE:
+Documento Tributario Electrónico. Es el documento fiscal digital generado en formato JSON, firmado electrónicamente y enviado a Hacienda.
+
+JSON DTE:
+Archivo estructurado que contiene identificación, emisor, receptor, detalle de productos o servicios, resumen, pagos, tributos, apéndice y otros bloques según el tipo de documento.
+
+JSON Schema:
+Estructura técnica que define campos permitidos, tipos de datos, longitudes, patrones, campos requeridos y restricciones de cada tipo de DTE.
+
+JWS:
+JSON Web Signature. Mecanismo utilizado para firmar documentos JSON y garantizar que no fueron alterados después de su firma.
+
+Código de generación:
+UUID versión 4 generado por el emisor. Sirve como identificador único del DTE dentro del ecosistema de facturación electrónica.
+
+Sello de recepción:
+Código emitido por Hacienda cuando el DTE cumple los requisitos y es recibido/procesado exitosamente. Es una evidencia crítica para la validez del documento.
+
+Representación gráfica:
+PDF, ticket o vista imprimible del DTE. No sustituye el JSON firmado ni la respuesta de Hacienda.
+
+================================================================================
+5. REQUISITOS PARA CONECTARSE A HACIENDA
+================================================================================
+
+Para conectar tu POS a la API de Hacienda necesitas:
+
+1. Autorización como emisor DTE
+   El contribuyente debe estar habilitado para emitir documentos tributarios electrónicos. Esto se gestiona ante el Ministerio de Hacienda.
+
+2. Credenciales de acceso
+   Hacienda asigna credenciales para consumir el servicio de autenticación y obtener token.
+
+3. Certificado o firma electrónica
+   El emisor debe firmar electrónicamente los DTE. La firma debe corresponder al contribuyente/emisor autorizado.
+
+4. Configuración fiscal del emisor
+   El sistema debe guardar:
+   - NIT
+   - NRC
+   - Nombre legal
+   - Nombre comercial
+   - Código de actividad económica
+   - Descripción de actividad económica
+   - Tipo de establecimiento
+   - Código de establecimiento MH
+   - Código interno de establecimiento
+   - Código de punto de venta MH
+   - Código interno de punto de venta
+   - Dirección fiscal
+   - Departamento
+   - Municipio
+   - Teléfono
+   - Correo de facturación
+
+5. Catálogos oficiales
+   Deben cargarse y mantenerse actualizados:
+   - Ambiente
+   - Tipo de documento DTE
+   - Tipo de generación
+   - Tipo de modelo
+   - Tipo de operación
+   - Tipo de contingencia
+   - Tipo de establecimiento
+   - Tipo de item
+   - Unidad de medida
+   - Tipo de documento del receptor
+   - Departamento
+   - Municipio
+   - Actividad económica
+   - Tributos
+   - Forma de pago
+   - Condición de operación
+   - Plazo
+   - Moneda
+
+6. JSON Schema oficial
+   Cada DTE tiene su propio schema. No debes inventar la estructura. Tu backend debe validar el JSON contra el schema correcto antes de firmarlo.
+
+================================================================================
+6. APIs PRINCIPALES DE HACIENDA
+================================================================================
+
+6.1 Servicio de autenticación
+
+Ambiente de pruebas:
+https://apifacturatest.mh.gob.sv/auth
+
+Ambiente de producción:
+https://apifactura.mh.gob.sv/auth
+
+Método:
+POST
+
+Content-Type:
+application/x-www-form-urlencoded
+
+Parámetros:
+user=usuario_asignado
+pwd=password_asignado
+
+Respuesta esperada:
+{
+  "status": "OK",
+  "body": {
+    "user": "usuario",
+    "token": "Bearer ...",
+    "tokenType": "Bearer"
+  }
+}
+
+Notas técnicas:
+- El token se usa para consumir los servicios de recepción.
+- Según la guía oficial, en pruebas la vigencia se ha manejado como 48 horas y en producción como 24 horas.
+- Tu backend debe guardar el token en Redis con expiración menor a la vigencia oficial.
+- Nunca guardes el token en frontend.
+
+6.2 Servicio de recepción DTE
+
+Ambiente de pruebas:
+https://apifacturatest.mh.gob.sv/fesv/recepciondte
+
+Ambiente de producción:
+https://apifactura.mh.gob.sv/fesv/recepciondte
+
+Método:
+POST
+
+Headers:
+Authorization: Bearer TOKEN
+Content-Type: application/json
+
+Body general:
+{
+  "ambiente": "00",
+  "idEnvio": 1,
+  "version": 1,
+  "tipoDte": "01",
+  "documento": "JWS_DEL_DTE_FIRMADO",
+  "codigoGeneracion": "UUID-V4"
+}
+
+Respuesta esperada:
+{
+  "version": 1,
+  "ambiente": "00",
+  "versionApp": 1,
+  "estado": "PROCESADO",
+  "codigoGeneracion": "UUID",
+  "selloRecibido": "SELLO",
+  "fhProcesamiento": "dd/MM/yyyy HH:mm:ss",
+  "codigoMsg": "001",
+  "descripcionMsg": "RECIBIDO",
+  "observaciones": []
+}
+
+Estados internos recomendados:
+- BORRADOR
+- GENERADO
+- VALIDADO_SCHEMA
+- FIRMADO
+- ENVIANDO
+- PROCESADO
+- PROCESADO_CON_OBSERVACIONES
+- RECHAZADO
+- ERROR_CONEXION
+- CONTINGENCIA
+- ANULADO
+
+================================================================================
+7. ESTRUCTURA GENERAL DEL JSON DTE
+================================================================================
+
+La estructura varía según el tipo de documento, pero para una Factura Electrónica de consumidor final suele seguir una composición similar a:
+
+{
+  "identificacion": {},
+  "documentoRelacionado": null,
+  "emisor": {},
+  "receptor": {},
+  "otrosDocumentos": null,
+  "ventaTercero": null,
+  "cuerpoDocumento": [],
+  "resumen": {},
+  "extension": {},
+  "apendice": []
+}
+
+Bloques principales:
+
+1. identificacion
+2. documentoRelacionado
+3. emisor
+4. receptor
+5. otrosDocumentos
+6. ventaTercero
+7. cuerpoDocumento
+8. resumen
+9. extension
+10. apendice
+
+================================================================================
+8. BLOQUE IDENTIFICACION
+================================================================================
+
+Ejemplo conceptual:
+
+{
+  "version": 1,
+  "ambiente": "00",
+  "tipoDte": "01",
+  "numeroControl": "DTE-01-M001P001-000000000000001",
+  "codigoGeneracion": "550E8400-E29B-41D4-A716-446655440000",
+  "tipoModelo": 1,
+  "tipoOperacion": 1,
+  "tipoContingencia": null,
+  "motivoContin": null,
+  "fecEmi": "2026-05-16",
+  "horEmi": "10:30:00",
+  "tipoMoneda": "USD"
+}
+
+Validaciones:
+- ambiente debe ser "00" para pruebas o "01" para producción, según catálogo oficial.
+- codigoGeneracion debe ser UUID v4.
+- numeroControl debe respetar formato autorizado.
+- fecEmi debe respetar formato de fecha.
+- horEmi debe respetar formato de hora.
+- tipoDte debe coincidir con el schema usado.
+- tipoContingencia y motivoContin deben usarse solo si aplica.
+- tipoMoneda usualmente será USD.
+
+Errores comunes:
+- Enviar UUID en minúsculas cuando el schema exige mayúsculas.
+- Usar un numeroControl duplicado.
+- Enviar fecha/hora con formato incorrecto.
+- Enviar ambiente de pruebas con credenciales de producción o viceversa.
+
+================================================================================
+9. BLOQUE EMISOR
+================================================================================
+
+Ejemplo conceptual:
+
+{
+  "nit": "06140000000000",
+  "nrc": "123456",
+  "nombre": "EMPRESA DEMO S.A. DE C.V.",
+  "codActividad": "62020",
+  "descActividad": "Consultoría informática",
+  "nombreComercial": "POS DEMO",
+  "tipoEstablecimiento": "02",
+  "direccion": {
+    "departamento": "06",
+    "municipio": "14",
+    "complemento": "San Salvador"
+  },
+  "telefono": "22222222",
+  "correo": "facturacion@empresa.com",
+  "codEstableMH": "M001",
+  "codEstable": "M001",
+  "codPuntoVentaMH": "P001",
+  "codPuntoVenta": "P001"
+}
+
+Validaciones:
+- NIT sin guiones si el schema lo exige.
+- NRC correcto.
+- actividad económica autorizada.
+- departamento y municipio según catálogo.
+- correo válido.
+- teléfono válido.
+- códigos MH correctos.
+- los datos del emisor deben coincidir con el certificado/firma y la autorización.
+
+================================================================================
+10. BLOQUE RECEPTOR
+================================================================================
+
+Para consumidor final, el receptor puede ser más simple dependiendo del caso. Para Crédito Fiscal, el receptor debe tener información tributaria más completa.
+
+Ejemplo conceptual para consumidor final:
+{
+  "tipoDocumento": "13",
+  "numDocumento": "00000000-0",
+  "nrc": null,
+  "nombre": "CLIENTE FINAL",
+  "codActividad": null,
+  "descActividad": null,
+  "direccion": {
+    "departamento": "06",
+    "municipio": "14",
+    "complemento": "San Salvador"
+  },
+  "telefono": "77777777",
+  "correo": "cliente@correo.com"
+}
+
+Validaciones:
+- tipoDocumento válido.
+- numDocumento con formato correcto.
+- nrc requerido si es contribuyente y el tipo de DTE lo exige.
+- nombre no debe estar vacío.
+- correo válido cuando el schema lo exige.
+- para CCF, el cliente debe tener datos fiscales completos.
+
+================================================================================
+11. BLOQUE CUERPO DOCUMENTO
+================================================================================
+
+Este bloque representa las líneas del carrito del POS.
+
+Ejemplo conceptual:
+{
+  "numItem": 1,
+  "tipoItem": 1,
+  "numeroDocumento": null,
+  "cantidad": 2,
+  "codigo": "P001",
+  "codTributo": null,
+  "uniMedida": 59,
+  "descripcion": "Corte de cabello",
+  "precioUni": 5.00,
+  "montoDescu": 0.00,
+  "ventaNoSuj": 0.00,
+  "ventaExenta": 0.00,
+  "ventaGravada": 10.00,
+  "tributos": null,
+  "psv": 0.00,
+  "noGravado": 0.00,
+  "ivaItem": 1.15
+}
+
+Reglas:
+- numItem debe iniciar en 1 y ser correlativo.
+- cantidad debe ser mayor que cero.
+- precioUni no debe ser negativo.
+- descripcion es obligatoria.
+- uniMedida debe venir del catálogo oficial.
+- tipoItem debe venir del catálogo oficial.
+- no deben enviarse líneas vacías.
+- no deben enviarse productos con cantidad cero.
+- ventaGravada, ventaExenta y ventaNoSuj deben calcularse correctamente.
+- ivaItem debe calcularse según el tipo de documento y las reglas tributarias aplicables.
+
+================================================================================
+12. BLOQUE RESUMEN
+================================================================================
+
+Ejemplo conceptual:
+
+{
+  "totalNoSuj": 0.00,
+  "totalExenta": 0.00,
+  "totalGravada": 10.00,
+  "subTotalVentas": 10.00,
+  "descuNoSuj": 0.00,
+  "descuExenta": 0.00,
+  "descuGravada": 0.00,
+  "porcentajeDescuento": 0.00,
+  "totalDescu": 0.00,
+  "subTotal": 10.00,
+  "ivaRete1": 0.00,
+  "reteRenta": 0.00,
+  "montoTotalOperacion": 10.00,
+  "totalNoGravado": 0.00,
+  "totalPagar": 10.00,
+  "totalLetras": "DIEZ 00/100 DÓLARES",
+  "totalIva": 1.15,
+  "saldoFavor": 0.00,
+  "condicionOperacion": 1,
+  "pagos": [
+    {
+      "codigo": "01",
+      "montoPago": 10.00,
+      "referencia": null,
+      "plazo": null,
+      "periodo": null
+    }
+  ],
+  "numPagoElectronico": null
+}
+
+Validaciones críticas:
+- totalGravada debe ser igual a la suma de ventaGravada.
+- totalExenta debe ser igual a la suma de ventaExenta.
+- totalNoSuj debe ser igual a la suma de ventaNoSuj.
+- subTotalVentas debe coincidir con la suma de ventas.
+- totalDescu debe coincidir con descuentos.
+- totalPagar debe coincidir con la suma de pagos.
+- totalLetras debe coincidir con totalPagar.
+- condición de operación debe venir del catálogo oficial.
+- forma de pago debe venir del catálogo oficial.
+
+================================================================================
+13. TIPOS DE DOCUMENTOS A IMPLEMENTAR EN EL POS
+================================================================================
+
+Orden recomendado:
+
+1. Factura Electrónica
+   Para consumidor final.
+
+2. Comprobante de Crédito Fiscal
+   Para ventas a contribuyentes IVA.
+
+3. Nota de Crédito
+   Para devoluciones, anulaciones parciales o descuentos posteriores.
+
+4. Nota de Débito
+   Para cargos adicionales.
+
+5. Evento de invalidación/anulación
+   Para anular DTE según reglas de Hacienda.
+
+6. Contingencia
+   Para emitir cuando no se puede transmitir en línea.
+
+7. Factura de exportación
+   Solo si el negocio vende al exterior.
+
+================================================================================
+14. FLUJO TÉCNICO RECOMENDADO PARA EL POS
+================================================================================
+
+Flujo ideal:
+
+1. Cajero crea venta en POS.
+2. Frontend envía carrito al backend.
+3. Backend valida productos, cliente, usuario, caja, sucursal y punto de venta.
+4. Backend calcula totales con Decimal.js o Prisma Decimal.
+5. Backend guarda venta local en estado BORRADOR.
+6. Backend genera JSON DTE.
+7. Backend valida JSON contra JSON Schema con AJV.
+8. Backend genera codigoGeneracion UUID v4.
+9. Backend genera numeroControl.
+10. Backend firma el JSON.
+11. Backend solicita token a Hacienda o usa token vigente desde Redis.
+12. Backend envía DTE firmado a recepción.
+13. Hacienda responde.
+14. Backend guarda:
+    - JSON original
+    - JSON firmado
+    - respuesta completa
+    - sello de recepción
+    - observaciones
+    - estado
+15. Backend genera PDF o ticket.
+16. Frontend muestra resultado.
+17. Si falla, se envía a cola de reintento o contingencia.
+
+================================================================================
+15. ARQUITECTURA RECOMENDADA EN NESTJS
+================================================================================
+
+Estructura sugerida:
+
+src/
+  modules/
+    auth/
+    users/
+    customers/
+    products/
+    inventory/
+    pos/
+    sales/
+    payments/
+    dte/
+      builders/
+        factura-electronica.builder.ts
+        credito-fiscal.builder.ts
+        nota-credito.builder.ts
+      validators/
+        dte-schema.validator.ts
+        dte-totals.validator.ts
+        dte-catalog.validator.ts
+      services/
+        dte.service.ts
+        dte-number-control.service.ts
+        dte-firmador.service.ts
+        hacienda-auth.service.ts
+        hacienda-client.service.ts
+        dte-contingency.service.ts
+        dte-annulment.service.ts
+      queues/
+        dte.processor.ts
+        dte.queue.ts
+      schemas/
+        factura-electronica.schema.json
+        credito-fiscal.schema.json
+    pdf/
+    audit/
+    config/
+    logs/
+
+Servicios clave:
+
+- DteBuilderService:
+  Construye el JSON según el tipo de documento.
+
+- DteSchemaValidatorService:
+  Valida el JSON contra el schema oficial.
+
+- DteTotalsValidatorService:
+  Valida que totales de cuerpo y resumen cuadren.
+
+- DteFirmadorService:
+  Firma el JSON y devuelve JWS.
+
+- HaciendaAuthService:
+  Obtiene y cachea token.
+
+- HaciendaClientService:
+  Envía documentos y procesa respuestas.
+
+- DteQueueProcessor:
+  Maneja emisión asíncrona y reintentos.
+
+================================================================================
+16. MODELO DE BASE DE DATOS SUGERIDO CON PRISMA
+================================================================================
+
+model DteDocument {
+  id                 String   @id @default(uuid())
+  saleId             String
+  tipoDte            String
+  ambiente           String
+  version            Int
+  numeroControl      String
+  codigoGeneracion   String   @unique
+  selloRecibido      String?
+  estado             String
+  jsonOriginal       Json
+  jsonFirmado        String?
+  respuestaHacienda  Json?
+  observaciones      Json?
+  pdfUrl             String?
+  fechaEmision       DateTime
+  fechaProcesamiento DateTime?
+  retryCount         Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model DteConfig {
+  id                 String   @id @default(uuid())
+  nit                String
+  nrc                String
+  nombre             String
+  nombreComercial    String?
+  codActividad       String
+  descActividad      String
+  tipoEstablecimiento String
+  codEstableMH       String?
+  codEstable         String?
+  codPuntoVentaMH    String?
+  codPuntoVenta      String?
+  departamento       String
+  municipio          String
+  complemento        String
+  telefono           String?
+  correo             String
+  ambiente           String
+  activo             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model DteError {
+  id                 String   @id @default(uuid())
+  dteId              String?
+  codigoGeneracion   String?
+  endpoint           String?
+  statusCode         Int?
+  errorCode          String?
+  message            String
+  rawResponse        Json?
+  createdAt          DateTime @default(now())
+}
+
+model DteAuditLog {
+  id                 String   @id @default(uuid())
+  dteId              String?
+  action             String
+  userId             String?
+  payload            Json?
+  createdAt          DateTime @default(now())
+}
+
+================================================================================
+17. REDIS, COLAS Y REINTENTOS
+================================================================================
+
+Redis debe usarse para:
+
+1. Cachear token de Hacienda.
+2. Manejar colas de emisión DTE.
+3. Manejar reintentos.
+4. Controlar bloqueo de correlativos.
+5. Evitar doble emisión.
+6. Procesar contingencia.
+
+Recomendación con BullMQ:
+
+Colas:
+- dte.generate
+- dte.sign
+- dte.send
+- dte.retry
+- dte.contingency
+- dte.pdf
+
+Regla:
+El frontend no debe esperar indefinidamente a Hacienda. Debe poder mostrar un estado como "procesando", mientras el backend termina la transmisión.
+
+================================================================================
+18. PINO Y LOGS PROFESIONALES
+================================================================================
+
+Usa Pino para registrar eventos técnicos, pero nunca registres información sensible completa.
+
+Redactar:
+- Authorization
+- token
+- pwd
+- password
+- clave privada
+- certificado
+- jsonFirmado
+- firma
+- datos completos de cliente si no son necesarios
+
+Ejemplo de redacción conceptual:
+
+redact: [
+  'req.headers.authorization',
+  'token',
+  'pwd',
+  'password',
+  'certificado',
+  'clavePrivada',
+  'jsonFirmado'
+]
+
+Eventos a registrar:
+- DTE_GENERATED
+- DTE_SCHEMA_VALIDATED
+- DTE_SIGNED
+- HACIENDA_AUTH_OK
+- HACIENDA_AUTH_ERROR
+- DTE_SENT
+- DTE_PROCESSED
+- DTE_REJECTED
+- DTE_RETRY
+- DTE_CONTINGENCY_STARTED
+- DTE_ANNULLED
+
+================================================================================
+19. FRONTEND CON NEXT.JS, ANT DESIGN Y TANSTACK
+================================================================================
+
+Secciones recomendadas:
+
+1. POS/Caja
+   - Carrito de venta
+   - Cliente
+   - Productos/servicios
+   - Descuentos
+   - Métodos de pago
+   - Botón emitir DTE
+
+2. Historial DTE
+   - Tabla con filtros
+   - Estado
+   - Tipo DTE
+   - Código generación
+   - Sello
+   - Fecha
+   - Cliente
+   - Total
+
+3. DTE rechazados
+   - Observaciones de Hacienda
+   - Botón corregir
+   - Botón reenviar si aplica
+
+4. Contingencia
+   - Documentos pendientes
+   - Evento de contingencia
+   - Reenvío masivo
+
+5. Configuración fiscal
+   - Emisor
+   - Establecimiento
+   - Punto de venta
+   - Ambiente
+   - Certificados
+   - Catálogos
+
+6. Auditoría
+   - Usuario
+   - Acción
+   - Fecha
+   - Resultado
+
+Componentes Ant Design:
+- Table
+- Modal
+- Drawer
+- Form
+- Steps
+- Tag
+- Alert
+- Badge
+- Statistic
+- Tabs
+- Descriptions
+
+TanStack:
+- TanStack Query para consultar estado y emitir acciones.
+- TanStack Table para tablas avanzadas si necesitas filtros complejos, columnas dinámicas o exportación.
+
+================================================================================
+20. VALIDACIONES ANTES DE FIRMAR
+================================================================================
+
+Checklist obligatorio:
+
+- Emisor configurado.
+- Credenciales configuradas.
+- Certificado disponible.
+- Ambiente correcto.
+- Tipo DTE correcto.
+- Cliente válido.
+- Productos con cantidad mayor a cero.
+- No hay líneas vacías.
+- Unidad de medida válida.
+- Tipo item válido.
+- Totales cuadrados.
+- Pagos cuadran con total.
+- codigoGeneracion único.
+- numeroControl único.
+- Fecha y hora válidas.
+- JSON Schema válido.
+- JSON no se modifica después de firmado.
+
+================================================================================
+21. ERRORES COMUNES
+================================================================================
+
+1. JSON inválido:
+   - Campo faltante.
+   - Campo extra.
+   - Tipo incorrecto.
+   - null incorrecto.
+   - string vacío donde no aplica.
+   - catálogo incorrecto.
+
+2. Firma inválida:
+   - Se modificó el JSON después de firmarlo.
+   - Certificado incorrecto.
+   - NIT del emisor no coincide.
+   - Formato JWS inválido.
+
+3. Totales incorrectos:
+   - Descuento mal calculado.
+   - IVA mal calculado.
+   - Redondeo diferente.
+   - pagos no coinciden con totalPagar.
+
+4. Error de autenticación:
+   - Token expirado.
+   - Credenciales incorrectas.
+   - Ambiente incorrecto.
+   - Usuario sin permisos.
+
+5. Error de comunicación:
+   - 500
+   - 502
+   - 503
+   - 504
+   - timeout
+   - caída de internet
+
+================================================================================
+22. CONTINGENCIA
+================================================================================
+
+Debe implementarse desde el inicio.
+
+Casos:
+- Falla de internet.
+- Falla eléctrica.
+- Caída del sistema del emisor.
+- Hacienda no responde después de reintentos.
+- Error temporal del servicio.
+
+Tu sistema debe:
+- Permitir emitir en contingencia.
+- Guardar los DTE pendientes.
+- Marcar documentos como CONTINGENCIA.
+- Generar representación gráfica.
+- Crear evento de contingencia cuando aplique.
+- Reenviar documentos al restablecer conexión.
+- Guardar sello cuando Hacienda procese los documentos.
+
+================================================================================
+23. SEGURIDAD Y CUMPLIMIENTO
+================================================================================
+
+Buenas prácticas:
+
+1. Nunca guardar certificados en el repositorio.
+2. Usar variables de entorno o vault.
+3. Cifrar la llave privada.
+4. Restringir acceso al módulo de configuración fiscal.
+5. Auditar cada emisión.
+6. Respaldar PostgreSQL.
+7. Mantener JSON original y firmado.
+8. No eliminar DTE procesados.
+9. Implementar roles:
+   - Administrador
+   - Cajero
+   - Contador
+   - Supervisor
+   - Soporte técnico
+10. Registrar cada anulación o reenvío.
+
+================================================================================
+24. RECOMENDACIÓN DE DESARROLLO POR FASES
+================================================================================
+
+Fase 1: POS base
+- Productos
+- Clientes
+- Ventas
+- Caja
+- Pagos
+- Inventario
+- PDF interno
+
+Fase 2: Generador DTE
+- Factura consumidor final
+- CCF
+- JSON Builder
+- JSON Schema Validator
+- Catálogos
+
+Fase 3: Firma
+- Integrar firmador
+- Guardar JWS
+- Validar que no se modifique después de firmar
+
+Fase 4: Hacienda TEST
+- Autenticación
+- Recepción
+- Manejo de respuesta
+- Logs
+- Reintentos
+
+Fase 5: Producción
+- Credenciales reales
+- Certificado real
+- Monitoreo
+- Backups
+- Auditoría
+- Contingencia
+- Anulación
+
+================================================================================
+25. CONCLUSIÓN
+================================================================================
+
+Para construir un POS empresarial compatible con facturación electrónica en El Salvador, el núcleo del sistema debe estar en el backend. El frontend solo debe capturar la venta y mostrar el resultado. La generación del JSON, cálculo de totales, validación, firma, transmisión y almacenamiento fiscal deben hacerse en NestJS.
+
+Regla principal:
+
+Frontend vende.
+Backend calcula.
+Backend genera.
+Backend valida.
+Backend firma.
+Backend transmite.
+Backend guarda evidencia fiscal.
+
+El JSON será aceptado por Hacienda si cumple:
+
+1. Schema correcto.
+2. Catálogos correctos.
+3. Totales exactos.
+4. Emisor autorizado.
+5. Firma válida.
+6. Credenciales válidas.
+7. Ambiente correcto.
+8. Código de generación único.
+9. Número de control válido.
+10. Documento no alterado después de firmar.
+
+================================================================================
+26. NOTA IMPORTANTE SOBRE 2026
+================================================================================
+
+La investigación pública de 2026 muestra que Hacienda sigue fortaleciendo y ampliando la facturación electrónica. Sin embargo, no se encontró una nueva guía técnica pública 2026 que sustituya la guía de integración y los anexos técnicos de JSON Schema. Antes de pasar a producción, debes descargar directamente desde el portal oficial de Hacienda los schemas, catálogos y anexos vigentes para tu usuario emisor, porque los ejemplos públicos no sustituyen las configuraciones específicas requeridas para ser facturador.
+
+================================================================================
+FIN DEL DOCUMENTO
+================================================================================

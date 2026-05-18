@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sin conexión — POS DTE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0f0f0f;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 420px;
+      padding: 40px 24px;
+    }
+
+    .icon {
+      font-size: 72px;
+      margin-bottom: 24px;
+      display: block;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.5; }
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #f47920;
+    }
+
+    p {
+      font-size: 14px;
+      color: #888;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 28px;
+      background: #f47920;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      text-decoration: none;
+    }
+    .btn:hover { background: #d96810; }
+
+    .status {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #444;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff4d4f;
+      margin-right: 6px;
+      vertical-align: middle;
+      animation: blink 1.2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+
+    .brand {
+      position: fixed;
+      bottom: 16px;
+      width: 100%;
+      text-align: center;
+      font-size: 11px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="icon">📡</span>
+    <h1>Sin conexión a internet</h1>
+    <p>
+      POS DTE requiere conexión a internet para funcionar.<br />
+      Verifique su red y vuelva a intentarlo.
+    </p>
+    <button class="btn" onclick="retry()">Reintentar conexión</button>
+    <div class="status">
+      <span class="dot"></span>
+      Esperando conexión...
+    </div>
+  </div>
+
+  <div class="brand">Speeddan System · POS DTE El Salvador</div>
+
+  <script>
+    function retry() {
+      // Main process listens for this message and retries loadURL
+      window.location.reload()
+    }
+
+    // Auto-retry every 15s
+    let countdown = 15
+    const status = document.querySelector('.status')
+    const interval = setInterval(() => {
+      countdown--
+      if (countdown <= 0) {
+        clearInterval(interval)
+        retry()
+      } else {
+        status.innerHTML = `<span class="dot"></span> Reintentando en ${countdown}s...`
+      }
+    }, 1000)
+  </script>
+</body>
+</html>

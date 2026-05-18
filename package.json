@@ -1,0 +1,42 @@
+{
+  "name": "pos-dte-sv",
+  "version": "0.0.1",
+  "private": true,
+  "packageManager": "npm@11.6.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:api": "turbo run dev --filter=@pos-dte/api",
+    "dev:web": "turbo run dev --filter=@pos-dte/web",
+    "dev:admin": "turbo run dev --filter=@pos-dte/admin",
+    "dev:electron": "turbo run dev --filter=@pos-dte/electron",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "db:generate": "turbo run db:generate --filter=@pos-dte/db",
+    "db:migrate:cp": "dotenv -e .env -- prisma migrate dev --schema packages/db/prisma/control-plane.prisma",
+    "db:migrate:tenant": "dotenv -e .env -- prisma migrate dev --schema packages/db/prisma/tenant.prisma",
+    "db:push:cp": "dotenv -e .env -- prisma db push --schema packages/db/prisma/control-plane.prisma",
+    "db:push:tenant": "dotenv -e .env -- prisma db push --schema packages/db/prisma/tenant.prisma",
+    "db:studio:cp": "dotenv -e .env -- prisma studio --schema packages/db/prisma/control-plane.prisma",
+    "db:studio:tenant": "dotenv -e .env -- prisma studio --schema packages/db/prisma/tenant.prisma",
+    "db:seed": "dotenv -e .env -- npx ts-node --project apps/api/tsconfig.json scripts/seed.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "dotenv-cli": "^8.0.0",
+    "prettier": "^3.5.0",
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "dependencies": {
+    "@fastify/static": "^6.12.0"
+  }
+}
