@@ -161,7 +161,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         width={240}
         collapsedWidth={64}
         style={{
-          background: '#001529',
+          background: '#fbfbfa',
           position: 'fixed',
           height: '100vh',
           left: 0,
@@ -170,6 +170,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          borderRight: '1px solid #e9e9e7',
         }}
       >
         {/* Logo */}
@@ -179,7 +180,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'flex-start',
           padding: collapsed ? 0 : '0 16px',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          borderBottom: '1px solid #e9e9e7',
           flexShrink: 0,
         }}>
           <div style={{
@@ -192,10 +193,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
           {!collapsed && (
             <div style={{ marginLeft: 10, overflow: 'hidden' }}>
-              <div style={{ color: '#fff', fontWeight: 700, fontSize: 14, lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+              <div style={{ color: '#37352f', fontWeight: 700, fontSize: 14, lineHeight: 1.2, whiteSpace: 'nowrap' }}>
                 POS DTE SV
               </div>
-              <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, whiteSpace: 'nowrap' }}>
+              <div style={{ color: '#9b9b99', fontSize: 11, whiteSpace: 'nowrap' }}>
                 Speeddan System
               </div>
             </div>
@@ -224,7 +225,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         margin: '2px 8px',
                         borderRadius: 8,
                         cursor: 'pointer',
-                        color: hasActive ? group.color : 'rgba(255,255,255,0.45)',
+                        color: hasActive ? group.color : '#9b9b99',
                         background: hasActive ? `${group.color}18` : 'transparent',
                         fontSize: 16,
                         transition: 'all 0.2s',
@@ -248,11 +249,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ color: group.color, fontSize: 14 }}>{group.icon}</span>
-                      <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                      <Text style={{ color: '#37352f', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                         {group.label}
                       </Text>
                     </div>
-                    <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, transition: 'transform 0.2s', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
+                    <span style={{ color: '#c7c7c5', fontSize: 10, transition: 'transform 0.2s', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
                       <CaretDownOutlined />
                     </span>
                   </div>
@@ -273,8 +274,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           margin: '1px 8px',
                           borderRadius: 8,
                           cursor: 'pointer',
-                          color: active ? '#fff' : 'rgba(255,255,255,0.45)',
-                          background: active ? token.colorPrimary : 'transparent',
+                          color: active ? '#2383e2' : '#9b9b99',
+                          background: active ? '#e8f0fc' : 'transparent',
                           fontSize: 15,
                           transition: 'all 0.15s',
                         }}
@@ -294,14 +295,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         margin: '1px 8px',
                         borderRadius: 8,
                         cursor: 'pointer',
-                        color: active ? '#fff' : 'rgba(255,255,255,0.6)',
-                        background: active ? token.colorPrimary : 'transparent',
+                        color: active ? '#2383e2' : '#37352f',
+                        background: active ? '#e8f0fc' : 'transparent',
                         fontWeight: active ? 600 : 400,
                         fontSize: 13,
                         transition: 'all 0.15s',
                         borderLeft: active ? 'none' : '2px solid transparent',
                       }}
-                      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                      onMouseEnter={e => { if (!active) e.currentTarget.style.background = '#ebebea' }}
                       onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
                     >
                       <span style={{ fontSize: 14, flexShrink: 0 }}>{item.icon}</span>
@@ -312,7 +313,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   )
                 })}
 
-                {!collapsed && <div style={{ margin: '4px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }} />}
+                {!collapsed && <div style={{ margin: '4px 16px', borderBottom: '1px solid #ebebea' }} />}
               </div>
             )
           })}
@@ -322,7 +323,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {!collapsed && (
           <div style={{
             padding: '12px 16px',
-            borderTop: '1px solid rgba(255,255,255,0.08)',
+            borderTop: '1px solid #e9e9e7',
             flexShrink: 0,
           }}>
             <Dropdown menu={userMenu} placement="topRight" trigger={['click']}>
@@ -335,17 +336,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 borderRadius: 8,
                 transition: 'background 0.15s',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#ebebea' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
               >
                 <Avatar size={32} style={{ background: token.colorPrimary, fontWeight: 700, flexShrink: 0 }}>
                   {user?.name?.[0]?.toUpperCase() ?? 'U'}
                 </Avatar>
                 <div style={{ overflow: 'hidden', flex: 1 }}>
-                  <div style={{ color: '#fff', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ color: '#37352f', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {user?.name ?? '...'}
                   </div>
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ color: '#9b9b99', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {user?.role?.name ?? 'Administrador'}
                   </div>
                 </div>
