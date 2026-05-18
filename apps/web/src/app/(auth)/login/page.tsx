@@ -1,10 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Form, Input, Button, Typography, Alert } from 'antd'
-import {
-  UserOutlined, LockOutlined, ShopOutlined,
-  CheckCircleFilled, ThunderboltFilled, SafetyCertificateFilled,
-} from '@ant-design/icons'
+import { UserOutlined, LockOutlined, ShopOutlined, CheckCircleFilled } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
 
@@ -40,108 +37,137 @@ export default function LoginPage() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      width: '100vw',
+      height: '100vh',
       display: 'flex',
+      overflow: 'hidden',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     }}>
 
-      {/* ── LEFT PANEL — branding ─────────────────────────────────────── */}
+      {/* ── LEFT — branding (45%) ──────────────────────────────────── */}
       <div style={{
-        width: 480,
-        flexShrink: 0,
-        background: 'linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+        width: '45%',
+        height: '100%',
+        background: 'linear-gradient(150deg, #0d1117 0%, #161b22 40%, #0d1b2e 100%)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: '48px 48px 40px',
+        padding: '52px 56px',
         position: 'relative',
         overflow: 'hidden',
+        flexShrink: 0,
       }}>
-        {/* Background decoration */}
+        {/* Glow effects */}
         <div style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: 'radial-gradient(ellipse at 80% 20%, rgba(35,131,226,0.15) 0%, transparent 60%), radial-gradient(ellipse at 10% 80%, rgba(35,131,226,0.08) 0%, transparent 50%)',
+          background: [
+            'radial-gradient(600px circle at 70% 10%, rgba(35,131,226,0.12) 0%, transparent 60%)',
+            'radial-gradient(400px circle at 20% 85%, rgba(35,131,226,0.07) 0%, transparent 50%)',
+          ].join(', '),
         }} />
 
-        {/* Logo */}
+        {/* Logo mark */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
           <div style={{
-            width: 40, height: 40, borderRadius: 10,
+            width: 38, height: 38, borderRadius: 10,
             background: '#2383e2',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(35,131,226,0.4)',
           }}>
-            <ShopOutlined style={{ color: '#fff', fontSize: 20 }} />
+            <ShopOutlined style={{ color: '#fff', fontSize: 19 }} />
           </div>
-          <div>
-            <div style={{ color: '#fff', fontWeight: 700, fontSize: 16, lineHeight: 1 }}>POS DTE SV</div>
-            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 }}>Speeddan System</div>
-          </div>
+          <span style={{ color: '#fff', fontWeight: 700, fontSize: 17, letterSpacing: '-0.01em' }}>
+            POS DTE
+          </span>
         </div>
 
-        {/* Main copy */}
+        {/* Hero text */}
         <div style={{ position: 'relative' }}>
-          <Typography.Title level={2} style={{
-            color: '#fff', margin: '0 0 16px',
-            fontWeight: 800, lineHeight: 1.2, fontSize: 32,
+          <div style={{
+            display: 'inline-block',
+            background: 'rgba(35,131,226,0.15)',
+            border: '1px solid rgba(35,131,226,0.25)',
+            borderRadius: 20,
+            padding: '4px 12px',
+            marginBottom: 20,
           }}>
-            Facturación DTE<br />para cualquier<br />negocio
+            <span style={{ color: '#2383e2', fontSize: 12, fontWeight: 500 }}>
+              Facturación Electrónica · El Salvador
+            </span>
+          </div>
+
+          <Typography.Title style={{
+            color: '#ffffff',
+            fontSize: 36,
+            fontWeight: 800,
+            lineHeight: 1.15,
+            letterSpacing: '-0.02em',
+            margin: '0 0 20px',
+          }}>
+            Gestiona tu negocio<br />con facturación DTE
           </Typography.Title>
-          <Typography.Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, lineHeight: 1.7, display: 'block', marginBottom: 32 }}>
-            Peluquerías, veterinarias, comercios,<br />almacenes y más — todo en un solo sistema.
+
+          <Typography.Text style={{
+            color: 'rgba(255,255,255,0.45)',
+            fontSize: 15,
+            lineHeight: 1.7,
+            display: 'block',
+            marginBottom: 36,
+          }}>
+            Para peluquerías, veterinarias,<br />
+            comercios, almacenes y más.
           </Typography.Text>
 
-          {/* Feature list */}
-          {[
-            'Emisión de CF, CCF, NC y ND',
-            'Integración con Ministerio de Hacienda',
-            'POS táctil + impresión térmica',
-          ].map(feat => (
-            <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <CheckCircleFilled style={{ color: '#2383e2', fontSize: 14, flexShrink: 0 }} />
-              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{feat}</span>
-            </div>
-          ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              'CF, CCF, Notas de Crédito y Débito',
+              'POS táctil con impresión térmica',
+              'Integración directa con Hacienda',
+            ].map(f => (
+              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <CheckCircleFilled style={{ color: '#2383e2', fontSize: 13, flexShrink: 0 }} />
+                <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13 }}>{f}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Footer badges */}
-        <div style={{ display: 'flex', gap: 12, position: 'relative' }}>
-          {[
-            { icon: <ThunderboltFilled />, label: 'Multi-giro' },
-            { icon: <SafetyCertificateFilled />, label: 'MH Certificado' },
-          ].map(b => (
-            <div key={b.label} style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              background: 'rgba(255,255,255,0.07)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 20, padding: '6px 12px',
-            }}>
-              <span style={{ color: '#2383e2', fontSize: 12 }}>{b.icon}</span>
-              <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{b.label}</span>
-            </div>
-          ))}
+        {/* Bottom text */}
+        <div style={{ position: 'relative' }}>
+          <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>
+            © {new Date().getFullYear()} POS DTE El Salvador
+          </span>
         </div>
       </div>
 
-      {/* ── RIGHT PANEL — form ────────────────────────────────────────── */}
+      {/* ── RIGHT — form (55%) ─────────────────────────────────────── */}
       <div style={{
         flex: 1,
-        background: '#fafafa',
+        height: '100%',
+        background: '#ffffff',
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '40px 24px',
+        padding: '40px 64px',
+        overflowY: 'auto',
       }}>
-        <div style={{ width: '100%', maxWidth: 380 }}>
+        <div style={{ width: '100%', maxWidth: 400 }}>
 
-          <Typography.Title level={3} style={{
-            margin: '0 0 6px', color: '#37352f', fontWeight: 700,
+          <Typography.Title level={2} style={{
+            margin: '0 0 8px',
+            color: '#0d1117',
+            fontWeight: 700,
+            fontSize: 28,
+            letterSpacing: '-0.02em',
           }}>
             Bienvenido
           </Typography.Title>
-          <Typography.Text style={{ color: '#787774', fontSize: 14, display: 'block', marginBottom: 28 }}>
-            Ingresa con tus credenciales de acceso
+          <Typography.Text style={{
+            color: '#8b949e',
+            fontSize: 15,
+            display: 'block',
+            marginBottom: 32,
+          }}>
+            Ingresa tus credenciales para continuar
           </Typography.Text>
 
           {error && (
@@ -151,53 +177,70 @@ export default function LoginPage() {
               showIcon
               closable
               onClose={() => setError(null)}
-              style={{ marginBottom: 20, borderRadius: 8, fontSize: 13 }}
+              style={{ marginBottom: 24, borderRadius: 8, fontSize: 13 }}
             />
           )}
 
           <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
-
             <Form.Item
               name="companyId"
-              label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>ID de empresa</span>}
+              label={<span style={{ color: '#24292f', fontWeight: 500, fontSize: 13 }}>ID de empresa</span>}
               rules={[{ required: true, message: 'Requerido' }]}
-              style={{ marginBottom: 14 }}
+              style={{ marginBottom: 16 }}
             >
               <Input
-                prefix={<ShopOutlined style={{ color: '#b8b8b6' }} />}
+                prefix={<ShopOutlined style={{ color: '#8b949e' }} />}
                 placeholder="company-demo-001"
                 size="large"
-                style={{ borderRadius: 8, borderColor: '#e9e9e7', background: '#fff', fontSize: 14 }}
+                style={{
+                  borderRadius: 8,
+                  borderColor: '#d0d7de',
+                  background: '#f6f8fa',
+                  fontSize: 14,
+                  height: 42,
+                }}
               />
             </Form.Item>
 
             <Form.Item
               name="email"
-              label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Correo electrónico</span>}
+              label={<span style={{ color: '#24292f', fontWeight: 500, fontSize: 13 }}>Correo electrónico</span>}
               rules={[{ required: true, type: 'email', message: 'Correo inválido' }]}
-              style={{ marginBottom: 14 }}
+              style={{ marginBottom: 16 }}
             >
               <Input
-                prefix={<UserOutlined style={{ color: '#b8b8b6' }} />}
+                prefix={<UserOutlined style={{ color: '#8b949e' }} />}
                 placeholder="usuario@empresa.com"
                 autoComplete="email"
                 size="large"
-                style={{ borderRadius: 8, borderColor: '#e9e9e7', background: '#fff', fontSize: 14 }}
+                style={{
+                  borderRadius: 8,
+                  borderColor: '#d0d7de',
+                  background: '#f6f8fa',
+                  fontSize: 14,
+                  height: 42,
+                }}
               />
             </Form.Item>
 
             <Form.Item
               name="password"
-              label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Contraseña</span>}
+              label={<span style={{ color: '#24292f', fontWeight: 500, fontSize: 13 }}>Contraseña</span>}
               rules={[{ required: true, message: 'Requerido' }]}
-              style={{ marginBottom: 24 }}
+              style={{ marginBottom: 28 }}
             >
               <Input.Password
-                prefix={<LockOutlined style={{ color: '#b8b8b6' }} />}
+                prefix={<LockOutlined style={{ color: '#8b949e' }} />}
                 placeholder="••••••••"
                 autoComplete="current-password"
                 size="large"
-                style={{ borderRadius: 8, borderColor: '#e9e9e7', background: '#fff', fontSize: 14 }}
+                style={{
+                  borderRadius: 8,
+                  borderColor: '#d0d7de',
+                  background: '#f6f8fa',
+                  fontSize: 14,
+                  height: 42,
+                }}
               />
             </Form.Item>
 
@@ -208,26 +251,19 @@ export default function LoginPage() {
               loading={loading}
               size="large"
               style={{
-                borderRadius: 8,
                 height: 44,
+                borderRadius: 8,
                 fontWeight: 600,
                 fontSize: 15,
-                background: '#37352f',
-                borderColor: '#37352f',
-                boxShadow: '0 2px 8px rgba(55,53,47,0.2)',
+                background: '#2383e2',
+                borderColor: '#2383e2',
+                letterSpacing: '-0.01em',
               }}
             >
               Iniciar sesión
             </Button>
-
           </Form>
 
-          <Typography.Text style={{
-            display: 'block', textAlign: 'center',
-            marginTop: 32, color: '#c7c7c5', fontSize: 11,
-          }}>
-            © {new Date().getFullYear()} Speeddan System · v{process.env.NEXT_PUBLIC_APP_VERSION ?? '1.0.0'}
-          </Typography.Text>
         </div>
       </div>
     </div>
