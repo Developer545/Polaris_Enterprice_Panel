@@ -81,12 +81,25 @@ export default function LoginPage() {
         overflow: 'hidden',
         flexShrink: 0,
       }}>
+        {/* Grid pattern — bottom half */}
+        <div style={{
+          position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%',
+          pointerEvents: 'none',
+          backgroundImage: [
+            'linear-gradient(rgba(35,131,226,0.08) 1px, transparent 1px)',
+            'linear-gradient(90deg, rgba(35,131,226,0.08) 1px, transparent 1px)',
+          ].join(', '),
+          backgroundSize: '40px 40px',
+          maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0.6) 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0.6) 100%)',
+        }} />
+
         {/* Glow effects */}
         <div style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
           background: [
             'radial-gradient(600px circle at 70% 10%, rgba(35,131,226,0.12) 0%, transparent 60%)',
-            'radial-gradient(400px circle at 20% 85%, rgba(35,131,226,0.07) 0%, transparent 50%)',
+            'radial-gradient(400px circle at 20% 85%, rgba(35,131,226,0.10) 0%, transparent 50%)',
           ].join(', '),
         }} />
 
@@ -168,13 +181,23 @@ export default function LoginPage() {
         flex: 1,
         height: '100%',
         background: '#ffffff',
+        backgroundImage: 'radial-gradient(#e4e4e4 1px, transparent 1px)',
+        backgroundSize: '24px 24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '40px 64px',
         overflowY: 'auto',
+        position: 'relative',
       }}>
-        <div style={{ width: '100%', maxWidth: 400 }}>
+        <div style={{
+          width: '100%', maxWidth: 400,
+          background: '#ffffff',
+          borderRadius: 12,
+          padding: '40px 36px',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04)',
+          border: '1px solid #f0f0f0',
+        }}>
 
           <Typography.Title level={2} style={{
             margin: '0 0 8px',
