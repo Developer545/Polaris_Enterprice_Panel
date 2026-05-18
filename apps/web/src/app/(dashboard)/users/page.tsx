@@ -1,11 +1,12 @@
 'use client'
 import { useState } from 'react'
-import { Table, Button, Input, Tag, Space, Typography, Avatar } from 'antd'
+import { Table, Button, Input, Tag, Space, Typography, Avatar, theme } from 'antd'
 import { PlusOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 
 export default function UsersPage() {
+  const { token } = theme.useToken()
   const [search, setSearch] = useState('')
 
   const { data, isLoading } = useQuery({
@@ -17,7 +18,7 @@ export default function UsersPage() {
     {
       title: '', key: 'avatar', width: 48,
       render: (r: any) => (
-        <Avatar src={r.avatar} icon={<UserOutlined />} style={{ background: '#f47920' }}>
+        <Avatar src={r.avatar} icon={<UserOutlined />} style={{ background: token.colorPrimary }}>
           {!r.avatar ? r.name?.[0] : undefined}
         </Avatar>
       ),

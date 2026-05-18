@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import {
   Table, Button, Tag, Modal, Form, Input, Select, App,
-  Space, Popconfirm, Switch, Typography, Avatar,
+  Space, Popconfirm, Switch, Typography, Avatar, theme,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import {
@@ -16,6 +16,7 @@ const { Text } = Typography
 interface Props { companyId: string }
 
 export default function UsuariosTab({ companyId }: Props) {
+  const { token } = theme.useToken()
   const { message } = App.useApp()
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
@@ -89,7 +90,7 @@ export default function UsuariosTab({ companyId }: Props) {
       title: 'Usuario',
       render: (_: any, r: any) => (
         <Space>
-          <Avatar style={{ background: '#f47920', fontWeight: 700 }} size={32}>
+          <Avatar style={{ background: token.colorPrimary, fontWeight: 700 }} size={32}>
             {r.name?.[0]?.toUpperCase() ?? 'U'}
           </Avatar>
           <div>
@@ -128,7 +129,7 @@ export default function UsuariosTab({ companyId }: Props) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Text strong>Usuarios ({users.length})</Text>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}
-          style={{ background: '#f47920', borderColor: '#f47920' }}>
+          style={{ background: token.colorPrimary, borderColor: token.colorPrimary }}>
           Nuevo Usuario
         </Button>
       </div>
@@ -189,7 +190,7 @@ export default function UsuariosTab({ companyId }: Props) {
             <Button onClick={closeModal}>Cancelar</Button>
             <Button type="primary" htmlType="submit"
               loading={createMut.isPending || updateMut.isPending}
-              style={{ background: '#f47920', borderColor: '#f47920' }}>
+              style={{ background: token.colorPrimary, borderColor: token.colorPrimary }}>
               {editing ? 'Guardar' : 'Crear'}
             </Button>
           </div>

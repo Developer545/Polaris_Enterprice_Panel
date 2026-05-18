@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import {
   Table, Button, Tag, Modal, Form, Input, App,
-  Space, Popconfirm, Switch, Typography, Row, Col,
+  Space, Popconfirm, Switch, Typography, Row, Col, theme,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import {
@@ -17,6 +17,7 @@ const { Text } = Typography
 interface Props { companyId: string }
 
 export default function SucursalesTab({ companyId }: Props) {
+  const { token } = theme.useToken()
   const { message } = App.useApp()
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
@@ -82,7 +83,7 @@ export default function SucursalesTab({ companyId }: Props) {
       dataIndex: 'name',
       render: (name: string, r: any) => (
         <Space>
-          <ShopOutlined style={{ color: '#f47920' }} />
+          <ShopOutlined style={{ color: token.colorPrimary }} />
           <div>
             <div style={{ fontWeight: 600 }}>{name}</div>
             <Text type="secondary" style={{ fontSize: 12 }}>{r.address || '—'}</Text>
@@ -124,7 +125,7 @@ export default function SucursalesTab({ companyId }: Props) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Text strong>Sucursales ({branches.length})</Text>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}
-          style={{ background: '#f47920', borderColor: '#f47920' }}>
+          style={{ background: token.colorPrimary, borderColor: token.colorPrimary }}>
           Nueva Sucursal
         </Button>
       </div>
@@ -184,7 +185,7 @@ export default function SucursalesTab({ companyId }: Props) {
             <Button onClick={closeModal}>Cancelar</Button>
             <Button type="primary" htmlType="submit"
               loading={createMut.isPending || updateMut.isPending}
-              style={{ background: '#f47920', borderColor: '#f47920' }}>
+              style={{ background: token.colorPrimary, borderColor: token.colorPrimary }}>
               {editing ? 'Guardar' : 'Crear'}
             </Button>
           </div>

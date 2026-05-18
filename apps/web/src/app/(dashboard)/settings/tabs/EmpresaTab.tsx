@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import {
   Form, Input, Select, Button, Row, Col, Divider,
-  Typography, App, Spin, Tag, Alert,
+  Typography, App, Spin, Tag, Alert, theme,
 } from 'antd'
 import { SaveOutlined, LockOutlined, CloudOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -14,6 +14,7 @@ const { Title, Text } = Typography
 interface Props { companyId: string }
 
 export default function EmpresaTab({ companyId }: Props) {
+  const { token } = theme.useToken()
   const { message } = App.useApp()
   const qc = useQueryClient()
   const [form] = Form.useForm()
@@ -161,7 +162,7 @@ export default function EmpresaTab({ companyId }: Props) {
             htmlType="submit"
             loading={mutation.isPending}
             icon={<SaveOutlined />}
-            style={{ background: '#f47920', borderColor: '#f47920' }}
+            style={{ background: token.colorPrimary, borderColor: token.colorPrimary }}
           >
             Guardar Cambios
           </Button>

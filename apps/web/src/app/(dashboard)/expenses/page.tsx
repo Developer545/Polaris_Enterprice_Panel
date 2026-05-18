@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { Table, Button, Tag, Typography, Modal, Form, Select, InputNumber, Input, App, Row, Col, DatePicker, Statistic, Card } from 'antd'
+import { Table, Button, Tag, Typography, Modal, Form, Select, InputNumber, Input, App, Row, Col, DatePicker, Statistic, Card, theme } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
@@ -11,6 +11,7 @@ const TAG_COLORS = ['blue', 'green', 'orange', 'purple', 'cyan', 'magenta', 'gol
 
 export default function ExpensesPage() {
   const { message } = App.useApp()
+  const { token } = theme.useToken()
   const qc = useQueryClient()
   const [newModal, setNewModal] = useState(false)
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
@@ -96,7 +97,7 @@ export default function ExpensesPage() {
               value={total}
               precision={2}
               prefix="$"
-              valueStyle={{ color: '#f47920' }}
+              valueStyle={{ color: token.colorPrimary }}
             />
           </Card>
         </Col>

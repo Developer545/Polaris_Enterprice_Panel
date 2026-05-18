@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import {
   Table, Button, Modal, Form, Input, App,
-  Space, Popconfirm, Typography,
+  Space, Popconfirm, Typography, theme,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
@@ -14,6 +14,7 @@ const { Text } = Typography
 interface Props { companyId: string }
 
 export default function CategoriasTab({ companyId }: Props) {
+  const { token } = theme.useToken()
   const { message } = App.useApp()
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
@@ -67,7 +68,7 @@ export default function CategoriasTab({ companyId }: Props) {
         <Space>
           <div style={{
             width: 12, height: 12, borderRadius: 3,
-            background: r.color ?? '#f47920', flexShrink: 0,
+            background: r.color ?? token.colorPrimary, flexShrink: 0,
           }} />
           <div>
             <div style={{ fontWeight: 600 }}>{r.name}</div>
@@ -95,7 +96,7 @@ export default function CategoriasTab({ companyId }: Props) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Text strong>Categorías ({categories.length})</Text>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}
-          style={{ background: '#f47920', borderColor: '#f47920' }}>
+          style={{ background: token.colorPrimary, borderColor: token.colorPrimary }}>
           Nueva Categoría
         </Button>
       </div>
@@ -130,7 +131,7 @@ export default function CategoriasTab({ companyId }: Props) {
             <Button onClick={closeModal}>Cancelar</Button>
             <Button type="primary" htmlType="submit"
               loading={createMut.isPending || updateMut.isPending}
-              style={{ background: '#f47920', borderColor: '#f47920' }}>
+              style={{ background: token.colorPrimary, borderColor: token.colorPrimary }}>
               {editing ? 'Guardar' : 'Crear'}
             </Button>
           </div>

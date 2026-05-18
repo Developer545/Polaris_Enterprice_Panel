@@ -1,13 +1,14 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { Table, Tag, Tabs, Typography, Alert, Card, Statistic, Row, Col, Space } from 'antd'
+import { Table, Tag, Tabs, Typography, Alert, Card, Statistic, Row, Col, Space, theme } from 'antd'
 import { DatabaseOutlined, EnvironmentOutlined, AppstoreOutlined, GlobalOutlined } from '@ant-design/icons'
 import { api } from '../../../../lib/api'
 
 const { Text, Title } = Typography
 
 export default function CatalogosTab() {
+  const { token } = theme.useToken()
   const { data: departamentos = [], isLoading: loadingDepts } = useQuery({
     queryKey: ['catalogs-departamentos'],
     queryFn: () => api.get('/api/catalogs/departamentos').then(r => r.data),
@@ -90,7 +91,7 @@ export default function CatalogosTab() {
             <Statistic
               title="Departamentos"
               value={departamentos.length}
-              prefix={<GlobalOutlined style={{ color: '#f47920' }} />}
+              prefix={<GlobalOutlined style={{ color: token.colorPrimary }} />}
             />
           </Card>
         </Col>
@@ -108,7 +109,7 @@ export default function CatalogosTab() {
             <Statistic
               title="Municipios"
               value={261}
-              prefix={<EnvironmentOutlined style={{ color: '#52c41a' }} />}
+              prefix={<EnvironmentOutlined style={{ color: token.colorSuccess }} />}
             />
           </Card>
         </Col>

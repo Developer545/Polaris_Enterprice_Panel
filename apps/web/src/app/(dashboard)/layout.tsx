@@ -37,7 +37,7 @@ const NAV_GROUPS: NavGroup[] = [
     key: 'ventas',
     label: 'Ventas',
     icon: <ShoppingCartOutlined />,
-    color: '#f47920',
+    color: 'var(--ant-color-primary)',
     items: [
       { key: '/',               label: 'Dashboard',     icon: <DashboardOutlined /> },
       { key: '/pos',            label: 'Caja / POS',    icon: <ShoppingCartOutlined /> },
@@ -60,7 +60,7 @@ const NAV_GROUPS: NavGroup[] = [
     key: 'rrhh',
     label: 'Recursos Humanos',
     icon: <IdcardOutlined />,
-    color: '#52c41a',
+    color: 'var(--ant-color-success)',
     items: [
       { key: '/employees', label: 'Empleados', icon: <IdcardOutlined /> },
       { key: '/payroll',   label: 'Planilla',  icon: <CalculatorOutlined /> },
@@ -184,7 +184,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10,
-            background: '#f47920',
+            background: token.colorPrimary,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}>
@@ -274,7 +274,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           borderRadius: 8,
                           cursor: 'pointer',
                           color: active ? '#fff' : 'rgba(255,255,255,0.45)',
-                          background: active ? '#f47920' : 'transparent',
+                          background: active ? token.colorPrimary : 'transparent',
                           fontSize: 15,
                           transition: 'all 0.15s',
                         }}
@@ -295,7 +295,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         borderRadius: 8,
                         cursor: 'pointer',
                         color: active ? '#fff' : 'rgba(255,255,255,0.6)',
-                        background: active ? '#f47920' : 'transparent',
+                        background: active ? token.colorPrimary : 'transparent',
                         fontWeight: active ? 600 : 400,
                         fontSize: 13,
                         transition: 'all 0.15s',
@@ -338,7 +338,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
               >
-                <Avatar size={32} style={{ background: '#f47920', fontWeight: 700, flexShrink: 0 }}>
+                <Avatar size={32} style={{ background: token.colorPrimary, fontWeight: 700, flexShrink: 0 }}>
                   {user?.name?.[0]?.toUpperCase() ?? 'U'}
                 </Avatar>
                 <div style={{ overflow: 'hidden', flex: 1 }}>
@@ -378,7 +378,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <Dropdown menu={userMenu} placement="bottomRight" trigger={['click']}>
             <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', borderRadius: 8 }}>
-              <Avatar style={{ background: '#f47920', fontWeight: 700 }} size={32}>
+              <Avatar style={{ background: token.colorPrimary, fontWeight: 700 }} size={32}>
                 {user?.name?.[0]?.toUpperCase() ?? 'U'}
               </Avatar>
               <div style={{ lineHeight: 1.3 }}>
