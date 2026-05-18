@@ -455,9 +455,11 @@ export default function ClientsPage() {
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         okText={editing?.id ? 'Actualizar' : 'Crear cliente'}
-        okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary } }}
+        okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={680}
         destroyOnClose
+        style={{ top: 40 }}
+        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Form
           form={form}
@@ -467,7 +469,7 @@ export default function ClientsPage() {
           style={{ marginTop: 8 }}
         >
           {/* Tipo persona */}
-          <Form.Item name="tipoPersona" label="Tipo de persona" style={{ marginBottom: 16 }}>
+          <Form.Item name="tipoPersona" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Tipo de persona</span>} style={{ marginBottom: 16 }}>
             <Radio.Group
               optionType="button"
               buttonStyle="solid"
@@ -478,28 +480,31 @@ export default function ClientsPage() {
             </Radio.Group>
           </Form.Item>
 
-          <Divider style={{ margin: '0 0 16px' }} />
+          <Divider style={{ margin: '0 0 16px', borderColor: '#e9e9e7' }} />
 
           {/* Datos básicos */}
+          <Typography.Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Datos básicos</Typography.Text>
+          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
           <Row gutter={16}>
             <Col span={tipoPersona === 'JURIDICA' ? 12 : 16}>
               <Form.Item
                 name="name"
-                label={tipoPersona === 'JURIDICA' ? 'Razón social' : 'Nombre completo'}
+                label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>{tipoPersona === 'JURIDICA' ? 'Razón social' : 'Nombre completo'}</span>}
                 rules={[{ required: true, message: 'Campo requerido' }]}
+                style={{ marginBottom: 16 }}
               >
-                <Input prefix={<UserOutlined style={{ color: '#ccc' }} />} />
+                <Input prefix={<UserOutlined style={{ color: '#ccc' }} />} style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             {tipoPersona === 'JURIDICA' && (
               <Col span={12}>
-                <Form.Item name="comercialName" label="Nombre comercial">
-                  <Input />
+                <Form.Item name="comercialName" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Nombre comercial</span>} style={{ marginBottom: 16 }}>
+                  <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
                 </Form.Item>
               </Col>
             )}
             <Col span={8}>
-              <Form.Item name="esCreditoFiscal" label="Tipo factura" valuePropName="checked">
+              <Form.Item name="esCreditoFiscal" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Tipo factura</span>} valuePropName="checked" style={{ marginBottom: 16 }}>
                 <Switch
                   checkedChildren="CCF"
                   unCheckedChildren="CF"
@@ -512,26 +517,28 @@ export default function ClientsPage() {
           {/* Documento */}
           <Row gutter={16}>
             <Col span={8}>
-              <Form.Item name="tipoDocumento" label="Tipo documento">
+              <Form.Item name="tipoDocumento" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Tipo documento</span>} style={{ marginBottom: 16 }}>
                 <Select
                   options={tipoPersona === 'JURIDICA' ? TIPO_DOC_JURIDICA : TIPO_DOC_NATURAL}
                   placeholder="Seleccionar"
                   allowClear
+                  style={{ borderRadius: 8 }}
                 />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="numDocumento" label="Número documento">
-                <Input />
+              <Form.Item name="numDocumento" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Número documento</span>} style={{ marginBottom: 16 }}>
+                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             <Col span={8}>
               <Form.Item
                 name="nrc"
-                label="NRC"
+                label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>NRC</span>}
                 tooltip={tipoPersona === 'JURIDICA' ? 'Número de Registro de Contribuyente' : undefined}
+                style={{ marginBottom: 16 }}
               >
-                <Input />
+                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
           </Row>
@@ -540,7 +547,7 @@ export default function ClientsPage() {
           {tipoPersona === 'JURIDICA' && (
             <Row gutter={16}>
               <Col span={24}>
-                <Form.Item name="actividadEconomicaCodigo" label="Actividad económica">
+                <Form.Item name="actividadEconomicaCodigo" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Actividad económica</span>} style={{ marginBottom: 16 }}>
                   <Select
                     showSearch
                     placeholder="Buscar actividad..."
@@ -549,26 +556,26 @@ export default function ClientsPage() {
                     }
                     options={actividadesOpts}
                     allowClear
+                    style={{ borderRadius: 8 }}
                   />
                 </Form.Item>
               </Col>
             </Row>
           )}
 
-          <Divider style={{ margin: '4px 0 16px' }}>
-            <Text type="secondary" style={{ fontSize: 12 }}>Contacto y ubicación</Text>
-          </Divider>
+          <Typography.Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Contacto y ubicación</Typography.Text>
+          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
 
           {/* Contacto */}
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="phone" label="Teléfono">
-                <Input prefix={<PhoneOutlined style={{ color: '#ccc' }} />} />
+              <Form.Item name="phone" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Teléfono</span>} style={{ marginBottom: 16 }}>
+                <Input prefix={<PhoneOutlined style={{ color: '#ccc' }} />} style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="email" label="Correo electrónico" rules={[{ type: 'email', message: 'Email inválido' }]}>
-                <Input prefix={<MailOutlined style={{ color: '#ccc' }} />} />
+              <Form.Item name="email" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Correo electrónico</span>} rules={[{ type: 'email', message: 'Email inválido' }]} style={{ marginBottom: 16 }}>
+                <Input prefix={<MailOutlined style={{ color: '#ccc' }} />} style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
           </Row>
@@ -576,7 +583,7 @@ export default function ClientsPage() {
           {/* Departamento / Municipio */}
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="departamentoCod" label="Departamento">
+              <Form.Item name="departamentoCod" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Departamento</span>} style={{ marginBottom: 16 }}>
                 <Select
                   showSearch
                   placeholder="Seleccionar departamento"
@@ -586,12 +593,12 @@ export default function ClientsPage() {
                   options={departamentosOpts}
                   onChange={onDeptChange}
                   allowClear
-                  prefix={<EnvironmentOutlined />}
+                  style={{ borderRadius: 8 }}
                 />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="municipioCod" label="Municipio">
+              <Form.Item name="municipioCod" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Municipio</span>} style={{ marginBottom: 16 }}>
                 <Select
                   showSearch
                   placeholder={departamentoCod ? 'Seleccionar municipio' : 'Primero elige departamento'}
@@ -601,6 +608,7 @@ export default function ClientsPage() {
                     (opt?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
                   }
                   allowClear
+                  style={{ borderRadius: 8 }}
                 />
               </Form.Item>
             </Col>
@@ -609,14 +617,14 @@ export default function ClientsPage() {
           {/* Dirección */}
           <Row gutter={16}>
             <Col span={24}>
-              <Form.Item name="address" label="Dirección">
-                <Input prefix={<EnvironmentOutlined style={{ color: '#ccc' }} />} placeholder="Calle, colonia, referencia..." />
+              <Form.Item name="address" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Dirección</span>} style={{ marginBottom: 16 }}>
+                <Input prefix={<EnvironmentOutlined style={{ color: '#ccc' }} />} placeholder="Calle, colonia, referencia..." style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
           </Row>
 
           {/* Estado */}
-          <Form.Item name="isActive" label="Estado" valuePropName="checked" initialValue={true} style={{ marginBottom: 0 }}>
+          <Form.Item name="isActive" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Estado</span>} valuePropName="checked" initialValue={true} style={{ marginBottom: 0 }}>
             <Switch checkedChildren="Activo" unCheckedChildren="Inactivo" />
           </Form.Item>
         </Form>
