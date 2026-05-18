@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { Table, Button, Tag, Input, Typography, Modal, Form, Select, InputNumber, App, Row, Col, Switch, Avatar } from 'antd'
+import { Table, Button, Tag, Input, Typography, Modal, Form, Select, InputNumber, App, Row, Col, Switch, Avatar, Divider } from 'antd'
 import { PlusOutlined, EditOutlined, PictureOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
@@ -105,42 +105,69 @@ export default function ProductsPage() {
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         okText="Guardar"
+        okButtonProps={{ style: { borderRadius: 8, fontWeight: 600 } }}
         width={700}
+        style={{ top: 40 }}
+        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Form form={form} layout="vertical" onFinish={saveMutation.mutate} requiredMark={false} initialValues={{ tipoItem: '2', uniMedida: 59, trackStock: false, cost: 0 }}>
+          <Typography.Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Identificación</Typography.Text>
+          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
           <Row gutter={16}>
-            <Col span={14}><Form.Item name="name" label="Nombre" rules={[{ required: true }]}><Input /></Form.Item></Col>
+            <Col span={14}>
+              <Form.Item name="name" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Nombre</span>} rules={[{ required: true }]} style={{ marginBottom: 16 }}>
+                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
+              </Form.Item>
+            </Col>
             <Col span={10}>
-              <Form.Item name="categoryId" label="Categoría">
+              <Form.Item name="categoryId" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Categoría</span>} style={{ marginBottom: 16 }}>
                 <Select allowClear placeholder="Sin categoría"
-                  options={categories.map((c: any) => ({ value: c.id, label: c.name }))} />
-              </Form.Item>
-            </Col>
-            <Col span={8}><Form.Item name="sku" label="SKU"><Input /></Form.Item></Col>
-            <Col span={8}><Form.Item name="barcode" label="Código de barras"><Input /></Form.Item></Col>
-            <Col span={8}>
-              <Form.Item name="tipoItem" label="Tipo de ítem" rules={[{ required: true }]}>
-                <Select options={TIPO_ITEM} />
+                  options={categories.map((c: any) => ({ value: c.id, label: c.name }))}
+                  style={{ borderRadius: 8 }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="price" label="Precio de venta" rules={[{ required: true }]}>
-                <InputNumber min={0} step={0.01} prefix="$" style={{ width: '100%' }} />
+              <Form.Item name="sku" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>SKU</span>} style={{ marginBottom: 16 }}>
+                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="cost" label="Costo">
-                <InputNumber min={0} step={0.01} prefix="$" style={{ width: '100%' }} />
+              <Form.Item name="barcode" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Código de barras</span>} style={{ marginBottom: 16 }}>
+                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="uniMedida" label="Unidad de medida (código MH)">
-                <InputNumber style={{ width: '100%' }} />
+              <Form.Item name="tipoItem" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Tipo de ítem</span>} rules={[{ required: true }]} style={{ marginBottom: 16 }}>
+                <Select options={TIPO_ITEM} style={{ borderRadius: 8 }} />
               </Form.Item>
             </Col>
-            <Col span={24}><Form.Item name="description" label="Descripción"><Input.TextArea rows={2} /></Form.Item></Col>
+          </Row>
+
+          <Typography.Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Precios e inventario</Typography.Text>
+          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item name="price" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Precio de venta</span>} rules={[{ required: true }]} style={{ marginBottom: 16 }}>
+                <InputNumber min={0} step={0.01} prefix="$" style={{ width: '100%', borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="cost" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Costo</span>} style={{ marginBottom: 16 }}>
+                <InputNumber min={0} step={0.01} prefix="$" style={{ width: '100%', borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="uniMedida" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Unidad de medida (código MH)</span>} style={{ marginBottom: 16 }}>
+                <InputNumber style={{ width: '100%', borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
             <Col span={24}>
-              <Form.Item name="trackStock" label="Control de inventario" valuePropName="checked">
+              <Form.Item name="description" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Descripción</span>} style={{ marginBottom: 16 }}>
+                <Input.TextArea rows={2} style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Form.Item name="trackStock" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Control de inventario</span>} valuePropName="checked" style={{ marginBottom: 16 }}>
                 <Switch />
               </Form.Item>
             </Col>
@@ -148,13 +175,13 @@ export default function ProductsPage() {
               {({ getFieldValue }) => getFieldValue('trackStock') && (
                 <Row gutter={16} style={{ width: '100%', padding: '0 8px' }}>
                   <Col span={12}>
-                    <Form.Item name="stock" label="Stock inicial">
-                      <InputNumber min={0} style={{ width: '100%' }} />
+                    <Form.Item name="stock" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Stock inicial</span>} style={{ marginBottom: 16 }}>
+                      <InputNumber min={0} style={{ width: '100%', borderRadius: 8 }} />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
-                    <Form.Item name="minStock" label="Stock mínimo">
-                      <InputNumber min={0} style={{ width: '100%' }} />
+                    <Form.Item name="minStock" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Stock mínimo</span>} style={{ marginBottom: 16 }}>
+                      <InputNumber min={0} style={{ width: '100%', borderRadius: 8 }} />
                     </Form.Item>
                   </Col>
                 </Row>

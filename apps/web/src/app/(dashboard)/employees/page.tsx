@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { Table, Button, Tag, Typography, Modal, Form, Select, InputNumber, Input, App, Row, Col } from 'antd'
+import { Table, Button, Tag, Typography, Modal, Form, Select, InputNumber, Input, App, Row, Col, Divider } from 'antd'
 import { PlusOutlined, EditOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
@@ -119,88 +119,99 @@ export default function EmployeesPage() {
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         okText="Guardar"
+        okButtonProps={{ style: { borderRadius: 8, fontWeight: 600 } }}
         width={720}
+        style={{ top: 40 }}
+        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Form form={form} layout="vertical" onFinish={saveMutation.mutate} requiredMark={false}
           initialValues={{ afpInstitution: 'CONFIA', salaryType: 'MONTHLY', status: 'ACTIVE' }}>
+
+          <Typography.Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Datos personales</Typography.Text>
+          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="firstName" label="Nombres" rules={[{ required: true }]}>
-                <Input />
+              <Form.Item name="firstName" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Nombres</span>} rules={[{ required: true }]} style={{ marginBottom: 16 }}>
+                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="lastName" label="Apellidos" rules={[{ required: true }]}>
-                <Input />
+              <Form.Item name="lastName" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Apellidos</span>} rules={[{ required: true }]} style={{ marginBottom: 16 }}>
+                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="dui" label="DUI">
-                <Input placeholder="00000000-0" />
+              <Form.Item name="dui" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>DUI</span>} style={{ marginBottom: 16 }}>
+                <Input placeholder="00000000-0" style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="nit" label="NIT">
-                <Input placeholder="0000-000000-000-0" />
+              <Form.Item name="nit" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>NIT</span>} style={{ marginBottom: 16 }}>
+                <Input placeholder="0000-000000-000-0" style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="nssIsss" label="NSS / ISSS">
-                <Input />
+              <Form.Item name="nssIsss" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>NSS / ISSS</span>} style={{ marginBottom: 16 }}>
+                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="nup" label="NUP (AFP)">
-                <Input />
+              <Form.Item name="email" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Email</span>} rules={[{ type: 'email' }]} style={{ marginBottom: 16 }}>
+                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="email" label="Email" rules={[{ type: 'email' }]}>
-                <Input />
+              <Form.Item name="phone" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Teléfono</span>} style={{ marginBottom: 16 }}>
+                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
-            <Col span={8}>
-              <Form.Item name="phone" label="Teléfono">
-                <Input />
+          </Row>
+
+          <Typography.Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Cargo y planilla</Typography.Text>
+          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="position" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Cargo</span>} style={{ marginBottom: 16 }}>
+                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="position" label="Cargo">
-                <Input />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="department" label="Departamento">
-                <Input />
+              <Form.Item name="department" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Departamento</span>} style={{ marginBottom: 16 }}>
+                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="salary" label="Salario" rules={[{ required: true }]}>
-                <InputNumber min={0} step={0.01} prefix="$" style={{ width: '100%' }} />
+              <Form.Item name="salary" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Salario</span>} rules={[{ required: true }]} style={{ marginBottom: 16 }}>
+                <InputNumber min={0} step={0.01} prefix="$" style={{ width: '100%', borderRadius: 8 }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="salaryType" label="Tipo de salario">
-                <Select options={SALARY_TYPE_OPTIONS} />
+              <Form.Item name="salaryType" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Tipo de salario</span>} style={{ marginBottom: 16 }}>
+                <Select options={SALARY_TYPE_OPTIONS} style={{ borderRadius: 8 }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="afpInstitution" label="AFP">
-                <Select options={AFP_OPTIONS} />
+              <Form.Item name="afpInstitution" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>AFP</span>} style={{ marginBottom: 16 }}>
+                <Select options={AFP_OPTIONS} style={{ borderRadius: 8 }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="hireDate" label="Fecha de ingreso">
-                <Input type="date" />
+              <Form.Item name="nup" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>NUP (AFP)</span>} style={{ marginBottom: 16 }}>
+                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="status" label="Estado">
+              <Form.Item name="hireDate" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Fecha de ingreso</span>} style={{ marginBottom: 16 }}>
+                <Input type="date" style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="status" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Estado</span>} style={{ marginBottom: 16 }}>
                 <Select options={[
                   { value: 'ACTIVE', label: 'Activo' },
                   { value: 'INACTIVE', label: 'Inactivo' },
                   { value: 'ON_LEAVE', label: 'Con permiso' },
-                ]} />
+                ]} style={{ borderRadius: 8 }} />
               </Form.Item>
             </Col>
           </Row>

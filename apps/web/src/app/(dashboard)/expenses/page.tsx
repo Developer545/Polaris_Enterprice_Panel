@@ -113,7 +113,10 @@ export default function ExpensesPage() {
         onOk={() => form.submit()}
         confirmLoading={createMutation.isPending}
         okText="Guardar"
+        okButtonProps={{ style: { borderRadius: 8, fontWeight: 600 } }}
         width={520}
+        style={{ top: 40 }}
+        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Form
           form={form}
@@ -127,34 +130,35 @@ export default function ExpensesPage() {
         >
           <Row gutter={16}>
             <Col span={14}>
-              <Form.Item name="description" label="Descripción" rules={[{ required: true }]}>
-                <Input />
+              <Form.Item name="description" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Descripción</span>} rules={[{ required: true }]} style={{ marginBottom: 16 }}>
+                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
             <Col span={10}>
-              <Form.Item name="date" label="Fecha" rules={[{ required: true }]}>
-                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+              <Form.Item name="date" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Fecha</span>} rules={[{ required: true }]} style={{ marginBottom: 16 }}>
+                <DatePicker style={{ width: '100%', borderRadius: 8, borderColor: '#e9e9e7' } as any} format="DD/MM/YYYY" />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="categoryId" label="Categoría">
+              <Form.Item name="categoryId" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Categoría</span>} style={{ marginBottom: 16 }}>
                 <Select
                   showSearch
                   allowClear
                   placeholder="Sin categoría"
                   options={categories.map((c: any) => ({ value: c.id, label: c.name }))}
                   filterOption={(input, opt) => (opt?.label as string)?.toLowerCase().includes(input.toLowerCase())}
+                  style={{ borderRadius: 8 }}
                 />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="amount" label="Monto" rules={[{ required: true }]}>
-                <InputNumber min={0.01} step={0.01} prefix="$" style={{ width: '100%' }} />
+              <Form.Item name="amount" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Monto</span>} rules={[{ required: true }]} style={{ marginBottom: 16 }}>
+                <InputNumber min={0.01} step={0.01} prefix="$" style={{ width: '100%', borderRadius: 8 }} />
               </Form.Item>
             </Col>
             <Col span={24}>
-              <Form.Item name="notes" label="Notas">
-                <Input.TextArea rows={2} />
+              <Form.Item name="notes" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Notas</span>} style={{ marginBottom: 16 }}>
+                <Input.TextArea rows={2} style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
               </Form.Item>
             </Col>
           </Row>
