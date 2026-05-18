@@ -74,9 +74,34 @@ export default function ExpensesPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>Gastos</Typography.Title>
-        <div style={{ display: 'flex', gap: 8 }}>
+      {/* Header */}
+      <div style={{ marginBottom: 20 }}>
+        <Typography.Title level={4} style={{ margin: 0, fontWeight: 700 }}>Gastos</Typography.Title>
+        <Typography.Text type="secondary" style={{ fontSize: 13 }}>Registro y seguimiento de gastos operativos</Typography.Text>
+      </div>
+
+      {/* KPI */}
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col xs={24} sm={8} lg={6}>
+          <Card size="small" style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <Statistic
+              title={<span style={{ fontSize: 12, color: '#888' }}>{dateRange ? 'Total del período' : 'Total general'}</span>}
+              value={total}
+              precision={2}
+              prefix="$"
+              valueStyle={{ color: token.colorPrimary, fontWeight: 700 }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Toolbar */}
+      <Card
+        size="small"
+        style={{ borderRadius: 12, marginBottom: 16, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+        styles={{ body: { padding: '12px 16px' } }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <DatePicker.RangePicker
             value={dateRange as any}
             onChange={(v) => setDateRange(v as any)}
@@ -87,24 +112,18 @@ export default function ExpensesPage() {
             Nuevo gasto
           </Button>
         </div>
-      </div>
+      </Card>
 
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col xs={24} sm={8} lg={6}>
-          <Card size="small" style={{ borderRadius: 10 }}>
-            <Statistic
-              title={dateRange ? `Total del período` : 'Total general'}
-              value={total}
-              precision={2}
-              prefix="$"
-              valueStyle={{ color: token.colorPrimary }}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      <Table size="small" columns={columns} dataSource={data} rowKey="id" loading={isLoading}
-        style={{ borderRadius: 10, overflow: 'hidden' }} pagination={{ pageSize: 20 }} />
+      {/* Tabla */}
+      <Card
+        size="small"
+        style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+        styles={{ body: { padding: 0 } }}
+      >
+        <Table size="small" columns={columns} dataSource={data} rowKey="id" loading={isLoading}
+          pagination={{ pageSize: 15, showSizeChanger: false, showTotal: (t) => `${t} gastos`, style: { padding: '8px 16px' } }}
+          style={{ borderRadius: 12, overflow: 'hidden' }} />
+      </Card>
 
       <Modal
         open={newModal}

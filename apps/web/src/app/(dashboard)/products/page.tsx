@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
-import { Table, Button, Tag, Input, Typography, Modal, Form, Select, InputNumber, App, Row, Col, Switch, Avatar, Divider } from 'antd'
-import { PlusOutlined, EditOutlined, PictureOutlined } from '@ant-design/icons'
+import { Table, Button, Tag, Input, Typography, Modal, Form, Select, InputNumber, App, Row, Col, Switch, Avatar, Divider, Card, Space, Tooltip, theme } from 'antd'
+import { PlusOutlined, EditOutlined, PictureOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
@@ -15,6 +15,7 @@ const TIPO_ITEM = [
 
 export default function ProductsPage() {
   const { message } = App.useApp()
+  const { token } = theme.useToken()
   const qc = useQueryClient()
   const [edit, setEdit] = useState<any>(null)
   const [search, setSearch] = useState('')
@@ -79,24 +80,49 @@ export default function ProductsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>Productos / Servicios</Typography.Title>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Input.Search
+      {/* Header */}
+      <div style={{ marginBottom: 20 }}>
+        <Typography.Title level={4} style={{ margin: 0, fontWeight: 700 }}>Productos / Servicios</Typography.Title>
+        <Typography.Text type="secondary" style={{ fontSize: 13 }}>Catálogo de productos y servicios para facturación</Typography.Text>
+      </div>
+
+      {/* Toolbar */}
+      <Card
+        size="small"
+        style={{ borderRadius: 12, marginBottom: 16, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+        styles={{ body: { padding: '12px 16px' } }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <Input
+            prefix={<SearchOutlined style={{ color: '#bbb' }} />}
             placeholder="Buscar nombre, SKU, código de barras..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{ width: 300 }}
             allowClear
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEdit({}); form.resetFields() }}>
-            Nuevo
-          </Button>
+          <Space>
+            <Tooltip title="Recargar">
+              <Button icon={<ReloadOutlined />} onClick={() => qc.invalidateQueries({ queryKey: ['products'] })} />
+            </Tooltip>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEdit({}); form.resetFields() }}>
+              Nuevo producto
+            </Button>
+          </Space>
         </div>
-      </div>
+      </Card>
 
-      <Table size="small" columns={columns} dataSource={data} rowKey="id" loading={isLoading}
-        style={{ borderRadius: 10, overflow: 'hidden' }} pagination={{ pageSize: 20 }} />
+      {/* Tabla */}
+      <Card
+        size="small"
+        style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+        styles={{ body: { padding: 0 } }}
+      >
+        <Table size="small" columns={columns} dataSource={data} rowKey="id" loading={isLoading}
+          scroll={{ x: 700 }}
+          pagination={{ pageSize: 15, showSizeChanger: false, showTotal: (t) => `${t} productos`, style: { padding: '8px 16px' } }}
+          style={{ borderRadius: 12, overflow: 'hidden' }} />
+      </Card>
 
       <Modal
         open={edit !== null}
@@ -105,7 +131,7 @@ export default function ProductsPage() {
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         okText="Guardar"
-        okButtonProps={{ style: { borderRadius: 8, fontWeight: 600 } }}
+        okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={700}
         style={{ top: 40 }}
         styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
-import { Table, Button, Tag, Typography, Modal, Form, Select, InputNumber, Input, App, Row, Col, Divider } from 'antd'
-import { PlusOutlined, EditOutlined } from '@ant-design/icons'
+import { Table, Button, Tag, Typography, Modal, Form, Select, InputNumber, Input, App, Row, Col, Divider, Card, Space, Tooltip, theme } from 'antd'
+import { PlusOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
@@ -32,6 +32,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function EmployeesPage() {
   const { message } = App.useApp()
+  const { token } = theme.useToken()
   const qc = useQueryClient()
   const [edit, setEdit] = useState<any>(null)
   const [form] = Form.useForm()
@@ -102,15 +103,38 @@ export default function EmployeesPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>Empleados</Typography.Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEdit({}); form.resetFields() }}>
-          Nuevo empleado
-        </Button>
+      {/* Header */}
+      <div style={{ marginBottom: 20 }}>
+        <Typography.Title level={4} style={{ margin: 0, fontWeight: 700 }}>Empleados</Typography.Title>
+        <Typography.Text type="secondary" style={{ fontSize: 13 }}>Gestión de personal, contratos y datos laborales</Typography.Text>
       </div>
 
-      <Table size="small" columns={columns} dataSource={data} rowKey="id" loading={isLoading}
-        style={{ borderRadius: 10, overflow: 'hidden' }} pagination={{ pageSize: 20 }} />
+      {/* Toolbar */}
+      <Card
+        size="small"
+        style={{ borderRadius: 12, marginBottom: 16, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+        styles={{ body: { padding: '12px 16px' } }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Tooltip title="Recargar">
+            <Button icon={<ReloadOutlined />} onClick={() => qc.invalidateQueries({ queryKey: ['employees'] })} />
+          </Tooltip>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEdit({}); form.resetFields() }}>
+            Nuevo empleado
+          </Button>
+        </div>
+      </Card>
+
+      {/* Tabla */}
+      <Card
+        size="small"
+        style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+        styles={{ body: { padding: 0 } }}
+      >
+        <Table size="small" columns={columns} dataSource={data} rowKey="id" loading={isLoading}
+          pagination={{ pageSize: 15, showSizeChanger: false, showTotal: (t) => `${t} empleados`, style: { padding: '8px 16px' } }}
+          style={{ borderRadius: 12, overflow: 'hidden' }} />
+      </Card>
 
       <Modal
         open={edit !== null}
@@ -119,7 +143,7 @@ export default function EmployeesPage() {
         onOk={() => form.submit()}
         confirmLoading={saveMutation.isPending}
         okText="Guardar"
-        okButtonProps={{ style: { borderRadius: 8, fontWeight: 600 } }}
+        okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={720}
         style={{ top: 40 }}
         styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
