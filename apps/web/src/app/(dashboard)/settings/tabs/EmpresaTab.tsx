@@ -1,15 +1,21 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import {
   Form, Input, Select, Button, Row, Col, Divider,
-  Typography, App, Spin, Tag, Alert, theme,
+  Typography, App, Spin, Tag, Alert, Card, theme,
 } from 'antd'
-import { SaveOutlined, LockOutlined, CloudOutlined } from '@ant-design/icons'
+import { SaveOutlined, LockOutlined, BankOutlined, EnvironmentOutlined, PhoneOutlined, MailOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../../lib/api'
 
-const { Title, Text } = Typography
+const { Text } = Typography
+
+const LBL = (text: string) => (
+  <span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>{text}</span>
+)
+const INP = { borderRadius: 8, borderColor: '#e9e9e7' } as const
+const MB = { marginBottom: 16 } as const
 
 interface Props { companyId: string }
 
@@ -58,48 +64,51 @@ export default function EmpresaTab({ companyId }: Props) {
   })
 
   function onFinish(values: any) {
-    const actividadNombre = actividades.find((a: any) => a.codigo === values.actividadEconomicaCodigo)?.nombre
-    mutation.mutate({
-      ...values,
-      actividadEconomica: actividadNombre,
-    })
+    const actividadNombre = (actividades as any[]).find((a: any) => a.codigo === values.actividadEconomicaCodigo)?.nombre
+    mutation.mutate({ ...values, actividadEconomica: actividadNombre })
   }
 
-  if (isLoading) return <div style={{ padding: 40, textAlign: 'center' }}><Spin /></div>
+  if (isLoading) return <div style={{ padding: 60, textAlign: 'center' }}><Spin /></div>
 
   return (
-    <div style={{ padding: '24px 32px' }}>
+    <div style={{ padding: '24px 28px', maxWidth: 820 }}>
       <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false}>
 
-        <Title level={5} style={{ marginTop: 0 }}>Información General</Title>
+        {/* ── Información general ─────────────────────────────── */}
+        <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          Información general
+        </Text>
+        <Divider style={{ margin: '4px 0 20px', borderColor: '#e9e9e7' }} />
+
         <Row gutter={24}>
-          <Col xs={24} md={12}>
-            <Form.Item label="Razón Social" name="name" rules={[{ required: true }]}>
-              <Input placeholder="Empresa S.A. de C.V." />
+          <Col xs={24} md={14}>
+            <Form.Item label={LBL('Razón Social')} name="name" rules={[{ required: true, message: 'Requerido' }]} style={MB}>
+              <Input prefix={<BankOutlined style={{ color: '#ccc' }} />} placeholder="Empresa S.A. de C.V." style={INP} />
             </Form.Item>
           </Col>
-          <Col xs={24} md={12}>
-            <Form.Item label="Nombre Comercial" name="comercialName">
-              <Input placeholder="Nombre comercial (opcional)" />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={8}>
-            <Form.Item label="NIT" name="nit">
-              <Input placeholder="0614-010101-001-1" />
+          <Col xs={24} md={10}>
+            <Form.Item label={LBL('Nombre Comercial')} name="comercialName" style={MB}>
+              <Input placeholder="Nombre comercial (opcional)" style={INP} />
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
-            <Form.Item label="NRC" name="nrc">
-              <Input placeholder="123456-7" />
+            <Form.Item label={LBL('NIT')} name="nit" style={MB}>
+              <Input placeholder="0614-010101-001-1" style={INP} />
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
-            <Form.Item label="Actividad Económica" name="actividadEconomicaCodigo">
+            <Form.Item label={LBL('NRC')} name="nrc" style={MB}>
+              <Input placeholder="123456-7" style={INP} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={8}>
+            <Form.Item label={LBL('Actividad Económica')} name="actividadEconomicaCodigo" style={MB}>
               <Select
                 showSearch
                 placeholder="Seleccione actividad"
                 optionFilterProp="label"
-                options={actividades.map((a: any) => ({
+                style={{ borderRadius: 8 }}
+                options={(actividades as any[]).map((a: any) => ({
                   value: a.codigo,
                   label: `${a.codigo} — ${a.nombre}`,
                 }))}
@@ -107,46 +116,50 @@ export default function EmpresaTab({ companyId }: Props) {
             </Form.Item>
           </Col>
           <Col xs={24}>
-            <Form.Item label="Dirección" name="address">
-              <Input.TextArea rows={2} placeholder="Dirección fiscal de la empresa" />
+            <Form.Item label={LBL('Dirección fiscal')} name="address" style={MB}>
+              <Input.TextArea rows={2} placeholder="Dirección fiscal de la empresa" style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item label="Teléfono" name="phone">
-              <Input placeholder="2222-3333" />
+            <Form.Item label={LBL('Teléfono')} name="phone" style={MB}>
+              <Input prefix={<PhoneOutlined style={{ color: '#ccc' }} />} placeholder="2222-3333" style={INP} />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item label="Correo electrónico" name="email">
-              <Input placeholder="info@empresa.com.sv" />
+            <Form.Item label={LBL('Correo electrónico')} name="email" rules={[{ type: 'email', message: 'Email inválido' }]} style={MB}>
+              <Input prefix={<MailOutlined style={{ color: '#ccc' }} />} placeholder="info@empresa.com.sv" style={INP} />
             </Form.Item>
           </Col>
         </Row>
 
-        <Divider />
-        <Title level={5}>Facturación Electrónica (DTE)</Title>
+        {/* ── Facturación DTE ─────────────────────────────────── */}
+        <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          Facturación Electrónica (DTE)
+        </Text>
+        <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
 
         <Alert
           type="info"
           showIcon
-          style={{ marginBottom: 16 }}
+          style={{ marginBottom: 20, borderRadius: 8, fontSize: 13 }}
           message="El certificado digital .p12 y las credenciales de Hacienda se gestionan desde el panel de administración."
         />
 
         <Row gutter={24}>
           <Col xs={24} md={12}>
-            <Form.Item label="Usuario Hacienda (MH)" name="haciendaUser">
-              <Input prefix={<LockOutlined />} placeholder="Usuario portal MH" />
+            <Form.Item label={LBL('Usuario Hacienda (MH)')} name="haciendaUser" style={MB}>
+              <Input prefix={<LockOutlined style={{ color: '#ccc' }} />} placeholder="Usuario portal MH" style={INP} />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item label="Contraseña Hacienda" name="haciendaPassword">
-              <Input.Password prefix={<LockOutlined />} placeholder="Dejar vacío para no cambiar" />
+            <Form.Item label={LBL('Contraseña Hacienda')} name="haciendaPassword" style={MB}>
+              <Input.Password prefix={<LockOutlined style={{ color: '#ccc' }} />} placeholder="Dejar vacío para no cambiar" style={INP} />
             </Form.Item>
           </Col>
-          <Col xs={24} md={12}>
-            <Form.Item label="Ambiente DTE" name="dteAmbiente">
+          <Col xs={24} md={10}>
+            <Form.Item label={LBL('Ambiente DTE')} name="dteAmbiente" style={MB}>
               <Select
+                style={{ borderRadius: 8 }}
                 options={[
                   { value: 'TEST', label: <Tag color="orange">PRUEBAS</Tag> },
                   { value: 'PROD', label: <Tag color="green">PRODUCCIÓN</Tag> },
@@ -156,15 +169,20 @@ export default function EmpresaTab({ companyId }: Props) {
           </Col>
         </Row>
 
+        {/* ── Botón guardar ─────────────────────────────────────── */}
+        <Divider style={{ margin: '8px 0 20px', borderColor: '#e9e9e7' }} />
         <Row justify="end">
           <Button
             type="primary"
             htmlType="submit"
             loading={mutation.isPending}
             icon={<SaveOutlined />}
-            style={{ background: token.colorPrimary, borderColor: token.colorPrimary }}
+            style={{
+              background: token.colorPrimary, borderColor: token.colorPrimary,
+              borderRadius: 8, fontWeight: 600, height: 38,
+            }}
           >
-            Guardar Cambios
+            Guardar cambios
           </Button>
         </Row>
 

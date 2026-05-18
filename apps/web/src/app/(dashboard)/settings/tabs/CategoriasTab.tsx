@@ -3,14 +3,19 @@
 import { useState } from 'react'
 import {
   Table, Button, Modal, Form, Input, App,
-  Space, Popconfirm, Typography, theme,
+  Space, Popconfirm, Typography, Card, Divider, Tooltip, theme,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, AppstoreOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../../lib/api'
 
 const { Text } = Typography
+
+const LBL = (text: string) => <span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>{text}</span>
+const INP = { borderRadius: 8, borderColor: '#e9e9e7' } as const
+const MB = { marginBottom: 16 } as const
+
 interface Props { companyId: string }
 
 export default function CategoriasTab({ companyId }: Props) {
@@ -54,87 +59,117 @@ export default function CategoriasTab({ companyId }: Props) {
   function closeModal() { setOpen(false); setEditing(null); form.resetFields() }
 
   function onFinish(values: any) {
-    if (editing) {
-      updateMut.mutate({ id: editing.id, dto: values })
-    } else {
-      createMut.mutate({ ...values, companyId })
-    }
+    editing
+      ? updateMut.mutate({ id: editing.id, dto: values })
+      : createMut.mutate({ ...values, companyId })
   }
 
   const columns: ColumnsType<any> = [
     {
       title: 'Categoría',
-      render: (_: any, r: any) => (
+      render: (r: any) => (
         <Space>
           <div style={{
-            width: 12, height: 12, borderRadius: 3,
-            background: r.color ?? token.colorPrimary, flexShrink: 0,
+            width: 14, height: 14, borderRadius: 4, flexShrink: 0,
+            background: r.color ?? token.colorPrimary,
+            border: '1px solid rgba(0,0,0,0.08)',
           }} />
           <div>
-            <div style={{ fontWeight: 600 }}>{r.name}</div>
+            <div style={{ fontWeight: 600, fontSize: 13 }}>{r.name}</div>
             {r.description && <Text type="secondary" style={{ fontSize: 12 }}>{r.description}</Text>}
           </div>
         </Space>
       ),
     },
     {
-      title: 'Acciones',
-      width: 100,
-      render: (_: any, r: any) => (
+      title: 'Acciones', width: 90, fixed: 'right' as const,
+      render: (r: any) => (
         <Space>
-          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} />
-          <Popconfirm title="¿Eliminar categoría?" onConfirm={() => deleteMut.mutate(r.id)}>
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          <Tooltip title="Editar">
+            <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} />
+          </Tooltip>
+          <Tooltip title="Eliminar">
+            <Popconfirm
+              title="¿Eliminar categoría?"
+              description="Los productos con esta categoría quedarán sin categoría."
+              onConfirm={() => deleteMut.mutate(r.id)}
+              okText="Sí, eliminar" okButtonProps={{ danger: true }} cancelText="Cancelar"
+            >
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} loading={deleteMut.isPending} />
+            </Popconfirm>
+          </Tooltip>
         </Space>
       ),
     },
   ]
 
   return (
-    <div style={{ padding: '16px 24px' }}>
+    <div style={{ padding: '20px 24px' }}>
+      {/* Toolbar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Text strong>Categorías ({categories.length})</Text>
+        <div>
+          <Text style={{ fontWeight: 600, fontSize: 14, color: '#37352f' }}>Categorías</Text>
+          <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>({(categories as any[]).length} registradas)</Text>
+        </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}
-          style={{ background: token.colorPrimary, borderColor: token.colorPrimary }}>
+          style={{ background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 }}>
           Nueva Categoría
         </Button>
       </div>
 
-      <Table
-        dataSource={categories}
-        columns={columns}
-        rowKey="id"
-        loading={isLoading}
+      {/* Tabla */}
+      <Card
         size="small"
-        pagination={{ pageSize: 15, size: 'small' }}
-      />
+        style={{ borderRadius: 12, border: '1px solid #e9e9e7', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
+        styles={{ body: { padding: 0 } }}
+      >
+        <Table
+          dataSource={categories as any[]}
+          columns={columns}
+          rowKey="id"
+          loading={isLoading}
+          size="small"
+          pagination={{ pageSize: 15, size: 'small', showTotal: (t) => `${t} categorías`, style: { padding: '8px 16px' } }}
+          style={{ borderRadius: 12, overflow: 'hidden' }}
+        />
+      </Card>
 
+      {/* Modal */}
       <Modal
         open={open}
+        title={<Space>{editing ? <EditOutlined /> : <PlusOutlined />}{editing ? 'Editar Categoría' : 'Nueva Categoría'}</Space>}
         onCancel={closeModal}
-        title={editing ? 'Editar Categoría' : 'Nueva Categoría'}
-        footer={null}
+        onOk={() => form.submit()}
+        confirmLoading={createMut.isPending || updateMut.isPending}
+        okText={editing ? 'Actualizar' : 'Crear categoría'}
+        okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
+        width={480}
         destroyOnClose
+        style={{ top: 40 }}
+        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
-        <Form form={form} layout="vertical" onFinish={onFinish} style={{ marginTop: 16 }}>
-          <Form.Item label="Nombre" name="name" rules={[{ required: true, min: 2 }]}>
-            <Input placeholder="Nombre de la categoría" />
+        <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false}>
+
+          <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Datos de la categoría</Text>
+          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
+
+          <Form.Item label={LBL('Nombre')} name="name" rules={[{ required: true, min: 2, message: 'Mínimo 2 caracteres' }]} style={MB}>
+            <Input prefix={<AppstoreOutlined style={{ color: '#ccc' }} />} placeholder="Nombre de la categoría" style={INP} />
           </Form.Item>
-          <Form.Item label="Descripción" name="description">
-            <Input.TextArea rows={2} placeholder="Descripción opcional" />
+          <Form.Item label={LBL('Descripción')} name="description" style={MB}>
+            <Input.TextArea rows={2} placeholder="Descripción opcional" style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
           </Form.Item>
-          <Form.Item label="Color" name="color">
-            <Input type="color" style={{ width: 60, padding: 2 }} />
+          <Form.Item label={LBL('Color identificador')} name="color" style={{ marginBottom: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                type="color"
+                defaultValue={editing?.color ?? token.colorPrimary}
+                onChange={e => form.setFieldValue('color', e.target.value)}
+                style={{ width: 42, height: 34, padding: 2, border: '1px solid #e9e9e7', borderRadius: 8, cursor: 'pointer' }}
+              />
+              <Text type="secondary" style={{ fontSize: 12 }}>Se muestra como indicador visual en listas y reportes</Text>
+            </div>
           </Form.Item>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={closeModal}>Cancelar</Button>
-            <Button type="primary" htmlType="submit"
-              loading={createMut.isPending || updateMut.isPending}
-              style={{ background: token.colorPrimary, borderColor: token.colorPrimary }}>
-              {editing ? 'Guardar' : 'Crear'}
-            </Button>
-          </div>
         </Form>
       </Modal>
     </div>
