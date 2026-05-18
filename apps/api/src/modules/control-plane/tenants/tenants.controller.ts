@@ -1,10 +1,16 @@
-import { Controller, Get, Post, Put, Body, Param, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Put, Patch, Body, Param, UseGuards } from '@nestjs/common'
 import {
   TenantsService,
   CreateTenantSchema,
   UpdateTenantSchema,
+  UpdateModulesSchema,
+  UpdateDteTypesSchema,
+  ProvisionTenantSchema,
   type CreateTenantDto,
   type UpdateTenantDto,
+  type UpdateModulesDto,
+  type UpdateDteTypesDto,
+  type ProvisionTenantDto,
 } from './tenants.service'
 import { AdminJwtGuard } from '../../../common/guards/admin-jwt.guard'
 import { AdminRoute } from '../../../common/decorators/admin.decorator'
@@ -37,5 +43,39 @@ export class TenantsController {
     @Body(new ZodValidationPipe(UpdateTenantSchema)) dto: UpdateTenantDto,
   ) {
     return this.tenantsService.update(id, dto)
+  }
+
+  @Patch(':id/modules')
+  updateModules(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(UpdateModulesSchema)) dto: UpdateModulesDto,
+  ) {
+    return this.tenantsService.updateModules(id, dto)
+  }
+
+  @Patch(':id/dte-types')
+  updateDteTypes(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(UpdateDteTypesSchema)) dto: UpdateDteTypesDto,
+  ) {
+    return this.tenantsService.updateDteTypes(id, dto)
+  }
+
+  @Post(':id/provision')
+  provisionTenant(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(ProvisionTenantSchema)) dto: ProvisionTenantDto,
+  ) {
+    return this.tenantsService.provisionTenant(id, dto)
+  }
+
+  @Get(':id/branches')
+  getTenantBranches(@Param('id') id: string) {
+    return this.tenantsService.getTenantBranches(id)
+  }
+
+  @Get(':id/users')
+  getTenantUsers(@Param('id') id: string) {
+    return this.tenantsService.getTenantUsers(id)
   }
 }

@@ -1,22 +1,22 @@
 'use client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ConfigProvider, App as AntApp } from 'antd'
-import { StyleProvider } from '@ant-design/cssinjs'
+import { StyleProvider, createCache, extractStyle } from '@ant-design/cssinjs'
+import { useServerInsertedHTML } from 'next/navigation'
 import esES from 'antd/locale/es_ES'
-import { useState, type ReactNode } from 'react'
+import { useState, useRef, type ReactNode } from 'react'
 
 const theme = {
   token: {
-    // Notion palette
-    colorPrimary:          '#2383e2', // Notion blue (links, buttons, active)
+    colorPrimary:          '#2383e2',
     colorLink:             '#2383e2',
-    colorBgLayout:         '#f7f6f3', // Notion off-white page background
+    colorBgLayout:         '#f7f6f3',
     colorBgContainer:      '#ffffff',
-    colorText:             '#37352f', // Notion primary text
-    colorTextSecondary:    '#787774', // Notion muted text
+    colorText:             '#37352f',
+    colorTextSecondary:    '#787774',
     colorBorder:           '#e9e9e7',
     colorBorderSecondary:  '#edece9',
-    colorFillAlter:        '#f1f1ef', // Notion hover fill
+    colorFillAlter:        '#f1f1ef',
     borderRadius:          6,
     borderRadiusLG:        8,
     fontFamily:            "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -40,6 +40,27 @@ const theme = {
   },
 }
 
+// SSR style extractor — eliminates FOUC by injecting Ant Design styles into the HTML
+// before client hydration. Works without @ant-design/nextjs-registry.
+function AntdStyleInjector({ children }: { children: ReactNode }) {
+  const cache = useRef(createCache())
+  const inserted = useRef(false)
+
+  useServerInsertedHTML(() => {
+    if (inserted.current) return null
+    inserted.current = true
+    const styleText = extractStyle(cache.current, true)
+    // eslint-disable-next-line react/no-danger
+    return <style data-antd-ssr="true" dangerouslySetInnerHTML={{ __html: styleText }} />
+  })
+
+  return (
+    <StyleProvider cache={cache.current} hashPriority="high">
+      {children}
+    </StyleProvider>
+  )
+}
+
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -52,12 +73,12 @@ export function Providers({ children }: { children: ReactNode }) {
   )
 
   return (
-    <StyleProvider hashPriority="high">
+    <AntdStyleInjector>
       <QueryClientProvider client={queryClient}>
         <ConfigProvider theme={theme} locale={esES}>
           <AntApp>{children}</AntApp>
         </ConfigProvider>
       </QueryClientProvider>
-    </StyleProvider>
+    </AntdStyleInjector>
   )
 }

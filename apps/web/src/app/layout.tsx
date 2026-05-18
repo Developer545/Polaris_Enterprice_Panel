@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3011'
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

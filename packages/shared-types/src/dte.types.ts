@@ -21,12 +21,12 @@ export type DteEstado =
 // ─── Catálogos Hacienda (valores más usados) ──────────────────────────────────
 
 export const CATALOGO_TIPO_DTE: Record<TipoDte, string> = {
-  '01': 'Factura',
+  '01': 'Factura (Consumidor Final)',
   '03': 'Comprobante de Crédito Fiscal',
   '05': 'Nota de Crédito',
   '06': 'Nota de Débito',
-  '14': 'Factura de Exportación',
-  '11': 'Factura de Sujeto Excluido',
+  '11': 'Factura de Exportación',
+  '14': 'Nota de Remisión / Anulación',
 }
 
 export const CATALOGO_TIPO_ITEM: Record<number, string> = {

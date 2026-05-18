@@ -4,7 +4,7 @@
 import { Tabs, Typography, Card, App } from 'antd'
 import {
   BankOutlined, BranchesOutlined, TeamOutlined,
-  SafetyOutlined, AppstoreOutlined, DatabaseOutlined,
+  SafetyOutlined, AppstoreOutlined, DatabaseOutlined, ApiOutlined,
 } from '@ant-design/icons'
 import { useAppContext } from '../../../hooks/use-app-context'
 import EmpresaTab from './tabs/EmpresaTab'
@@ -13,6 +13,7 @@ import UsuariosTab from './tabs/UsuariosTab'
 import RolesTab from './tabs/RolesTab'
 import CategoriasTab from './tabs/CategoriasTab'
 import CatalogosTab from './tabs/CatalogosTab'
+import IntegracionesTab from './tabs/IntegracionesTab'
 
 const { Title, Text } = Typography
 
@@ -49,6 +50,11 @@ function SettingsContent() {
       key: 'catalogos',
       label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><DatabaseOutlined /> Catálogos SV</span>,
       children: <CatalogosTab />,
+    },
+    {
+      key: 'integraciones',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ApiOutlined /> Integraciones DTE</span>,
+      children: <IntegracionesTab companyId={companyId} />,
     },
   ]
 

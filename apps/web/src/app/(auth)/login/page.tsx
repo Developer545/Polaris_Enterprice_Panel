@@ -78,20 +78,6 @@ export default function LoginPage() {
 
   return (
     <>
-      <style>{`
-        @keyframes twinkle {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50%       { opacity: 0.3; transform: scale(0.6); }
-        }
-        @keyframes polarisGlow {
-          0%, 100% { box-shadow: 0 0 24px 8px rgba(147,197,253,0.6), 0 0 60px 20px rgba(59,130,246,0.3); }
-          50%       { box-shadow: 0 0 36px 14px rgba(147,197,253,0.9), 0 0 90px 30px rgba(59,130,246,0.5); }
-        }
-        @keyframes nebula {
-          0%, 100% { opacity: 0.35; }
-          50%       { opacity: 0.55; }
-        }
-      `}</style>
 
       <div style={{
         width: '100vw', height: '100vh',
@@ -119,19 +105,25 @@ export default function LoginPage() {
             animation: 'nebula 8s ease-in-out infinite',
           }} />
 
-          {/* Stars */}
-          {stars.map((s, i) => (
-            <div key={i} style={{
-              position: 'absolute',
-              left: `${s.x}%`, top: `${s.y}%`,
-              width:  `${s.r * 2}px`, height: `${s.r * 2}px`,
-              borderRadius: '50%',
-              background: '#fff',
-              opacity: s.o,
-              animation: s.twinkle ? `twinkle ${2 + (i % 3)}s ease-in-out infinite ${i * 0.15}s` : 'none',
-              pointerEvents: 'none',
-            }} />
-          ))}
+          {/* Stars — single SVG instead of 180 divs (much lighter) */}
+          <svg
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {stars.map((s, i) => (
+              <circle
+                key={i}
+                cx={`${s.x}%`}
+                cy={`${s.y}%`}
+                r={s.r}
+                fill="white"
+                opacity={s.o}
+                style={s.twinkle ? {
+                  animation: `twinkle ${2 + (i % 3)}s ease-in-out infinite ${(i * 0.15) % 3}s`,
+                } : undefined}
+              />
+            ))}
+          </svg>
 
           {/* Polaris — main star */}
           <div style={{
@@ -154,6 +146,7 @@ export default function LoginPage() {
               width: 14, height: 14, borderRadius: '50%',
               background: 'radial-gradient(circle, #fff 30%, #93c5fd 70%, transparent 100%)',
               animation: 'polarisGlow 3s ease-in-out infinite',
+              willChange: 'filter',
             }} />
           </div>
 

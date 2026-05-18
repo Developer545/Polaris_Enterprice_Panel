@@ -76,7 +76,29 @@ export class BranchesService {
     const db = this.getDb()
     const branch = await db.branch.findFirst({ where: { id, tenantId } })
     if (!branch) throw new NotFoundException('Sucursal no encontrada')
-    return db.branch.update({ where: { id }, data: dto })
+
+    const updated = await db.branch.update({ where: { id }, data: dto })
+
+    // Keep DteNumberControl in sync when MH codes change.
+    // If codEstableMH or codPuntoVentaMH changed, update all existing
+    // DteNumberControl records for this branch so future numeroControl
+    // strings are built with the correct codes.
+    const codesChanged =
+      (dto.codEstableMH   !== undefined && dto.codEstableMH   !== branch.codEstableMH) ||
+      (dto.codPuntoVentaMH !== undefined && dto.codPuntoVentaMH !== branch.codPuntoVentaMH)
+
+    if (codesChanged) {
+      const syncData: Record<string, string> = {}
+      if (dto.codEstableMH)    syncData.codEstable    = dto.codEstableMH
+      if (dto.codPuntoVentaMH) syncData.codPuntoVenta = dto.codPuntoVentaMH
+
+      await db.dteNumberControl.updateMany({
+        where: { branchId: id, tenantId },
+        data: syncData,
+      })
+    }
+
+    return updated
   }
 
   async remove(id: string) {

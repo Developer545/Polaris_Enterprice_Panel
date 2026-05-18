@@ -5,6 +5,14 @@ const config: NextConfig = {
   images: {
     remotePatterns: [{ hostname: 'res.cloudinary.com' }],
   },
+  // Tree-shake antd/icons/recharts — eliminates massive unused JS from bundle
+  experimental: {
+    optimizePackageImports: ['antd', '@ant-design/icons', '@ant-design/cssinjs', 'recharts'],
+  },
+  // Remove X-Powered-By header
+  poweredByHeader: false,
+  // Compress responses
+  compress: true,
 }
 
 export default config

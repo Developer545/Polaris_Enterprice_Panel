@@ -22,6 +22,8 @@ export const UpdateCompanySchema = z.object({
   certData: z.string().optional(),   // base64 p12
   certPassword: z.string().optional(),
   dteAmbiente: z.enum(['TEST', 'PROD']).optional(),
+  // DTE types enabled for this company — ['01','03','05','06','11']
+  dteEnabledTypes: z.array(z.enum(['01', '03', '05', '06', '11'])).optional(),
 })
 
 export type UpdateCompanyDto = z.infer<typeof UpdateCompanySchema>
@@ -62,17 +64,23 @@ export class CompanyService {
         id: true, name: true, comercialName: true, nit: true, nrc: true,
         actividadEconomica: true, actividadEconomicaCodigo: true,
         address: true, phone: true, email: true, logoUrl: true,
-        dteAmbiente: true, isActive: true, createdAt: true,
-        haciendaUserEnc: true, // return indicator only
+        dteAmbiente: true, dteEnabledTypes: true, isActive: true, createdAt: true,
+        haciendaUserEnc: true,
+        certDataEnc: true,
         branches: { select: { id: true, name: true, codEstableMH: true, isActive: true } },
       },
     })
     if (!company) throw new NotFoundException('Empresa no encontrada')
 
+    const enabledTypes = (company.dteEnabledTypes as string[]) ?? []
     return {
       ...company,
-      haciendaConfigured: !!company.haciendaUserEnc,
+      haciendaConfigured:  !!company.haciendaUserEnc,
+      certConfigured:      !!company.certDataEnc,
+      // Treat empty array as default ["01","03"]
+      dteEnabledTypes:     enabledTypes.length > 0 ? enabledTypes : ['01', '03'],
       haciendaUserEnc: undefined,
+      certDataEnc:     undefined,
     }
   }
 
@@ -83,8 +91,9 @@ export class CompanyService {
     const company = await db.company.findFirst({ where: { id, tenantId } })
     if (!company) throw new NotFoundException('Empresa no encontrada')
 
-    const { haciendaUser, haciendaPassword, certData, certPassword, ...rest } = dto
+    const { haciendaUser, haciendaPassword, certData, certPassword, dteEnabledTypes, ...rest } = dto
     const data: Record<string, unknown> = { ...rest }
+    if (dteEnabledTypes !== undefined) data.dteEnabledTypes = dteEnabledTypes
 
     if (haciendaUser) data.haciendaUserEnc = this.crypto.encrypt(haciendaUser)
     if (haciendaPassword) data.haciendaPwdEnc = this.crypto.encrypt(haciendaPassword)
@@ -92,6 +101,41 @@ export class CompanyService {
     if (certPassword) data.certPwdEnc = this.crypto.encrypt(certPassword)
 
     return db.company.update({ where: { id }, data })
+  }
+
+  // Test Hacienda connection — authenticates with provided or stored credentials
+  async testHaciendaConnection(id: string, overrides?: { user?: string; password?: string; ambiente?: 'TEST' | 'PROD' }) {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+    const company = await db.company.findFirst({
+      where: { id, tenantId },
+      select: { haciendaUserEnc: true, haciendaPwdEnc: true, dteAmbiente: true },
+    })
+    if (!company) throw new NotFoundException('Empresa no encontrada')
+
+    const user     = overrides?.user     ?? (company.haciendaUserEnc ? this.crypto.decrypt(company.haciendaUserEnc) : null)
+    const password = overrides?.password ?? (company.haciendaPwdEnc  ? this.crypto.decrypt(company.haciendaPwdEnc!)  : null)
+    const ambiente = (overrides?.ambiente ?? company.dteAmbiente ?? 'TEST') as 'TEST' | 'PROD'
+
+    if (!user || !password) {
+      throw new NotFoundException('No hay credenciales Hacienda configuradas para esta empresa')
+    }
+
+    const ENDPOINTS = {
+      TEST: 'https://apitest.dtes.mh.gob.sv/fesv',
+      PROD: 'https://api.dtes.mh.gob.sv/fesv',
+    }
+
+    const Axios = (await import('axios')).default
+    const res = await Axios.post(`${ENDPOINTS[ambiente]}/seguridad/auth`, null, {
+      params: { user, pwd: password },
+      timeout: 15_000,
+    })
+
+    const token = res.data?.body?.token
+    if (!token) throw new Error('Hacienda no retornó token — credenciales incorrectas')
+
+    return { ok: true, ambiente, message: 'Conexión exitosa con Ministerio de Hacienda' }
   }
 
   // Decrypt Hacienda credentials for internal use by DTE service

@@ -148,6 +148,19 @@ export class PosService {
       }
     }
 
+    // Validate tipoDte is enabled for this company
+    const companyConfig = await db.company.findFirst({
+      where: { id: dto.companyId, tenantId },
+      select: { dteEnabledTypes: true },
+    })
+    const enabledTypes: string[] = (companyConfig?.dteEnabledTypes as string[]) ?? []
+    const effectiveEnabled = enabledTypes.length > 0 ? enabledTypes : ['01', '03']
+    if (dto.emitDte && !effectiveEnabled.includes(dto.tipoDte)) {
+      throw new BadRequestException(
+        `Tipo de documento '${dto.tipoDte}' no está habilitado para esta empresa. Actívalo en Configuración → Integraciones DTE.`
+      )
+    }
+
     // Get numero control
     const dteNumberControl = await this.getNextNumeroControl(dto.companyId, dto.branchId, dto.tipoDte, tenantId)
 
@@ -317,13 +330,14 @@ export class PosService {
 
   private async getNextNumeroControl(companyId: string, branchId: string, tipoDte: string, tenantId: string) {
     const db = this.getDb()
+    const year = new Date().getFullYear()
 
     let control = await db.dteNumberControl.findFirst({
-      where: { companyId, branchId, tipoDte },
+      where: { companyId, branchId, tipoDte, year },
     })
 
     if (!control) {
-      // Auto-create with sequence 0 — will be incremented on use
+      // Auto-create for this year — sequence resets to 0 on each new calendar year
       const branch = await db.branch.findFirst({
         where: { id: branchId },
         select: { codEstableMH: true, codPuntoVentaMH: true },
@@ -334,6 +348,7 @@ export class PosService {
           companyId,
           branchId,
           tipoDte,
+          year,
           lastSequence: 0,
           codEstable: branch?.codEstableMH ?? 'M001',
           codPuntoVenta: branch?.codPuntoVentaMH ?? 'P001',

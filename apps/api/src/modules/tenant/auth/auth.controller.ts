@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { LoginSchema, type LoginDto, type JwtAccessPayload } from '@pos-dte/shared-types'
 import { REFRESH_COOKIE } from '../../../config/constants'
+import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 
 @Controller('auth')
 export class AuthController {
@@ -46,5 +47,12 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser() user: JwtAccessPayload) {
     return this.authService.me(user.sub)
+  }
+
+  // Returns tenant-level info (dbStrategy, slug) — safe to expose, no secrets
+  @Get('tenant-info')
+  tenantInfo() {
+    const { slug, dbStrategy } = getCurrentTenant()
+    return { slug, dbStrategy }
   }
 }

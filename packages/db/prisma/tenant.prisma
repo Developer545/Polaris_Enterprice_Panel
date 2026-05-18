@@ -75,6 +75,7 @@ model Company {
   certDataEnc              String?     // .p12 base64 encrypted
   certPwdEnc               String?
   dteAmbiente              DteAmbiente @default(TEST)
+  dteEnabledTypes          String[]    // e.g. ["01","03","05"] — managed from settings
   isActive                 Boolean     @default(true)
   createdAt                DateTime    @default(now())
   updatedAt                DateTime    @updatedAt
@@ -400,12 +401,13 @@ model DteNumberControl {
   company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   branchId      String
   tipoDte       String
+  year          Int      @default(2026) // resets sequence each calendar year
   lastSequence  Int      @default(0)
   codEstable    String   @default("M001")
   codPuntoVenta String   @default("P001")
   updatedAt     DateTime @updatedAt
 
-  @@unique([companyId, branchId, tipoDte])
+  @@unique([companyId, branchId, tipoDte, year])
   @@index([tenantId, companyId])
 }
 

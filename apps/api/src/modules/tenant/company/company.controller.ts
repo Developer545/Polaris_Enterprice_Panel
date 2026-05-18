@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, Param } from '@nestjs/common'
+import { Controller, Get, Put, Post, Body, Param } from '@nestjs/common'
 import { CompanyService, UpdateCompanySchema } from './company.service'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
@@ -28,5 +28,14 @@ export class CompanyController {
     @Body(new ZodValidationPipe(UpdateCompanySchema)) dto: z.infer<typeof UpdateCompanySchema>,
   ) {
     return this.svc.update(id, dto)
+  }
+
+  @Post(':id/test-hacienda')
+  @RequirePermissions(PERMISSIONS.COMPANY_EDIT)
+  testHacienda(
+    @Param('id') id: string,
+    @Body() body: { user?: string; password?: string; ambiente?: 'TEST' | 'PROD' },
+  ) {
+    return this.svc.testHaciendaConnection(id, body)
   }
 }

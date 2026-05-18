@@ -47,13 +47,17 @@ model Tenant {
   dbUrl       String?      // encrypted — only for DEDICATED strategies
   status      TenantStatus @default(TRIAL)
   trialEndsAt DateTime?
-  licenseKey  String       @unique @default(cuid())
-  appVersion  String?      // last reported Electron version
-  lastSeenAt  DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  companies   TenantCompany[]
-  auditLogs   PlatformAuditLog[]
+  licenseKey       String       @unique @default(cuid())
+  appVersion       String?      // last reported Electron version
+  lastSeenAt       DateTime?
+  // Per-tenant feature flags — managed by SuperAdmin
+  modules          Json         @default("{}")  // { "pos": true, "dte": true, ... }
+  dteAllowedTypes  String[]     // DTE types admin allows: ["01","03","05","06","11"]
+  provisioned      Boolean      @default(false) // true once first company+user created
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  companies        TenantCompany[]
+  auditLogs        PlatformAuditLog[]
 }
 
 // Maps tenant → companies created in the tenant DB
