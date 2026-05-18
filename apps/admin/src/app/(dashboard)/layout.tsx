@@ -28,7 +28,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     <Layout style={{ minHeight: '100vh' }}>
       <Sider collapsed={collapsed} trigger={null} width={220} style={{ background: '#001529', position: 'fixed', height: '100vh', left: 0, top: 0, zIndex: 100 }}>
         <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', padding: collapsed ? 0 : '0 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <ControlOutlined style={{ color: '#f47920', fontSize: 24, flexShrink: 0 }} />
+          <ControlOutlined style={{ color: token.colorPrimary, fontSize: 24, flexShrink: 0 }} />
           {!collapsed && (
             <Typography.Text strong style={{ color: '#fff', marginLeft: 10, fontSize: 14, whiteSpace: 'nowrap' }}>
               Admin Panel

@@ -11,7 +11,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <StyleProvider hashPriority="high">
       <QueryClientProvider client={queryClient}>
         <ConfigProvider
-          theme={{ token: { colorPrimary: '#f47920', borderRadius: 8 } }}
+          theme={{ token: { colorPrimary: '#722ed1', borderRadius: 8 } }}
           locale={esES}
         >
           <AntApp>{children}</AntApp>
