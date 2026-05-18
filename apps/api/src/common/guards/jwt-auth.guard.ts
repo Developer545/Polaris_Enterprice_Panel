@@ -33,6 +33,7 @@ export class JwtAuthGuard implements CanActivate {
     if (isAdmin) return true // admin routes handled by AdminJwtGuard
 
     const request = ctx.switchToHttp().getRequest()
+    if (request.method === 'OPTIONS') return true
     const token = request.cookies?.[ACCESS_COOKIE]
     if (!token) throw new UnauthorizedException('No autenticado')
 

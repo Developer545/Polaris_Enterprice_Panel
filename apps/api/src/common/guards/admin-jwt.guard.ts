@@ -10,6 +10,7 @@ export class AdminJwtGuard implements CanActivate {
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const request = ctx.switchToHttp().getRequest()
+    if (request.method === 'OPTIONS') return true
     const token = request.cookies?.[ADMIN_COOKIE]
     if (!token) throw new UnauthorizedException('No autenticado como administrador')
 

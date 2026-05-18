@@ -22,6 +22,8 @@ export class TenantResolverMiddleware implements NestMiddleware {
     _res: FastifyReply,
     next: (error?: Error) => void,
   ): Promise<void> {
+    if (req.method === 'OPTIONS') { next(); return }
+
     const slug = (req.headers[TENANT_HEADER] as string)?.toLowerCase()
     if (!slug) {
       next(new UnauthorizedException('Header X-Tenant-Slug requerido'))
