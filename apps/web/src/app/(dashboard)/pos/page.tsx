@@ -76,6 +76,7 @@ export default function PosPage() {
 
   const { companyId, branchId } = useAppContext()
 
+
   const { data: categories = [] } = useQuery({
     queryKey: ['categories', companyId],
     queryFn: () => api.get('/api/categories', { params: { companyId } }).then(r => r.data),
@@ -112,7 +113,7 @@ export default function PosPage() {
     }
   }, [tipoDte])
 
-  // F12 global shortcut feedback (Electron only)
+  // F12 drawer + F11 reprint shortcut feedback (Electron only)
   useEffect(() => {
     if (!isElectron) return
     window.electron.drawer.onShortcut((result) => {
@@ -120,6 +121,13 @@ export default function PosPage() {
         message.success({ content: 'Cajón abierto (F12)', duration: 2 })
       } else {
         message.error({ content: `Error cajón: ${result.error}`, duration: 4 })
+      }
+    })
+    window.electron.printer.onPrintShortcut((result) => {
+      if (result.ok) {
+        message.success({ content: 'Ticket reimpreso (F11)', duration: 2 })
+      } else {
+        message.error({ content: `Error impresión: ${result.error}`, duration: 4 })
       }
     })
   }, [])
@@ -131,11 +139,43 @@ export default function PosPage() {
 
   const saleMutation = useMutation({
     mutationFn: (values: any) => api.post('/api/pos/sale', values),
-    onSuccess: () => {
+    onSuccess: (response, variables) => {
       message.success('Venta registrada')
+
+      // Build receipt payload for F11 reprint (before cart is cleared)
+      if (isElectron) {
+        const paymentLabel = FORMA_PAGO.find(f => f.value === variables.payments?.[0]?.formaPago)?.label ?? 'Efectivo'
+        const saleNumber = response.data?.saleNumber ?? response.data?.id ?? '—'
+
+        const receiptPayload = {
+          businessName: user?.company?.name ?? user?.tenant?.name ?? 'POS DTE',
+          branchName: user?.branch?.name ?? openRegister?.branch?.name ?? '',
+          cashierName: user?.name ?? '',
+          saleNumber,
+          date: new Date().toLocaleString('es-SV'),
+          tipoDte: tipoDte === '03' ? 'CCF' : 'CF',
+          items: cart.map(i => ({
+            description: i.name,
+            qty: i.quantity,
+            unitPrice: i.price,
+            total: calcLine(i, tipoDte).total,
+          })),
+          subtotal: totalGravada,
+          iva: totalIva,
+          total: totalPagar,
+          paymentMethod: paymentLabel,
+          amountPaid: recibidoEfectivo > 0 ? recibidoEfectivo : undefined,
+          change: recibidoEfectivo > 0 ? Math.max(0, recibidoEfectivo - totalPagar) : undefined,
+        }
+
+        // Store in main process — enables F11 reprint without re-querying API
+        window.electron.printer.setLastReceipt(receiptPayload).catch(() => {})
+      }
+
       // Open cash drawer (Electron only — silent fail if not configured)
       const win = window as any
       if (win.electron?.drawer?.open) win.electron.drawer.open().catch(() => {})
+
       setCart([])
       resetClient()
       setPayModal(false)

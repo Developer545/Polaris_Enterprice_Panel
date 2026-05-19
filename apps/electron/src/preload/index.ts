@@ -24,6 +24,12 @@ const electronAPI = {
     printTest: (payload: PrintTestPayload) =>
       ipcRenderer.invoke('print:test', payload),
     status: () => ipcRenderer.invoke('print:status'),
+    /** Store last receipt in main — enables F11 reprint shortcut */
+    setLastReceipt: (payload: PrintReceiptPayload) =>
+      ipcRenderer.invoke('print:set-last-receipt', payload),
+    onPrintShortcut: (cb: (result: { ok: boolean; error?: string }) => void) => {
+      ipcRenderer.on('shortcut:print', (_e, result) => cb(result))
+    },
   },
 
   // ── Cash Drawer ──────────────────────────────────────────────────────────
