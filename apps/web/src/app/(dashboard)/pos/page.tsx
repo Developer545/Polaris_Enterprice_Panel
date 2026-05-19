@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
 import { isElectron } from '../../../lib/is-electron'
+import { useBarcodeScanner } from '../../../hooks/use-barcode-scanner'
 
 interface CartItem {
   productId: string
@@ -112,6 +113,27 @@ export default function PosPage() {
       setSelectedClient(null)
     }
   }, [tipoDte])
+
+  // Barcode scanner — auto-search and add product to cart
+  useBarcodeScanner(async (barcode) => {
+    if (!companyId) return
+    try {
+      const res = await api.get('/api/products', {
+        params: { companyId, search: barcode },
+      })
+      const matches: any[] = res.data ?? []
+      // Exact match on SKU or barcode field first, else first result
+      const product = matches.find(p => p.sku === barcode || p.barcode === barcode) ?? matches[0]
+      if (product) {
+        addToCart(product)
+        message.success({ content: `Escaneado: ${product.name}`, duration: 1.5 })
+      } else {
+        message.warning({ content: `Código no encontrado: ${barcode}`, duration: 3 })
+      }
+    } catch {
+      message.error({ content: 'Error al buscar por código de barras', duration: 3 })
+    }
+  }, { enabled: !payModal }) // disable during payment modal
 
   // F12 drawer + F11 reprint shortcut feedback (Electron only)
   useEffect(() => {
