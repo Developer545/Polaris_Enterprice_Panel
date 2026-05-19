@@ -1,11 +1,14 @@
 import { autoUpdater } from 'electron-updater'
-import { BrowserWindow, dialog } from 'electron'
+import { BrowserWindow, dialog, ipcMain } from 'electron'
 import log from 'electron-log'
 
 export function setupUpdater(mainWindow: BrowserWindow): void {
   autoUpdater.logger = log
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
+
+  // Called by web app "Reiniciar ahora" button
+  ipcMain.handle('app:install-update', () => autoUpdater.quitAndInstall())
 
   autoUpdater.on('update-available', (info) => {
     mainWindow.webContents.send('update-available', { version: info.version })

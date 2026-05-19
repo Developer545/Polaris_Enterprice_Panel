@@ -5,6 +5,7 @@ import {
   Tooltip, Badge,
 } from 'antd'
 import TitleBar, { TITLEBAR_HEIGHT } from '@/components/electron/TitleBar'
+import UpdateBanner from '@/components/electron/UpdateBanner'
 import { isElectron } from '@/lib/is-electron'
 import {
   DashboardOutlined, ShoppingCartOutlined, TeamOutlined, AppstoreOutlined,
@@ -166,6 +167,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <Layout style={{ minHeight: '100vh', background: 'transparent', paddingTop: tbOffset }}>
       <TitleBar sidebarWidth={collapsed ? 64 : 240} />
+      <UpdateBanner />
       {/* Sidebar */}
       <Sider
         collapsed={collapsed}

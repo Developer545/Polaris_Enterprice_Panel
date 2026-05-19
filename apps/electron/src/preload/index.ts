@@ -92,6 +92,7 @@ const electronAPI = {
     onUpdateDownloaded: (cb: (info: { version: string }) => void) => {
       ipcRenderer.on('update-downloaded', (_e, info) => cb(info))
     },
+    installUpdate: () => ipcRenderer.invoke('app:install-update'),
     removeAllListeners: (channel: string) => {
       ipcRenderer.removeAllListeners(channel)
     },
