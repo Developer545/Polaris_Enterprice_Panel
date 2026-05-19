@@ -22,7 +22,11 @@ const btn = (hover: string): React.CSSProperties => ({
 
 export const TITLEBAR_HEIGHT = H
 
-export default function TitleBar() {
+interface TitleBarProps {
+  sidebarWidth: number
+}
+
+export default function TitleBar({ sidebarWidth }: TitleBarProps) {
   const [maximized, setMaximized] = useState(false)
   const [hovered, setHovered] = useState<'min' | 'max' | 'close' | null>(null)
 
@@ -52,8 +56,8 @@ export default function TitleBar() {
         userSelect: 'none',
       }}
     >
-      {/* Left spacer — aligns with sidebar logo area */}
-      <div style={{ width: 240, flexShrink: 0 }} />
+      {/* Left spacer — tracks sidebar width (expanded 240 / collapsed 64) */}
+      <div style={{ width: sidebarWidth, flexShrink: 0, transition: 'width 0.2s' }} />
 
       {/* App name — center drag area */}
       <div style={{

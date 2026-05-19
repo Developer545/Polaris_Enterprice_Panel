@@ -165,7 +165,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <Layout style={{ minHeight: '100vh', background: 'transparent', paddingTop: tbOffset }}>
-      <TitleBar />
+      <TitleBar sidebarWidth={collapsed ? 64 : 240} />
       {/* Sidebar */}
       <Sider
         collapsed={collapsed}
