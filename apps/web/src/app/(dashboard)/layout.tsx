@@ -4,13 +4,15 @@ import {
   Layout, Avatar, Dropdown, Typography, theme as antTheme,
   Tooltip, Badge,
 } from 'antd'
+import TitleBar, { TITLEBAR_HEIGHT } from '@/components/electron/TitleBar'
+import { isElectron } from '@/lib/is-electron'
 import {
   DashboardOutlined, ShoppingCartOutlined, TeamOutlined, AppstoreOutlined,
   FileTextOutlined, UserOutlined, SettingOutlined, LogoutOutlined,
   ShopOutlined, ShoppingOutlined, WalletOutlined, IdcardOutlined,
   CalculatorOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
   CaretDownOutlined, CaretRightOutlined, BankOutlined,
-  TagOutlined, SafetyOutlined,
+  TagOutlined, SafetyOutlined, DatabaseOutlined, AccountBookOutlined,
 } from '@ant-design/icons'
 import { usePathname, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
@@ -40,9 +42,10 @@ const NAV_GROUPS: NavGroup[] = [
     color: 'var(--ant-color-primary)',
     items: [
       { key: '/',               label: 'Dashboard',     icon: <DashboardOutlined /> },
-      { key: '/pos',            label: 'Caja / POS',    icon: <ShoppingCartOutlined /> },
-      { key: '/sales',          label: 'Ventas',        icon: <FileTextOutlined /> },
-      { key: '/cash-registers', label: 'Turnos de caja', icon: <WalletOutlined /> },
+      { key: '/pos',                   label: 'Caja / POS',         icon: <ShoppingCartOutlined /> },
+      { key: '/sales',                 label: 'Ventas',             icon: <FileTextOutlined /> },
+      { key: '/accounts-receivable',   label: 'Cuentas por cobrar', icon: <AccountBookOutlined /> },
+      { key: '/cash-registers',        label: 'Turnos de caja',     icon: <WalletOutlined /> },
     ],
   },
   {
@@ -51,9 +54,10 @@ const NAV_GROUPS: NavGroup[] = [
     icon: <TeamOutlined />,
     color: '#1677ff',
     items: [
-      { key: '/clients',  label: 'Clientes',   icon: <TeamOutlined /> },
-      { key: '/products', label: 'Productos',  icon: <AppstoreOutlined /> },
-      { key: '/services', label: 'Servicios',  icon: <TagOutlined /> },
+      { key: '/clients',   label: 'Clientes',   icon: <TeamOutlined /> },
+      { key: '/products',  label: 'Productos',  icon: <AppstoreOutlined /> },
+      { key: '/inventory', label: 'Inventario', icon: <DatabaseOutlined /> },
+      { key: '/services',  label: 'Servicios',  icon: <TagOutlined /> },
     ],
   },
   {
@@ -108,6 +112,8 @@ function getActiveGroup(pathname: string) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['ventas']))
+  // Evaluated after mount to avoid SSR/hydration mismatch
+  const [inElectron, setInElectron] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const { token } = antTheme.useToken()
@@ -117,6 +123,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const activeGroup = getActiveGroup(pathname)
     setOpenGroups(prev => new Set([...prev, activeGroup]))
   }, [pathname])
+
+  useEffect(() => { setInElectron(isElectron) }, [])
 
   const { data: user } = useQuery({
     queryKey: ['me'],
@@ -153,8 +161,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     onClick: ({ key }: { key: string }) => { if (key === 'logout') logout() },
   }
 
+  const tbOffset = inElectron ? TITLEBAR_HEIGHT : 0
+
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', background: 'transparent', paddingTop: tbOffset }}>
+      <TitleBar />
       {/* Sidebar */}
       <Sider
         collapsed={collapsed}
@@ -163,9 +174,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         style={{
           background: '#fbfbfa',
           position: 'fixed',
-          height: '100vh',
+          height: `calc(100vh - ${tbOffset}px)`,
           left: 0,
-          top: 0,
+          top: tbOffset,
           zIndex: 100,
           display: 'flex',
           flexDirection: 'column',
@@ -356,7 +367,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
       </Sider>
 
-      <Layout style={{ marginLeft: collapsed ? 64 : 240, transition: 'margin-left 0.2s' }}>
+      <Layout style={{ marginLeft: collapsed ? 64 : 240, transition: 'margin-left 0.2s', background: 'transparent' }}>
         {/* Header */}
         <Header style={{
           background: token.colorBgContainer,
@@ -366,7 +377,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           justifyContent: 'space-between',
           borderBottom: `1px solid ${token.colorBorderSecondary}`,
           position: 'sticky',
-          top: 0,
+          top: tbOffset,
           zIndex: 99,
           boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
         }}>
@@ -390,8 +401,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Dropdown>
         </Header>
 
-        <Content style={{ margin: 24, minHeight: 'calc(100vh - 112px)' }}>
-          {children}
+        <Content className="stellar-dashboard-shell" style={{ margin: 24, minHeight: 'calc(100vh - 112px)', background: 'transparent' }}>
+          <div className="stellar-dashboard-content">
+            {children}
+          </div>
         </Content>
       </Layout>
     </Layout>
