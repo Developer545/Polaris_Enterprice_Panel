@@ -47,6 +47,19 @@ const electronAPI = {
     isSupported: () => ipcRenderer.invoke('notify:supported'),
   },
 
+  // ── Window controls ──────────────────────────────────────────────────────
+  window: {
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    maximizeToggle: () => ipcRenderer.invoke('window:maximize-toggle'),
+    fullscreenToggle: () => ipcRenderer.invoke('window:fullscreen-toggle'),
+    isMaximized: () => ipcRenderer.invoke('window:is-maximized') as Promise<boolean>,
+    isFullscreen: () => ipcRenderer.invoke('window:is-fullscreen') as Promise<boolean>,
+    quit: () => ipcRenderer.invoke('window:quit'),
+    onStateChange: (cb: (state: { maximized: boolean; fullscreen: boolean }) => void) => {
+      ipcRenderer.on('window:state', (_e, state) => cb(state))
+    },
+  },
+
   // ── App / Updater ────────────────────────────────────────────────────────
   app: {
     onUpdateAvailable: (cb: (info: { version: string }) => void) => {

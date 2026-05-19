@@ -7,6 +7,7 @@ import { setupConfigIpc } from './ipc/config.ipc'
 import { setupDrawerIpc } from './ipc/drawer.ipc'
 import { setupNotifyIpc } from './ipc/notify.ipc'
 import { setupDialogIpc } from './ipc/dialog.ipc'
+import { setupWindowIpc } from './ipc/window.ipc'
 
 const isDev = process.env.NODE_ENV === 'development'
 // Replace with your production Vercel URL
@@ -31,6 +32,7 @@ app.whenReady().then(async () => {
   setupDrawerIpc()
   setupNotifyIpc()
   setupDialogIpc(mainWindow)
+  setupWindowIpc(mainWindow)
 })
 
 // Handle second instance (deep links on Windows)
