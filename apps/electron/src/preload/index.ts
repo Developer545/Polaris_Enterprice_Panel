@@ -7,6 +7,9 @@ import type { SavePdfPayload } from '../main/ipc/dialog.ipc'
 // Uses sendSync so it's guaranteed synchronous — no race with hydration.
 ;(window as any).__API_URL__ = ipcRenderer.sendSync('config:get-api-url') as string
 
+// Inject initial OS theme so providers can read it synchronously (no flash)
+;(window as any).__PREFERS_DARK__ = ipcRenderer.sendSync('theme:get-sync') as boolean
+
 const electronAPI = {
   // ── Config ───────────────────────────────────────────────────────────────
   config: {
@@ -66,6 +69,15 @@ const electronAPI = {
     quit: () => ipcRenderer.invoke('window:quit'),
     onStateChange: (cb: (state: { maximized: boolean; fullscreen: boolean }) => void) => {
       ipcRenderer.on('window:state', (_e, state) => cb(state))
+    },
+  },
+
+  // ── OS Theme ─────────────────────────────────────────────────────────────
+  theme: {
+    /** Initial value — injected synchronously via __PREFERS_DARK__ before hydration */
+    isDark: () => !!(window as any).__PREFERS_DARK__,
+    onThemeChange: (cb: (dark: boolean) => void) => {
+      ipcRenderer.on('theme:changed', (_e, dark) => cb(dark))
     },
   },
 

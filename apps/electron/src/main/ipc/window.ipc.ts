@@ -1,6 +1,20 @@
-import { ipcMain, BrowserWindow, app } from 'electron'
+import { ipcMain, BrowserWindow, app, nativeTheme } from 'electron'
 
 export function setupWindowIpc(mainWindow: BrowserWindow): void {
+  // ── OS dark/light mode ──────────────────────────────────────────────────
+  // Sync: called by preload before page scripts to get initial value
+  ipcMain.on('theme:get-sync', (event) => {
+    event.returnValue = nativeTheme.shouldUseDarkColors
+  })
+
+  // Push: notify renderer whenever OS theme changes
+  nativeTheme.on('updated', () => {
+    if (!mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('theme:changed', nativeTheme.shouldUseDarkColors)
+    }
+  })
+
+
   ipcMain.handle('window:minimize', () => mainWindow.minimize())
 
   ipcMain.handle('window:maximize-toggle', () => {
