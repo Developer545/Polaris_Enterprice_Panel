@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { PrintReceiptPayload, PrintTestPayload } from '../main/ipc/print.ipc'
+import type { NotifyPayload } from '../main/ipc/notify.ipc'
 
 // Inject API URL before any Next.js script runs.
 // Uses sendSync so it's guaranteed synchronous — no race with hydration.
@@ -29,6 +30,12 @@ const electronAPI = {
     open: (port?: string, pin?: 0 | 1) =>
       ipcRenderer.invoke('drawer:open', port, pin),
     listPorts: () => ipcRenderer.invoke('drawer:list-ports'),
+  },
+
+  // ── Notifications ────────────────────────────────────────────────────────
+  notify: {
+    show: (payload: NotifyPayload) => ipcRenderer.invoke('notify:show', payload),
+    isSupported: () => ipcRenderer.invoke('notify:supported'),
   },
 
   // ── App / Updater ────────────────────────────────────────────────────────

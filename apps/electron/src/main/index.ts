@@ -5,6 +5,7 @@ import { setupUpdater } from './updater'
 import { setupPrintIpc } from './ipc/print.ipc'
 import { setupConfigIpc } from './ipc/config.ipc'
 import { setupDrawerIpc } from './ipc/drawer.ipc'
+import { setupNotifyIpc } from './ipc/notify.ipc'
 
 const isDev = process.env.NODE_ENV === 'development'
 // Replace with your production Vercel URL
@@ -27,6 +28,7 @@ app.whenReady().then(async () => {
   setupPrintIpc()
   setupConfigIpc()
   setupDrawerIpc()
+  setupNotifyIpc()
 })
 
 // Handle second instance (deep links on Windows)
