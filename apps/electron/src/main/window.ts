@@ -23,6 +23,10 @@ export async function createMainWindow(webUrl: string): Promise<BrowserWindow> {
     minHeight: 700,
     show: false,
     backgroundColor: '#f5f5f5',
+    // Hide native titlebar — web app renders its own with window IPC controls
+    titleBarStyle: 'hidden',
+    // Windows: keep native snap/resize behaviour with hidden titlebar
+    titleBarOverlay: false,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
