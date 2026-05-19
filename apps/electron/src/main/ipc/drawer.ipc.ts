@@ -7,50 +7,54 @@ import { SerialPort } from 'serialport'
 const DRAWER_CMD_PIN2 = Buffer.from([0x1b, 0x70, 0x00, 0x19, 0xfa])
 const DRAWER_CMD_PIN5 = Buffer.from([0x1b, 0x70, 0x01, 0x19, 0xfa])
 
-export function setupDrawerIpc(): void {
-  ipcMain.handle('drawer:open', async (_, port?: string, pin: 0 | 1 = 0) => {
-    const targetPort = port ?? getCashDrawerPort()
-    if (!targetPort) return { ok: false, error: 'Puerto de caja no configurado' }
+export type DrawerResult = { ok: true } | { ok: false; error: string }
 
-    return new Promise((resolve) => {
-      let serial: SerialPort | null = null
+export function openCashDrawer(port?: string, pin: 0 | 1 = 0): Promise<DrawerResult> {
+  const targetPort = port ?? getCashDrawerPort()
+  if (!targetPort) return Promise.resolve({ ok: false, error: 'Puerto de caja no configurado' })
 
-      try {
-        serial = new SerialPort(
-          { path: targetPort, baudRate: 9600, autoOpen: false },
-        )
+  return new Promise((resolve) => {
+    let serial: SerialPort | null = null
 
-        serial.open((openErr) => {
-          if (openErr) {
-            resolve({ ok: false, error: `No se pudo abrir ${targetPort}: ${openErr.message}` })
+    try {
+      serial = new SerialPort({ path: targetPort, baudRate: 9600, autoOpen: false })
+
+      serial.open((openErr) => {
+        if (openErr) {
+          resolve({ ok: false, error: `No se pudo abrir ${targetPort}: ${openErr.message}` })
+          return
+        }
+
+        const cmd = pin === 1 ? DRAWER_CMD_PIN5 : DRAWER_CMD_PIN2
+
+        serial!.write(cmd, (writeErr) => {
+          if (writeErr) {
+            serial!.close()
+            resolve({ ok: false, error: `Error al escribir: ${writeErr.message}` })
             return
           }
 
-          const cmd = pin === 1 ? DRAWER_CMD_PIN5 : DRAWER_CMD_PIN2
-
-          serial!.write(cmd, (writeErr) => {
-            if (writeErr) {
-              serial!.close()
-              resolve({ ok: false, error: `Error al escribir: ${writeErr.message}` })
-              return
+          serial!.drain((drainErr) => {
+            serial!.close()
+            if (drainErr) {
+              resolve({ ok: false, error: `Error drain: ${drainErr.message}` })
+            } else {
+              resolve({ ok: true })
             }
-
-            serial!.drain((drainErr) => {
-              serial!.close()
-              if (drainErr) {
-                resolve({ ok: false, error: `Error drain: ${drainErr.message}` })
-              } else {
-                resolve({ ok: true })
-              }
-            })
           })
         })
-      } catch (err: any) {
-        try { serial?.close() } catch { /* ignore */ }
-        resolve({ ok: false, error: err?.message ?? 'Error desconocido' })
-      }
-    })
+      })
+    } catch (err: any) {
+      try { serial?.close() } catch { /* ignore */ }
+      resolve({ ok: false, error: err?.message ?? 'Error desconocido' })
+    }
   })
+}
+
+export function setupDrawerIpc(): void {
+  ipcMain.handle('drawer:open', async (_, port?: string, pin: 0 | 1 = 0) =>
+    openCashDrawer(port, pin),
+  )
 
   ipcMain.handle('drawer:list-ports', async () => {
     try {

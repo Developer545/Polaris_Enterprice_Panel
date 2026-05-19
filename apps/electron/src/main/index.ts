@@ -8,6 +8,7 @@ import { setupDrawerIpc } from './ipc/drawer.ipc'
 import { setupNotifyIpc } from './ipc/notify.ipc'
 import { setupDialogIpc } from './ipc/dialog.ipc'
 import { setupWindowIpc } from './ipc/window.ipc'
+import { setupShortcuts, teardownShortcuts } from './shortcuts'
 
 const isDev = process.env.NODE_ENV === 'development'
 // Replace with your production Vercel URL
@@ -33,6 +34,7 @@ app.whenReady().then(async () => {
   setupNotifyIpc()
   setupDialogIpc(mainWindow)
   setupWindowIpc(mainWindow)
+  setupShortcuts(mainWindow)
 })
 
 // Handle second instance (deep links on Windows)
@@ -44,6 +46,8 @@ app.on('second-instance', (_, commandLine) => {
     if (url) mainWindow.webContents.send('deep-link', url)
   }
 })
+
+app.on('will-quit', () => teardownShortcuts())
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

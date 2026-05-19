@@ -31,6 +31,9 @@ const electronAPI = {
     open: (port?: string, pin?: 0 | 1) =>
       ipcRenderer.invoke('drawer:open', port, pin),
     listPorts: () => ipcRenderer.invoke('drawer:list-ports'),
+    onShortcut: (cb: (result: { ok: boolean; error?: string }) => void) => {
+      ipcRenderer.on('shortcut:drawer', (_e, result) => cb(result))
+    },
   },
 
   // ── Dialog / File system ─────────────────────────────────────────────────
