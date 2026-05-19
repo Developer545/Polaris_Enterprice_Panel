@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { PrintReceiptPayload, PrintTestPayload } from '../main/ipc/print.ipc'
 import type { NotifyPayload } from '../main/ipc/notify.ipc'
+import type { SavePdfPayload } from '../main/ipc/dialog.ipc'
 
 // Inject API URL before any Next.js script runs.
 // Uses sendSync so it's guaranteed synchronous — no race with hydration.
@@ -30,6 +31,14 @@ const electronAPI = {
     open: (port?: string, pin?: 0 | 1) =>
       ipcRenderer.invoke('drawer:open', port, pin),
     listPorts: () => ipcRenderer.invoke('drawer:list-ports'),
+  },
+
+  // ── Dialog / File system ─────────────────────────────────────────────────
+  dialog: {
+    savePdf: (payload: SavePdfPayload) => ipcRenderer.invoke('dialog:save-pdf', payload),
+    openFile: (opts: { title?: string; extensions?: string[]; multiSelections?: boolean }) =>
+      ipcRenderer.invoke('dialog:open-file', opts),
+    showInFolder: (filePath: string) => ipcRenderer.invoke('dialog:show-in-folder', filePath),
   },
 
   // ── Notifications ────────────────────────────────────────────────────────
