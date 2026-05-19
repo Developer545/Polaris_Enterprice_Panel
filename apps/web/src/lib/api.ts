@@ -6,7 +6,7 @@ function getBaseUrl(): string {
   if (typeof window !== 'undefined' && (window as any).__API_URL__) {
     return (window as any).__API_URL__
   }
-  return 'http://localhost:3011'
+  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'
 }
 
 function getTenantSlug(): string {

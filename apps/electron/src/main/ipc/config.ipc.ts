@@ -1,5 +1,9 @@
 import { ipcMain, safeStorage } from 'electron'
+import { app } from 'electron'
 import Store from 'electron-store'
+
+// Production NestJS API URL — overridable via electron-store for enterprise deployments
+const DEFAULT_API_URL = process.env.API_URL ?? 'https://api.pos-dte.com'
 
 const store = new Store({
   name: 'pos-dte-config',
@@ -10,7 +14,17 @@ const store = new Store({
   },
 })
 
+export function getApiUrl(): string {
+  const override = store.get('apiUrl') as string | undefined
+  return override?.trim() || DEFAULT_API_URL
+}
+
 export function setupConfigIpc(): void {
+  // Sync IPC — called by preload before page scripts run to inject __API_URL__
+  ipcMain.on('config:get-api-url', (event) => {
+    event.returnValue = getApiUrl()
+  })
+
   ipcMain.handle('config:get', (_, key: string) => store.get(key))
 
   ipcMain.handle('config:set', (_, key: string, value: unknown) => { store.set(key, value) })
@@ -30,6 +44,3 @@ export function setupConfigIpc(): void {
 
   ipcMain.handle('config:app-version', () => app.getVersion())
 }
-
-// Import app for version
-import { app } from 'electron'

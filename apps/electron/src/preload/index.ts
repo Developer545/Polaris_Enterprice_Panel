@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { PrintReceiptPayload, PrintTestPayload } from '../main/ipc/print.ipc'
 
+// Inject API URL before any Next.js script runs.
+// Uses sendSync so it's guaranteed synchronous — no race with hydration.
+;(window as any).__API_URL__ = ipcRenderer.sendSync('config:get-api-url') as string
+
 const electronAPI = {
   // ── Config ───────────────────────────────────────────────────────────────
   config: {
@@ -31,6 +35,9 @@ const electronAPI = {
   app: {
     onUpdateAvailable: (cb: (info: { version: string }) => void) => {
       ipcRenderer.on('update-available', (_e, info) => cb(info))
+    },
+    onUpdateProgress: (cb: (p: { percent: number; transferred: number; total: number }) => void) => {
+      ipcRenderer.on('update-progress', (_e, p) => cb(p))
     },
     onUpdateDownloaded: (cb: (info: { version: string }) => void) => {
       ipcRenderer.on('update-downloaded', (_e, info) => cb(info))
