@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useEffect, useDeferredValue } from 'react'
 import {
   Row, Col, Input, Button, Table, Select, Typography, Divider, Tag, Card,
   InputNumber, Modal, Form, Space, App, Empty, Spin, Badge, Segmented, Avatar, theme,
@@ -12,6 +12,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
+import { isElectron } from '../../../lib/is-electron'
 
 interface CartItem {
   productId: string
@@ -57,10 +58,12 @@ export default function PosPage() {
   const qc = useQueryClient()
   const [cart, setCart] = useState<CartItem[]>([])
   const [productSearch, setProductSearch] = useState('')
+  const deferredProductSearch = useDeferredValue(productSearch)
 
   // Client state
   const [clientMode, setClientMode] = useState<ClientMode>('cf')
   const [clientSearch, setClientSearch] = useState('')
+  const deferredClientSearch = useDeferredValue(clientSearch)
   const [selectedClient, setSelectedClient] = useState<any>(null)
   const [newClientName, setNewClientName] = useState('')
   const [newClientEmail, setNewClientEmail] = useState('')
@@ -80,19 +83,19 @@ export default function PosPage() {
   })
 
   const { data: products = [], isFetching: searchingProducts } = useQuery({
-    queryKey: ['products-search', companyId, productSearch, selectedCategory],
+    queryKey: ['products-search', companyId, deferredProductSearch, selectedCategory],
     queryFn: () => api.get('/api/products', {
-      params: { companyId, search: productSearch || undefined, categoryId: selectedCategory || undefined },
+      params: { companyId, search: deferredProductSearch || undefined, categoryId: selectedCategory || undefined },
     }).then(r => r.data),
-    enabled: !!companyId && (productSearch.length >= 1 || !!selectedCategory),
-    staleTime: 0,
+    enabled: !!companyId && (deferredProductSearch.length >= 1 || !!selectedCategory),
+    staleTime: 30_000,
   })
 
   const { data: clientResults = [], isFetching: searchingClients } = useQuery({
-    queryKey: ['clients-search', companyId, clientSearch],
-    queryFn: () => api.get('/api/clients', { params: { companyId, search: clientSearch } }).then(r => r.data),
-    enabled: !!companyId && clientSearch.length >= 2 && clientMode === 'registrado',
-    staleTime: 0,
+    queryKey: ['clients-search', companyId, deferredClientSearch],
+    queryFn: () => api.get('/api/clients', { params: { companyId, search: deferredClientSearch } }).then(r => r.data),
+    enabled: !!companyId && deferredClientSearch.length >= 2 && clientMode === 'registrado',
+    staleTime: 30_000,
   })
 
   const { data: openRegister } = useQuery({
@@ -108,6 +111,18 @@ export default function PosPage() {
       setSelectedClient(null)
     }
   }, [tipoDte])
+
+  // F12 global shortcut feedback (Electron only)
+  useEffect(() => {
+    if (!isElectron) return
+    window.electron.drawer.onShortcut((result) => {
+      if (result.ok) {
+        message.success({ content: 'Cajón abierto (F12)', duration: 2 })
+      } else {
+        message.error({ content: `Error cajón: ${result.error}`, duration: 4 })
+      }
+    })
+  }, [])
 
   // Create new quick client mutation
   const createClientMut = useMutation({
@@ -126,6 +141,11 @@ export default function PosPage() {
       setPayModal(false)
       payForm.resetFields()
       qc.invalidateQueries({ queryKey: ['sales'] })
+      qc.invalidateQueries({ queryKey: ['recent-sales'] })
+      qc.invalidateQueries({ queryKey: ['pos-stats'] })
+      qc.invalidateQueries({ queryKey: ['cash-register-summary'] })
+      qc.invalidateQueries({ queryKey: ['open-register'] })
+      qc.invalidateQueries({ queryKey: ['products'] })
     },
     onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error al registrar venta'),
   })
@@ -599,7 +619,7 @@ export default function PosPage() {
       </div>
 
       {/* Payment modal */}
-      <Modal
+      <Modal destroyOnClose
         open={payModal}
         title={
           <span>
