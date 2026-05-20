@@ -52,5 +52,8 @@ coverage/
 # Claude Code memory (local only)
 .claude/
 
+# Railway production env (contains secrets)
+.env.railway
+
 # TypeScript build info
 *.tsbuildinfo
