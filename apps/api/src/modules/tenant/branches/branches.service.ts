@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common'
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const CreateBranchSchema = z.object({
@@ -28,11 +29,16 @@ export class BranchesService {
     return this.clientFactory.getClient(dbUrl)
   }
 
-  async findAll(companyId?: string) {
+  private assertCompanyAccess(user: JwtAccessPayload, companyId: string) {
+    if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
+  }
+
+  async findAll(user: JwtAccessPayload, companyId?: string) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    if (companyId) this.assertCompanyAccess(user, companyId)
     return db.branch.findMany({
-      where: { tenantId, ...(companyId ? { companyId } : {}) },
+      where: { tenantId, companyId: companyId ?? user.companyId },
       select: {
         id: true, name: true, address: true, phone: true,
         codEstableMH: true, codPuntoVentaMH: true, isActive: true, createdAt: true,
@@ -43,11 +49,11 @@ export class BranchesService {
     })
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     const branch = await db.branch.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, companyId: user.companyId },
       include: {
         company: { select: { id: true, name: true } },
         users: { include: { user: { select: { id: true, name: true, email: true } } } },
@@ -57,13 +63,14 @@ export class BranchesService {
     return branch
   }
 
-  async create(dto: CreateBranchDto) {
+  async create(dto: CreateBranchDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
 
     if (dto.codEstableMH) {
       const exists = await db.branch.findFirst({
-        where: { companyId: dto.companyId, codEstableMH: dto.codEstableMH },
+        where: { tenantId, companyId: dto.companyId, codEstableMH: dto.codEstableMH },
       })
       if (exists) throw new ConflictException('Código de establecimiento MH ya existe en esta empresa')
     }
@@ -71,10 +78,10 @@ export class BranchesService {
     return db.branch.create({ data: { ...dto, tenantId } })
   }
 
-  async update(id: string, dto: UpdateBranchDto) {
+  async update(id: string, dto: UpdateBranchDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const branch = await db.branch.findFirst({ where: { id, tenantId } })
+    const branch = await db.branch.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!branch) throw new NotFoundException('Sucursal no encontrada')
 
     const updated = await db.branch.update({ where: { id }, data: dto })
@@ -101,10 +108,10 @@ export class BranchesService {
     return updated
   }
 
-  async remove(id: string) {
+  async remove(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const branch = await db.branch.findFirst({ where: { id, tenantId } })
+    const branch = await db.branch.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!branch) throw new NotFoundException('Sucursal no encontrada')
     await db.branch.update({ where: { id }, data: { isActive: false } })
     return { ok: true }

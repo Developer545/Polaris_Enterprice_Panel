@@ -168,6 +168,12 @@ async function main() {
     'payroll.view': true,
     'payroll.create': true,
     'payroll.approve': true,
+    'inventory.view': true,
+    'inventory.create': true,
+    'inventory.adjust': true,
+    'accounts_receivable.view': true,
+    'accounts_receivable.create': true,
+    'accounts_receivable.edit': true,
   }
 
   const adminRole = await tp.role.upsert({

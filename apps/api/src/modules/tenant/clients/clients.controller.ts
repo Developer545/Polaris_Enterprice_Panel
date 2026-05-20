@@ -2,7 +2,8 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/
 import { ClientsService, CreateClientSchema, UpdateClientSchema } from './clients.service'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
-import { PERMISSIONS } from '@pos-dte/shared-types'
+import { CurrentUser } from '../../../common/decorators/current-user.decorator'
+import { PERMISSIONS, type JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 @Controller('clients')
@@ -11,40 +12,44 @@ export class ClientsController {
 
   @Get()
   @RequirePermissions(PERMISSIONS.CLIENTS_VIEW)
-  findAll(@Query('companyId') companyId: string, @Query('search') search?: string) {
-    return this.svc.findAll(companyId, search)
+  findAll(@CurrentUser() user: JwtAccessPayload, @Query('companyId') companyId: string, @Query('search') search?: string) {
+    return this.svc.findAll(companyId, user, search)
   }
 
   @Get('consumidor-final')
   @RequirePermissions(PERMISSIONS.CLIENTS_VIEW)
-  getConsumidorFinal(@Query('companyId') companyId: string) {
-    return this.svc.getConsumidorFinal(companyId)
+  getConsumidorFinal(@CurrentUser() user: JwtAccessPayload, @Query('companyId') companyId: string) {
+    return this.svc.getConsumidorFinal(companyId, user)
   }
 
   @Get(':id')
   @RequirePermissions(PERMISSIONS.CLIENTS_VIEW)
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id)
+  findOne(@CurrentUser() user: JwtAccessPayload, @Param('id') id: string) {
+    return this.svc.findOne(id, user)
   }
 
   @Post()
   @RequirePermissions(PERMISSIONS.CLIENTS_CREATE)
-  create(@Body(new ZodValidationPipe(CreateClientSchema)) dto: z.infer<typeof CreateClientSchema>) {
-    return this.svc.create(dto)
+  create(
+    @CurrentUser() user: JwtAccessPayload,
+    @Body(new ZodValidationPipe(CreateClientSchema)) dto: z.infer<typeof CreateClientSchema>,
+  ) {
+    return this.svc.create(dto, user)
   }
 
   @Put(':id')
   @RequirePermissions(PERMISSIONS.CLIENTS_EDIT)
   update(
     @Param('id') id: string,
+    @CurrentUser() user: JwtAccessPayload,
     @Body(new ZodValidationPipe(UpdateClientSchema)) dto: z.infer<typeof UpdateClientSchema>,
   ) {
-    return this.svc.update(id, dto)
+    return this.svc.update(id, dto, user)
   }
 
   @Delete(':id')
   @RequirePermissions(PERMISSIONS.CLIENTS_DELETE)
-  remove(@Param('id') id: string) {
-    return this.svc.remove(id)
+  remove(@CurrentUser() user: JwtAccessPayload, @Param('id') id: string) {
+    return this.svc.remove(id, user)
   }
 }

@@ -218,13 +218,12 @@ export default function PurchasesPage() {
       <Modal
         open={newModal}
         title={<Space><PlusOutlined /> Nueva Orden de Compra</Space>}
-        onCancel={() => setNewModal(false)}
+        onCancel={() => { setNewModal(false); newForm.resetFields() }}
         onOk={() => newForm.submit()}
         confirmLoading={createMutation.isPending}
         okText="Crear OC"
         okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={780}
-        destroyOnClose
         style={{ top: 40 }}
         styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
@@ -326,13 +325,12 @@ export default function PurchasesPage() {
       <Modal
         open={receiveModal !== null}
         title={<Space><InboxOutlined /> Registrar recepción — <code style={{ fontSize: 12 }}>{receiveModal?.orderNumber ?? ''}</code></Space>}
-        onCancel={() => setReceiveModal(null)}
+        onCancel={() => { setReceiveModal(null); receiveForm.resetFields() }}
         onOk={() => receiveForm.submit()}
         confirmLoading={receiveMutation.isPending}
         okText="Confirmar recepción"
         okButtonProps={{ style: { background: token.colorSuccess, borderColor: token.colorSuccess, borderRadius: 8, fontWeight: 600 } }}
         width={600}
-        destroyOnClose
         style={{ top: 40 }}
         styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >

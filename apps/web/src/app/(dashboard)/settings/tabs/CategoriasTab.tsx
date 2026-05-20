@@ -144,7 +144,6 @@ export default function CategoriasTab({ companyId }: Props) {
         okText={editing ? 'Actualizar' : 'Crear categoría'}
         okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={480}
-        destroyOnClose
         style={{ top: 40 }}
         styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >

@@ -10,7 +10,7 @@ export const ADMIN_TOKEN_TTL_SECONDS = 4 * 3600         // 4 hours
 export const MAX_LOGIN_ATTEMPTS = 5
 export const LOCKOUT_MINUTES = 15
 
-export const TENANT_CACHE_TTL = 60 // seconds in Redis
+export const TENANT_CACHE_TTL = 5 * 60 // seconds in Redis
 export const HACIENDA_TOKEN_TTL = 82800 // 23 hours (< 24h official)
 
 export const DTE_QUEUE = 'dte'

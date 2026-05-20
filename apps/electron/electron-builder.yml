@@ -2,6 +2,10 @@ appId: com.speeddan.posdte
 productName: POS DTE El Salvador
 copyright: Copyright © 2025 Speeddan System
 
+# Deshabilitar rebuild de nativos — serialport usa binarios precompilados
+nodeGypRebuild: false
+npmRebuild: false
+
 directories:
   output: release
   buildResources: resources
@@ -9,6 +13,13 @@ directories:
 files:
   - dist/**/*
   - "!**/*.map"
+  - "!**/*.pdb"
+
+# Extraer nativos del ASAR para que carguen correctamente
+asarUnpack:
+  - node_modules/@serialport/**
+  - node_modules/serialport/**
+  - node_modules/node-thermal-printer/**
 
 win:
   target:

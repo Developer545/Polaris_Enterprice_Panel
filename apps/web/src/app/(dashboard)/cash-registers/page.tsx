@@ -71,7 +71,7 @@ export default function CashRegistersPage() {
     queryKey: ['cash-register-summary', activeRegister?.id],
     queryFn: () => api.get(`/api/cash-registers/${activeRegister!.id}/summary`).then(r => r.data),
     enabled: !!activeRegister?.id,
-    refetchInterval: 30_000,
+    refetchInterval: 5 * 60_000,
   })
 
   const { data: detailSummary } = useQuery({
@@ -254,11 +254,18 @@ export default function CashRegistersPage() {
             { title: 'Tarjeta',        value: totalTarjeta,                          icon: <CreditCardOutlined />,   color: primary,   prefix: '$', precision: 2 },
           ].map((k, i) => (
             <Col xs={12} sm={12} md={6} key={i}>
-              <Card size="small" style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <Card
+                size="small"
+                style={{
+                  borderRadius: 12, border: 'none',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
+                  borderTop: `3px solid ${k.color}`,
+                }}
+              >
                 <Statistic
-                  title={<span style={{ fontSize: 12, color: '#888' }}>{k.title}</span>}
+                  title={<span style={{ fontSize: 12, color: token.colorTextSecondary }}>{k.title}</span>}
                   value={k.value}
-                  prefix={k.prefix ?? <span style={{ color: k.color, marginRight: 4 }}>{k.icon}</span>}
+                  prefix={<span style={{ color: k.color, marginRight: 4 }}>{k.icon}</span>}
                   precision={k.precision}
                   valueStyle={{ color: k.color, fontWeight: 700, fontSize: 22 }}
                 />
@@ -305,7 +312,7 @@ export default function CashRegistersPage() {
         okButtonProps={{ style: { background: primary, borderColor: primary, borderRadius: 8, fontWeight: 600 } }}
         cancelButtonProps={{ style: { borderRadius: 8 } }}
         width={420}
-        destroyOnClose
+        destroyOnHidden
         style={{ top: 40 }}
         styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
@@ -352,7 +359,7 @@ export default function CashRegistersPage() {
         okButtonProps={{ danger: true, style: { borderRadius: 8, fontWeight: 600 } }}
         cancelButtonProps={{ style: { borderRadius: 8 } }}
         width={640}
-        destroyOnClose
+        destroyOnHidden
         style={{ top: 24 }}
         styles={{
           header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 },
@@ -561,7 +568,7 @@ export default function CashRegistersPage() {
           </Button>,
         ]}
         width={600}
-        destroyOnClose
+        destroyOnHidden
         style={{ top: 40 }}
         styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >

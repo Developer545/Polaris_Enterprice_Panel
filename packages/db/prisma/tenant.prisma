@@ -54,6 +54,21 @@ enum PayrollStatus {
   PAID
 }
 
+enum InventoryMovementType {
+  IN        // entrada: compra, ajuste positivo
+  OUT       // salida: venta, ajuste negativo
+  ADJUST    // ajuste manual (puede ser + o -)
+  TRANSFER  // transferencia entre sucursales
+}
+
+enum AccountReceivableStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
 // ─── Company & Branch ─────────────────────────────────────────────────────────
 
 model Company {
@@ -86,17 +101,20 @@ model Company {
   clients           Client[]
   categories        Category[]
   services          Service[]
-  cashRegisters     CashRegister[]
-  sales             Sale[]
-  dteNumberControls DteNumberControl[]
-  suppliers         Supplier[]
-  purchaseOrders    PurchaseOrder[]
-  accountsPayable   AccountPayable[]
-  expenseCategories ExpenseCategory[]
-  expenses          Expense[]
-  employees         Employee[]
-  payrollPeriods    PayrollPeriod[]
-  auditLogs         AuditLog[]
+  unitOfMeasures    UnitOfMeasure[]
+  cashRegisters      CashRegister[]
+  sales              Sale[]
+  dteNumberControls  DteNumberControl[]
+  suppliers          Supplier[]
+  purchaseOrders     PurchaseOrder[]
+  accountsPayable    AccountPayable[]
+  expenseCategories  ExpenseCategory[]
+  expenses           Expense[]
+  employees          Employee[]
+  payrollPeriods     PayrollPeriod[]
+  auditLogs          AuditLog[]
+  inventoryMovements InventoryMovement[]
+  accountsReceivable AccountReceivable[]
 
   @@index([tenantId])
 }
@@ -116,9 +134,10 @@ model Branch {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  users         UserBranch[]
-  cashRegisters CashRegister[]
-  sales         Sale[]
+  users              UserBranch[]
+  cashRegisters      CashRegister[]
+  sales              Sale[]
+  inventoryMovements InventoryMovement[]
 
   @@index([tenantId, companyId])
 }
@@ -166,6 +185,7 @@ model User {
   sales         Sale[]
   openedCashRegisters CashRegister[] @relation("OpenedBy")
   closedCashRegisters CashRegister[] @relation("ClosedBy")
+  inventoryMovements  InventoryMovement[]
 
   @@unique([email, companyId])
   @@index([tenantId, companyId])
@@ -219,7 +239,8 @@ model Client {
   isActive                 Boolean  @default(true)
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
-  sales                    Sale[]
+  sales             Sale[]
+  accountsReceivable AccountReceivable[]
 
   @@index([tenantId, companyId])
 }
@@ -255,21 +276,47 @@ model Service {
   price       Decimal   @db.Decimal(10, 4)
   cost        Decimal   @default(0) @db.Decimal(10, 4)
   imageUrl    String?
+  emoji       String?   @default("")  // emoji visual para POS tiles
   // DTE
   tipoItem    String    @default("2")  // "1"=bien "2"=servicio "3"=ambos "4"=otro
   uniMedida   Int       @default(59)   // catálogo MH — 59=Unidad
   // Inventory
-  trackStock  Boolean   @default(false)
-  stock       Int       @default(0)
-  minStock    Int       @default(0)
+  trackStock       Boolean  @default(false)
+  stock            Int      @default(0)
+  minStock         Int      @default(0)
+  // Units / Fractions (barber-pro pattern)
+  purchaseUnit     String?  // unidad de compra: "Galón", "Caja", "Libra"
+  saleUnitId       String?
+  saleUnit         UnitOfMeasure? @relation(fields: [saleUnitId], references: [id])
+  conversionFactor Decimal  @default(1) @db.Decimal(10, 4) // 1 purchaseUnit = N saleUnits
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   saleItems          SaleItem[]
   purchaseOrderItems PurchaseOrderItem[]
+  inventoryMovements InventoryMovement[]
 
   @@index([tenantId, companyId])
+}
+
+// ─── Units of Measure (fraccionable products) ─────────────────────────────────
+
+model UnitOfMeasure {
+  id        String    @id @default(cuid())
+  tenantId  String
+  companyId String
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String    // "Onza", "Vaso", "Libra", "Litro fraccionado"
+  symbol    String?   // "oz", "vaso", "lb", "L"
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  products  Service[]
+
+  @@unique([companyId, name])
+  @@index([tenantId, companyId])
+  @@map("units_of_measure")
 }
 
 // ─── Cash Register ────────────────────────────────────────────────────────────
@@ -334,9 +381,11 @@ model Sale {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  items       SaleItem[]
-  payments    Payment[]
-  dteDocument DteDocument?
+  items              SaleItem[]
+  payments           Payment[]
+  dteDocument        DteDocument?
+  inventoryMovements InventoryMovement[]
+  accountReceivable  AccountReceivable?
 
   @@index([tenantId, companyId, branchId])
   @@index([tenantId, companyId, createdAt])
@@ -457,8 +506,9 @@ model PurchaseOrder {
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 
-  items           PurchaseOrderItem[]
-  accountsPayable AccountPayable[]
+  items              PurchaseOrderItem[]
+  accountsPayable    AccountPayable[]
+  inventoryMovements InventoryMovement[]
 
   @@index([tenantId, companyId])
 }
@@ -674,4 +724,81 @@ model ActividadEconomica {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── Phase 5: Inventario / Kardex ────────────────────────────────────────────
+
+model InventoryMovement {
+  id             String                @id @default(cuid())
+  tenantId       String
+  companyId      String
+  company        Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branchId       String?
+  branch         Branch?               @relation(fields: [branchId], references: [id])
+  productId      String
+  product        Service               @relation(fields: [productId], references: [id])
+  userId         String
+  user           User                  @relation(fields: [userId], references: [id])
+  type           InventoryMovementType
+  quantity       Decimal               @db.Decimal(10, 4) // always positive
+  quantityBefore Decimal               @db.Decimal(10, 4) // stock before
+  quantityAfter  Decimal               @db.Decimal(10, 4) // stock after
+  unitCost       Decimal?              @db.Decimal(10, 4)
+  reference      String?               // OC number, sale number, etc.
+  reason         String?               // description for manual adjustments
+  // Optional links
+  saleId          String?
+  sale            Sale?          @relation(fields: [saleId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  createdAt       DateTime       @default(now())
+
+  @@index([tenantId, companyId])
+  @@index([tenantId, productId])
+  @@index([tenantId, companyId, createdAt])
+  @@index([tenantId, companyId, type])
+}
+
+// ─── Phase 5: CxC — Cuentas por Cobrar ───────────────────────────────────────
+
+model AccountReceivable {
+  id          String                   @id @default(cuid())
+  tenantId    String
+  companyId   String
+  company     Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clientId    String
+  client      Client                   @relation(fields: [clientId], references: [id])
+  saleId      String?                  @unique
+  sale        Sale?                    @relation(fields: [saleId], references: [id])
+  description String
+  amount      Decimal                  @db.Decimal(10, 2)  // monto original
+  amountPaid  Decimal                  @default(0) @db.Decimal(10, 2)
+  dueDate     DateTime
+  status      AccountReceivableStatus  @default(PENDING)
+  notes       String?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  payments    ArPayment[]
+
+  @@index([tenantId, companyId])
+  @@index([tenantId, companyId, status])
+  @@index([tenantId, companyId, dueDate])
+  @@index([tenantId, clientId])
+}
+
+model ArPayment {
+  id                  String            @id @default(cuid())
+  tenantId            String
+  accountReceivableId String
+  accountReceivable   AccountReceivable @relation(fields: [accountReceivableId], references: [id], onDelete: Cascade)
+  amount              Decimal           @db.Decimal(10, 2)
+  paymentDate         DateTime          @default(now())
+  paymentMethod       String            @default("01") // 01=Efectivo 02=Tarjeta ...
+  reference           String?
+  notes               String?
+  createdAt           DateTime          @default(now())
+
+  @@index([accountReceivableId])
+  @@index([tenantId])
 }

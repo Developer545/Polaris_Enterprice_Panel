@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common'
+import { Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import { Decimal } from '@prisma/client/runtime/library'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const CreateExpenseCategorySchema = z.object({
@@ -38,11 +39,25 @@ export class ExpensesService {
     return this.clientFactory.getClient(dbUrl)
   }
 
+  private assertCompanyAccess(user: JwtAccessPayload, companyId: string) {
+    if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
+  }
+
+  private async assertCategoryAccess(db: ReturnType<ExpensesService['getDb']>, tenantId: string, companyId: string, categoryId?: string | null) {
+    if (!categoryId) return
+    const category = await db.expenseCategory.findFirst({
+      where: { id: categoryId, tenantId, companyId, isActive: true },
+      select: { id: true },
+    })
+    if (!category) throw new BadRequestException('Categoria de gasto no pertenece a la empresa')
+  }
+
   // ─── Categories ──────────────────────────────────────────────────────────────
 
-  async findAllCategories(companyId: string) {
+  async findAllCategories(companyId: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
     return db.expenseCategory.findMany({
       where: { tenantId, companyId, isActive: true },
       include: { _count: { select: { expenses: true } } },
@@ -50,9 +65,10 @@ export class ExpensesService {
     })
   }
 
-  async createCategory(dto: CreateExpenseCategoryDto) {
+  async createCategory(dto: CreateExpenseCategoryDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
     const exists = await db.expenseCategory.findFirst({
       where: { tenantId, companyId: dto.companyId, name: { equals: dto.name, mode: 'insensitive' } },
     })
@@ -60,18 +76,18 @@ export class ExpensesService {
     return db.expenseCategory.create({ data: { ...dto, tenantId } })
   }
 
-  async updateCategory(id: string, dto: UpdateExpenseCategoryDto) {
+  async updateCategory(id: string, dto: UpdateExpenseCategoryDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const category = await db.expenseCategory.findFirst({ where: { id, tenantId } })
+    const category = await db.expenseCategory.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!category) throw new NotFoundException('Categoría no encontrada')
     return db.expenseCategory.update({ where: { id }, data: dto })
   }
 
-  async removeCategory(id: string) {
+  async removeCategory(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const category = await db.expenseCategory.findFirst({ where: { id, tenantId } })
+    const category = await db.expenseCategory.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!category) throw new NotFoundException('Categoría no encontrada')
     await db.expenseCategory.update({ where: { id }, data: { isActive: false } })
     return { ok: true }
@@ -79,9 +95,11 @@ export class ExpensesService {
 
   // ─── Expenses ─────────────────────────────────────────────────────────────────
 
-  async findAll(companyId: string, categoryId?: string, from?: string, to?: string) {
+  async findAll(companyId: string, user: JwtAccessPayload, categoryId?: string, from?: string, to?: string) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
+    await this.assertCategoryAccess(db, tenantId, companyId, categoryId)
     return db.expense.findMany({
       where: {
         tenantId,
@@ -102,20 +120,22 @@ export class ExpensesService {
     })
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     const expense = await db.expense.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, companyId: user.companyId },
       include: { category: true },
     })
     if (!expense) throw new NotFoundException('Gasto no encontrado')
     return expense
   }
 
-  async create(dto: CreateExpenseDto) {
+  async create(dto: CreateExpenseDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
+    await this.assertCategoryAccess(db, tenantId, dto.companyId, dto.categoryId)
     return db.expense.create({
       data: {
         tenantId,
@@ -131,11 +151,12 @@ export class ExpensesService {
     })
   }
 
-  async update(id: string, dto: UpdateExpenseDto) {
+  async update(id: string, dto: UpdateExpenseDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const expense = await db.expense.findFirst({ where: { id, tenantId } })
+    const expense = await db.expense.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!expense) throw new NotFoundException('Gasto no encontrado')
+    if (dto.categoryId !== undefined) await this.assertCategoryAccess(db, tenantId, user.companyId, dto.categoryId)
 
     const { amount, date, ...rest } = dto
     return db.expense.update({
@@ -149,10 +170,10 @@ export class ExpensesService {
     })
   }
 
-  async remove(id: string) {
+  async remove(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const expense = await db.expense.findFirst({ where: { id, tenantId } })
+    const expense = await db.expense.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!expense) throw new NotFoundException('Gasto no encontrado')
     await db.expense.delete({ where: { id } })
     return { ok: true }

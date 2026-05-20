@@ -1,38 +1,45 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Table, Button, Tag, Typography, DatePicker, Select, Modal, Descriptions,
   Space, App, Badge, Input, theme, Row, Col, Card, Statistic, Divider, Tooltip,
 } from 'antd'
 import {
   EyeOutlined, PrinterOutlined, StopOutlined, FileTextOutlined,
-  CheckCircleOutlined, ClockCircleOutlined, ReloadOutlined,
+  CheckCircleOutlined, ClockCircleOutlined, ReloadOutlined, SearchOutlined,
+  DollarOutlined, CalculatorOutlined, FileDoneOutlined, WarningOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
 import dayjs from 'dayjs'
+import type { ColumnsType } from 'antd/es/table'
 
 const { Title, Text } = Typography
 
 const TIPO_DTE_LABEL: Record<string, { label: string; color: string }> = {
   '01': { label: 'CF',  color: 'default' },
-  '03': { label: 'CCF', color: 'blue' },
-  '05': { label: 'NC',  color: 'orange' },
-  '06': { label: 'ND',  color: 'purple' },
+  '03': { label: 'CCF', color: 'blue'    },
+  '05': { label: 'NC',  color: 'orange'  },
+  '06': { label: 'ND',  color: 'purple'  },
 }
 
-const DTE_STATUS: Record<string, { badge: 'processing' | 'success' | 'error' | 'warning' | 'default'; label: string }> = {
-  PENDING:  { badge: 'processing', label: 'Pendiente' },
-  ACCEPTED: { badge: 'success',    label: 'Aceptado' },
-  REJECTED: { badge: 'error',      label: 'Rechazado' },
-  ANNULLED: { badge: 'warning',    label: 'Anulado' },
-  ERROR:    { badge: 'error',      label: 'Error' },
+const DTE_STATUS: Record<string, { badge: 'processing' | 'success' | 'error' | 'warning' | 'default'; label: string; color: string }> = {
+  PENDING:  { badge: 'processing', label: 'Pendiente', color: '#fa8c16' },
+  ACCEPTED: { badge: 'success',    label: 'Aceptado',  color: '#52c41a' },
+  REJECTED: { badge: 'error',      label: 'Rechazado', color: '#ff4d4f' },
+  ANNULLED: { badge: 'warning',    label: 'Anulado',   color: '#d48806' },
+  ERROR:    { badge: 'error',      label: 'Error',     color: '#ff4d4f' },
 }
 
 const FORMA_PAGO_LABEL: Record<string, string> = {
   '01': 'Efectivo', '02': 'T. Débito', '03': 'T. Crédito',
   '04': 'Cheque',   '05': 'Transferencia', '06': 'D. Electrónico',
+}
+
+const FORMA_PAGO_COLOR: Record<string, string> = {
+  '01': 'green', '02': 'blue', '03': 'purple',
+  '04': 'gold',  '05': 'cyan', '06': 'geekblue',
 }
 
 export default function SalesPage() {
@@ -41,19 +48,21 @@ export default function SalesPage() {
   const qc = useQueryClient()
   const { companyId } = useAppContext()
 
-  const [page, setPage] = useState(1)
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null)
-  const [filterTipoDte, setFilterTipoDte] = useState<string | undefined>(undefined)
-  const [detail, setDetail] = useState<any>(null)
+  const [page, setPage]               = useState(1)
+  const [dateRange, setDateRange]     = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null)
+  const [filterTipoDte, setFilterTipoDte]   = useState<string | undefined>()
+  const [filterStatus,  setFilterStatus]    = useState<string | undefined>()
+  const [search, setSearch]           = useState('')
+  const [detail, setDetail]           = useState<any>(null)
   const [anularModal, setAnularModal] = useState<any>(null)
   const [anularReason, setAnularReason] = useState('')
 
   const params: Record<string, any> = { companyId, page }
   if (dateRange?.[0]) params.from = dateRange[0].startOf('day').toISOString()
-  if (dateRange?.[1]) params.to = dateRange[1].endOf('day').toISOString()
-  if (filterTipoDte) params.tipoDte = filterTipoDte
+  if (dateRange?.[1]) params.to   = dateRange[1].endOf('day').toISOString()
+  if (filterTipoDte)  params.tipoDte = filterTipoDte
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['sales', companyId, page, dateRange, filterTipoDte],
     queryFn: () => api.get('/api/pos/sales', { params }).then(r => r.data),
     enabled: !!companyId,
@@ -109,71 +118,117 @@ export default function SalesPage() {
     }
   }
 
-  // KPIs locales (de la página actual)
+  // ── Computed ───────────────────────────────────────────────────────────────
   const salesList: any[] = data?.sales ?? []
-  const totalAmount = salesList.reduce((s: number, r: any) => s + Number(r.totalPagar ?? 0), 0)
-  const accepted = salesList.filter((r: any) => r.dteDocument?.status === 'ACCEPTED').length
-  const pending  = salesList.filter((r: any) => r.dteDocument?.status === 'PENDING').length
 
-  const columns = [
+  const filtered = useMemo(() => {
+    let list = salesList
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter((r: any) =>
+        (r.client?.name ?? '').toLowerCase().includes(q) ||
+        (r.dteDocument?.numeroControl ?? '').toLowerCase().includes(q) ||
+        (r.id ?? '').toLowerCase().includes(q)
+      )
+    }
+    if (filterStatus) {
+      list = list.filter((r: any) => r.dteDocument?.status === filterStatus)
+    }
+    return list
+  }, [salesList, search, filterStatus])
+
+  const totalAmount  = salesList.reduce((s: number, r: any) => s + Number(r.totalPagar ?? 0), 0)
+  const totalIva     = salesList.reduce((s: number, r: any) => s + Number(r.totalIva ?? 0), 0)
+  const countAccepted = salesList.filter((r: any) => r.dteDocument?.status === 'ACCEPTED').length
+  const countPending  = salesList.filter((r: any) => r.dteDocument?.status === 'PENDING').length
+  const countAnnulled = salesList.filter((r: any) => r.dteDocument?.status === 'ANNULLED').length
+
+  const hasFilters = !!(search || filterStatus)
+
+  // ── Columns ────────────────────────────────────────────────────────────────
+  const columns: ColumnsType<any> = [
     {
-      title: 'Fecha', dataIndex: 'createdAt', key: 'date', width: 130,
+      title: 'Fecha', dataIndex: 'createdAt', width: 125,
       render: (v: string) => (
         <Text style={{ fontSize: 12 }}>{dayjs(v).format('DD/MM/YY HH:mm')}</Text>
       ),
     },
     {
-      title: 'Sucursal', key: 'branch', width: 130,
-      render: (r: any) => <Text style={{ fontSize: 13 }}>{r.branch?.name ?? '—'}</Text>,
-    },
-    {
       title: 'Cliente', key: 'client',
-      render: (r: any) => (
-        <Text style={{ fontSize: 13 }}>{r.client?.name ?? <Text type="secondary">Consumidor Final</Text>}</Text>
+      render: (_: any, r: any) => (
+        <Space direction="vertical" size={0}>
+          <Text style={{ fontSize: 13, fontWeight: 500 }}>
+            {r.client?.name ?? <Text type="secondary" style={{ fontWeight: 400 }}>Consumidor Final</Text>}
+          </Text>
+          {r.client?.numDocumento && (
+            <Text type="secondary" style={{ fontSize: 11 }}>{r.client.numDocumento}</Text>
+          )}
+        </Space>
       ),
     },
     {
-      title: 'Tipo', dataIndex: 'tipoDte', key: 'tipoDte', width: 70,
+      title: 'Tipo', dataIndex: 'tipoDte', width: 68,
       render: (v: string) => {
         const t = TIPO_DTE_LABEL[v] ?? { label: v, color: 'default' }
-        return <Tag color={t.color} style={{ borderRadius: 4, fontWeight: 600 }}>{t.label}</Tag>
+        return <Tag color={t.color} style={{ borderRadius: 4, fontWeight: 700, fontSize: 11 }}>{t.label}</Tag>
       },
     },
     {
       title: 'N° Control', key: 'control', width: 200,
-      render: (r: any) => r.dteDocument?.numeroControl
-        ? <code style={{ fontSize: 11, color: '#37352f' }}>{r.dteDocument.numeroControl}</code>
+      render: (_: any, r: any) => r.dteDocument?.numeroControl
+        ? <code style={{ fontSize: 10, color: token.colorText }}>{r.dteDocument.numeroControl}</code>
         : <Text type="secondary" style={{ fontSize: 12 }}>—</Text>,
     },
     {
-      title: 'Estado DTE', key: 'dteStatus', width: 120,
-      render: (r: any) => {
+      title: 'Pago', key: 'pago', width: 130,
+      responsive: ['lg'] as any,
+      render: (_: any, r: any) => (
+        <Space wrap size={2}>
+          {(r.payments ?? []).map((p: any, i: number) => (
+            <Tag
+              key={i}
+              color={FORMA_PAGO_COLOR[p.formaPago] ?? 'default'}
+              style={{ fontSize: 10, margin: 0 }}
+            >
+              {FORMA_PAGO_LABEL[p.formaPago] ?? p.formaPago}
+            </Tag>
+          ))}
+        </Space>
+      ),
+    },
+    {
+      title: 'Estado DTE', key: 'dteStatus', width: 125,
+      render: (_: any, r: any) => {
         const s = r.dteDocument?.status
-        if (!s) return <Tag style={{ borderRadius: 4 }}>Sin DTE</Tag>
-        const info = DTE_STATUS[s] ?? { badge: 'default' as const, label: s }
+        if (!s) return <Tag style={{ borderRadius: 4, fontSize: 11 }}>Sin DTE</Tag>
+        const info = DTE_STATUS[s] ?? { badge: 'default' as const, label: s, color: '#888' }
         return <Badge status={info.badge} text={<Text style={{ fontSize: 12 }}>{info.label}</Text>} />
       },
     },
     {
-      title: 'Total', dataIndex: 'totalPagar', key: 'total', width: 100,
+      title: 'Total', dataIndex: 'totalPagar', width: 105, align: 'right' as const,
       render: (v: number) => (
-        <Text strong style={{ color: token.colorPrimary }}>${Number(v).toFixed(2)}</Text>
+        <Text strong style={{ color: token.colorPrimary, fontVariantNumeric: 'tabular-nums' }}>
+          ${Number(v).toFixed(2)}
+        </Text>
       ),
     },
     {
-      title: 'Acciones', key: 'actions', width: 110, fixed: 'right' as const,
-      render: (r: any) => (
+      title: 'Acciones', key: 'actions', width: 115, fixed: 'right' as const,
+      render: (_: any, r: any) => (
         <Space size={4}>
           <Tooltip title="Ver detalle">
             <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setDetail(r)} />
           </Tooltip>
-          <Tooltip title="Imprimir">
+          <Tooltip title="Imprimir ticket">
             <Button type="text" size="small" icon={<PrinterOutlined />} onClick={() => handlePrint(r)} />
           </Tooltip>
           {r.dteDocument?.status !== 'ANNULLED' && (
             <Tooltip title="Anular">
-              <Button type="text" size="small" danger icon={<StopOutlined />}
-                onClick={() => { setAnularModal(r); setAnularReason('') }} />
+              <Button
+                type="text" size="small" danger icon={<StopOutlined />}
+                onClick={() => { setAnularModal(r); setAnularReason('') }}
+              />
             </Tooltip>
           )}
         </Space>
@@ -184,66 +239,101 @@ export default function SalesPage() {
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: 20 }}>
-        <Title level={4} style={{ margin: 0, fontWeight: 700 }}>Historial de Ventas</Title>
-        <Text type="secondary" style={{ fontSize: 13 }}>Consulta, detalle e impresión de comprobantes DTE</Text>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+        <div>
+          <Title level={4} style={{ margin: '0 0 2px', fontWeight: 700 }}>Historial de Ventas</Title>
+          <Text type="secondary" style={{ fontSize: 13 }}>Consulta, detalle e impresión de comprobantes DTE</Text>
+        </div>
+        <Tooltip title="Recargar">
+          <Button icon={<ReloadOutlined />} onClick={() => qc.invalidateQueries({ queryKey: ['sales'] })} />
+        </Tooltip>
       </div>
 
       {/* KPIs */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+      <Row gutter={[14, 14]} style={{ marginBottom: 20 }}>
         {[
-          { title: 'Ventas (página)',  value: salesList.length, icon: <FileTextOutlined />,      color: token.colorPrimary },
-          { title: 'Aceptadas DTE',   value: accepted,         icon: <CheckCircleOutlined />,   color: token.colorSuccess },
-          { title: 'Pendientes DTE',  value: pending,          icon: <ClockCircleOutlined />,   color: '#fa8c16' },
-          { title: 'Total facturado', value: totalAmount,      prefix: '$', precision: 2,        color: '#37352f' },
-        ].map(kpi => (
-          <Col xs={12} sm={6} key={kpi.title}>
-            <Card size="small" style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+          { title: 'Total facturado', value: `$${totalAmount.toFixed(2)}`, color: token.colorPrimary,  icon: <DollarOutlined />        },
+          { title: 'IVA generado',    value: `$${totalIva.toFixed(2)}`,    color: '#52c41a',           icon: <CalculatorOutlined />     },
+          { title: 'Aceptados DTE',   value: countAccepted,                color: '#52c41a',           icon: <CheckCircleOutlined />    },
+          { title: 'Pendientes DTE',  value: countPending,                 color: '#fa8c16',           icon: <ClockCircleOutlined />    },
+          { title: 'Anulados',        value: countAnnulled,                color: token.colorError,    icon: <WarningOutlined />        },
+        ].map(k => (
+          <Col xs={12} sm={8} md={8} lg={Math.floor(24 / 5)} key={k.title}>
+            <Card
+              size="small"
+              style={{
+                borderRadius: 12, border: 'none',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
+                borderTop: `3px solid ${k.color}`,
+              }}
+            >
               <Statistic
-                title={<span style={{ fontSize: 12, color: '#888' }}>{kpi.title}</span>}
-                value={kpi.value}
-                precision={(kpi as any).precision}
-                prefix={(kpi as any).prefix ?? ((kpi as any).icon
-                  ? <span style={{ color: kpi.color, marginRight: 4 }}>{(kpi as any).icon}</span>
-                  : '$')}
-                valueStyle={{ color: kpi.color, fontWeight: 700, fontSize: 22 }}
+                title={<Text style={{ fontSize: 12, color: token.colorTextSecondary }}>{k.title}</Text>}
+                value={k.value}
+                prefix={<span style={{ color: k.color, marginRight: 4, fontSize: 14 }}>{k.icon}</span>}
+                valueStyle={{ fontSize: 20, fontWeight: 700, color: k.color }}
               />
             </Card>
           </Col>
         ))}
       </Row>
 
-      {/* Toolbar */}
+      {/* Toolbar / Filtros */}
       <Card
         size="small"
         style={{ borderRadius: 12, marginBottom: 16, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
         styles={{ body: { padding: '12px 16px' } }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <Space wrap>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
+          <Space wrap size={8}>
+            <Input
+              prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
+              placeholder="Buscar cliente, N° control..."
+              allowClear
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ width: 240 }}
+            />
             <Select
               allowClear
               placeholder="Tipo DTE"
-              style={{ width: 150 }}
+              style={{ width: 130 }}
               value={filterTipoDte}
               onChange={v => { setFilterTipoDte(v); setPage(1) }}
               options={[
                 { value: '01', label: 'CF (01)' },
                 { value: '03', label: 'CCF (03)' },
-                { value: '05', label: 'NC (05)' },
-                { value: '06', label: 'ND (06)' },
+                { value: '05', label: 'NC (05)'  },
+                { value: '06', label: 'ND (06)'  },
               ]}
+            />
+            <Select
+              allowClear
+              placeholder="Estado DTE"
+              style={{ width: 145 }}
+              value={filterStatus}
+              onChange={setFilterStatus}
+              options={Object.entries(DTE_STATUS).map(([k, v]) => ({ value: k, label: v.label }))}
             />
             <DatePicker.RangePicker
               value={dateRange}
               onChange={v => { setDateRange(v as any); setPage(1) }}
-              format="DD/MM/YYYY"
+              format="DD/MM/YY"
               allowClear
+              placeholder={['Desde', 'Hasta']}
             />
+            {(search || filterStatus || filterTipoDte || dateRange) && (
+              <Button
+                size="small"
+                onClick={() => {
+                  setSearch(''); setFilterStatus(undefined)
+                  setFilterTipoDte(undefined); setDateRange(null); setPage(1)
+                }}
+              >
+                Limpiar
+              </Button>
+            )}
           </Space>
-          <Tooltip title="Recargar">
-            <Button icon={<ReloadOutlined />} onClick={() => refetch()} />
-          </Tooltip>
         </div>
       </Card>
 
@@ -256,31 +346,62 @@ export default function SalesPage() {
         <Table
           size="small"
           columns={columns}
-          dataSource={salesList}
+          dataSource={filtered}
           rowKey="id"
           loading={isLoading}
-          scroll={{ x: 900 }}
+          scroll={{ x: 950 }}
+          rowClassName={(r: any) => r.dteDocument?.status === 'ANNULLED' ? 'opacity-50' : ''}
+          expandable={{
+            expandedRowRender: (r: any) => (
+              <div style={{ padding: '8px 16px' }}>
+                <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }}>
+                  {r.dteDocument?.codigoGeneracion && (
+                    <Descriptions.Item label="Código generación" span={3}>
+                      <code style={{ fontSize: 10, wordBreak: 'break-all', color: token.colorText }}>
+                        {r.dteDocument.codigoGeneracion}
+                      </code>
+                    </Descriptions.Item>
+                  )}
+                  {r.dteDocument?.selloRecibido && (
+                    <Descriptions.Item label="Sello MH" span={3}>
+                      <code style={{ fontSize: 10, wordBreak: 'break-all', color: token.colorTextSecondary }}>
+                        {r.dteDocument.selloRecibido}
+                      </code>
+                    </Descriptions.Item>
+                  )}
+                  <Descriptions.Item label="Sucursal">{r.branch?.name ?? '—'}</Descriptions.Item>
+                  <Descriptions.Item label="Cajero">{r.user?.name ?? '—'}</Descriptions.Item>
+                  <Descriptions.Item label="IVA 13%">${Number(r.totalIva ?? 0).toFixed(2)}</Descriptions.Item>
+                </Descriptions>
+              </div>
+            ),
+            rowExpandable: (r: any) => !!(r.dteDocument?.codigoGeneracion || r.dteDocument?.selloRecibido),
+          }}
           pagination={{
             current: page,
-            total: data?.total ?? 0,
+            total: hasFilters ? filtered.length : (data?.total ?? 0),
             pageSize: 50,
-            onChange: setPage,
-            showTotal: (t) => `${t} ventas`,
+            showSizeChanger: true,
+            pageSizeOptions: ['20', '50', '100'],
+            onChange: p => { if (!hasFilters) setPage(p) },
+            showTotal: (t, range) => `${range[0]}–${range[1]} de ${t} ${hasFilters ? '(filtrado)' : 'ventas'}`,
             style: { padding: '8px 16px' },
           }}
-          style={{ borderRadius: 12, overflow: 'hidden' }}
         />
       </Card>
 
-      {/* ── Modal detalle de venta ─────────────────────────────────────── */}
+      {/* ── Modal detalle ─────────────────────────────────────────────────── */}
       <Modal
         open={!!detail}
-        title={<Space><EyeOutlined />Detalle de venta</Space>}
+        title={<Space><FileDoneOutlined />Detalle de venta</Space>}
         onCancel={() => setDetail(null)}
         footer={[
-          <Button key="print" icon={<PrinterOutlined />}
+          <Button
+            key="print"
+            icon={<PrinterOutlined />}
             style={{ borderRadius: 8 }}
-            onClick={() => saleDetail && handlePrint(saleDetail)}>
+            onClick={() => saleDetail && handlePrint(saleDetail)}
+          >
             Imprimir
           </Button>,
           <Button key="close" onClick={() => setDetail(null)} style={{ borderRadius: 8 }}>
@@ -290,24 +411,25 @@ export default function SalesPage() {
         width={720}
         destroyOnClose
         style={{ top: 40 }}
-        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         {saleDetail && (
           <div>
-            {/* Info general */}
-            <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Información general
             </Text>
-            <Divider style={{ margin: '4px 0 14px', borderColor: '#e9e9e7' }} />
+            <Divider style={{ margin: '4px 0 14px' }} />
 
             <Descriptions size="small" column={2} style={{ marginBottom: 16 }}
-              styles={{ label: { color: '#787774', fontSize: 12 }, content: { fontSize: 13 } }}>
+              styles={{ label: { color: token.colorTextSecondary, fontSize: 12 }, content: { fontSize: 13 } }}
+            >
               <Descriptions.Item label="Fecha">
                 {dayjs(saleDetail.createdAt).format('DD/MM/YYYY HH:mm')}
               </Descriptions.Item>
               <Descriptions.Item label="Tipo DTE">
-                <Tag color={TIPO_DTE_LABEL[saleDetail.tipoDte]?.color ?? 'default'}
-                  style={{ borderRadius: 4, fontWeight: 600 }}>
+                <Tag
+                  color={TIPO_DTE_LABEL[saleDetail.tipoDte]?.color ?? 'default'}
+                  style={{ borderRadius: 4, fontWeight: 600 }}
+                >
                   {TIPO_DTE_LABEL[saleDetail.tipoDte]?.label ?? saleDetail.tipoDte}
                 </Tag>
               </Descriptions.Item>
@@ -315,60 +437,116 @@ export default function SalesPage() {
                 {saleDetail.client?.name ?? <Text type="secondary">Consumidor Final</Text>}
               </Descriptions.Item>
               <Descriptions.Item label="Sucursal">{saleDetail.branch?.name}</Descriptions.Item>
+              <Descriptions.Item label="Cajero">{saleDetail.user?.name ?? '—'}</Descriptions.Item>
+              <Descriptions.Item label="Estado DTE">
+                {(() => {
+                  const s = saleDetail.dteDocument?.status
+                  if (!s) return <Tag>Sin DTE</Tag>
+                  const info = DTE_STATUS[s] ?? { badge: 'default' as const, label: s }
+                  return <Badge status={info.badge} text={info.label} />
+                })()}
+              </Descriptions.Item>
               {saleDetail.dteDocument?.numeroControl && (
                 <Descriptions.Item label="N° Control" span={2}>
-                  <code style={{ fontSize: 12, color: '#37352f' }}>{saleDetail.dteDocument.numeroControl}</code>
+                  <code style={{ fontSize: 11 }}>{saleDetail.dteDocument.numeroControl}</code>
+                </Descriptions.Item>
+              )}
+              {saleDetail.dteDocument?.codigoGeneracion && (
+                <Descriptions.Item label="Código generación" span={2}>
+                  <code style={{ fontSize: 10, wordBreak: 'break-all' }}>
+                    {saleDetail.dteDocument.codigoGeneracion}
+                  </code>
                 </Descriptions.Item>
               )}
               {saleDetail.dteDocument?.selloRecibido && (
                 <Descriptions.Item label="Sello MH" span={2}>
-                  <code style={{ fontSize: 11, color: '#555', wordBreak: 'break-all' }}>
+                  <code style={{ fontSize: 10, wordBreak: 'break-all', color: token.colorTextSecondary }}>
                     {saleDetail.dteDocument.selloRecibido}
                   </code>
                 </Descriptions.Item>
               )}
             </Descriptions>
 
-            {/* Líneas */}
-            <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Líneas de venta
             </Text>
-            <Divider style={{ margin: '4px 0 12px', borderColor: '#e9e9e7' }} />
+            <Divider style={{ margin: '4px 0 12px' }} />
 
             <Table
               size="small"
               dataSource={saleDetail.items ?? []}
               rowKey="id"
               pagination={false}
-              style={{ marginBottom: 16, borderRadius: 8, overflow: 'hidden', border: '1px solid #e9e9e7' }}
+              style={{ marginBottom: 16, borderRadius: 8, overflow: 'hidden', border: `1px solid ${token.colorBorderSecondary}` }}
               columns={[
-                { title: 'Producto',  dataIndex: 'productName',  key: 'name', render: (v: string) => <Text style={{ fontSize: 13 }}>{v}</Text> },
-                { title: 'Cant.',     dataIndex: 'quantity',     key: 'qty',  width: 65, render: (v: number) => <Text style={{ fontSize: 12 }}>{v}</Text> },
-                { title: 'Precio',    dataIndex: 'unitPrice',    key: 'price', width: 90, render: (v: number) => `$${Number(v).toFixed(2)}` },
-                { title: 'Gravado',   dataIndex: 'ventaGravada', key: 'grav',  width: 90, render: (v: number) => `$${Number(v).toFixed(2)}` },
-                { title: 'IVA',       dataIndex: 'ivaItem',      key: 'iva',   width: 80, render: (v: number) => `$${Number(v).toFixed(2)}` },
+                {
+                  title: 'Producto', dataIndex: 'productName',
+                  render: (v: string) => <Text style={{ fontSize: 13 }}>{v}</Text>,
+                },
+                {
+                  title: 'Cant.', dataIndex: 'quantity', width: 65, align: 'right' as const,
+                  render: (v: number) => <Text style={{ fontSize: 12 }}>{v}</Text>,
+                },
+                {
+                  title: 'Precio', dataIndex: 'unitPrice', width: 95, align: 'right' as const,
+                  render: (v: number) => `$${Number(v).toFixed(2)}`,
+                },
+                {
+                  title: 'Gravado', dataIndex: 'ventaGravada', width: 95, align: 'right' as const,
+                  render: (v: number) => `$${Number(v).toFixed(2)}`,
+                },
+                {
+                  title: 'IVA', dataIndex: 'ivaItem', width: 80, align: 'right' as const,
+                  render: (v: number) => `$${Number(v).toFixed(2)}`,
+                },
               ]}
             />
 
-            {/* Totales */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <div style={{ minWidth: 200 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13 }}>
-                  <Text type="secondary">IVA 13%:</Text>
-                  <Text>${Number(saleDetail.totalIva).toFixed(2)}</Text>
+            {/* Totales + Pagos */}
+            <Row gutter={24}>
+              <Col flex="1">
+                {(saleDetail.payments ?? []).length > 0 && (
+                  <>
+                    <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Pagos
+                    </Text>
+                    <Divider style={{ margin: '4px 0 10px' }} />
+                    {(saleDetail.payments ?? []).map((p: any, i: number) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                        <Tag color={FORMA_PAGO_COLOR[p.formaPago] ?? 'default'} style={{ fontSize: 11 }}>
+                          {FORMA_PAGO_LABEL[p.formaPago] ?? p.formaPago}
+                        </Tag>
+                        <Text strong>${Number(p.amount).toFixed(2)}</Text>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </Col>
+              <Col>
+                <div style={{ minWidth: 210 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
+                    <Text type="secondary">Venta gravada:</Text>
+                    <Text>${Number(saleDetail.totalGravada ?? 0).toFixed(2)}</Text>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
+                    <Text type="secondary">IVA 13%:</Text>
+                    <Text>${Number(saleDetail.totalIva ?? 0).toFixed(2)}</Text>
+                  </div>
+                  <Divider style={{ margin: '6px 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 700 }}>
+                    <Text strong>Total:</Text>
+                    <Text strong style={{ color: token.colorPrimary }}>
+                      ${Number(saleDetail.totalPagar).toFixed(2)}
+                    </Text>
+                  </div>
                 </div>
-                <Divider style={{ margin: '6px 0', borderColor: '#e9e9e7' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 700 }}>
-                  <Text strong>Total:</Text>
-                  <Text strong style={{ color: token.colorPrimary }}>${Number(saleDetail.totalPagar).toFixed(2)}</Text>
-                </div>
-              </div>
-            </div>
+              </Col>
+            </Row>
           </div>
         )}
       </Modal>
 
-      {/* ── Modal anular venta ─────────────────────────────────────────── */}
+      {/* ── Modal anular ──────────────────────────────────────────────────── */}
       <Modal
         open={!!anularModal}
         title={<Space style={{ color: token.colorError }}><StopOutlined />Anular venta</Space>}
@@ -381,11 +559,14 @@ export default function SalesPage() {
         width={480}
         destroyOnClose
         style={{ top: 40 }}
-        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 14 }}>
           Se anulará la venta{' '}
-          <Text strong>{anularModal?.dteDocument?.numeroControl ?? anularModal?.id?.substring(0, 8)}</Text>.
+          <Text strong>{anularModal?.dteDocument?.numeroControl ?? anularModal?.id?.substring(0, 8)}</Text>
+          {' '}por un total de{' '}
+          <Text strong style={{ color: token.colorError }}>
+            ${Number(anularModal?.totalPagar ?? 0).toFixed(2)}
+          </Text>.
           Esta operación no se puede deshacer.
         </Text>
         <Input.TextArea
@@ -393,7 +574,7 @@ export default function SalesPage() {
           placeholder="Motivo de anulación (requerido)"
           value={anularReason}
           onChange={e => setAnularReason(e.target.value)}
-          style={{ borderRadius: 8, borderColor: '#e9e9e7' }}
+          style={{ borderRadius: 8 }}
           autoFocus
         />
       </Modal>

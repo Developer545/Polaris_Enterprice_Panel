@@ -1,10 +1,11 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common'
+import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { InjectQueue } from '@nestjs/bullmq'
 import { Queue } from 'bullmq'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import { calcLineTotals, calcSaleSummary } from '@pos-dte/dte-core'
 import { Decimal } from '@prisma/client/runtime/library'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const SaleLineSchema = z.object({
@@ -45,15 +46,25 @@ export class PosService {
     return this.clientFactory.getClient(dbUrl)
   }
 
-  async findSales(companyId: string, branchId?: string, from?: string, to?: string, page = 1, limit = 50) {
+  private assertCompanyAccess(user: JwtAccessPayload, companyId: string) {
+    if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
+  }
+
+  private assertBranchAccess(user: JwtAccessPayload, branchId: string) {
+    if (!user.branchIds.includes(branchId)) throw new ForbiddenException('Sucursal no autorizada')
+  }
+
+  async findSales(companyId: string, user: JwtAccessPayload, branchId?: string, from?: string, to?: string, page = 1, limit = 50) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
+    if (branchId) this.assertBranchAccess(user, branchId)
     const skip = (page - 1) * limit
 
     const where = {
       tenantId,
       companyId,
-      ...(branchId ? { branchId } : {}),
+      ...(branchId ? { branchId } : { branchId: { in: user.branchIds } }),
       ...(from || to ? {
         createdAt: {
           ...(from ? { gte: new Date(from) } : {}),
@@ -99,22 +110,32 @@ export class PosService {
     return sale
   }
 
-  async create(dto: CreateSaleDto, userId: string) {
+  async create(dto: CreateSaleDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
+    this.assertBranchAccess(user, dto.branchId)
 
     // Validate cash register is open
     const register = await db.cashRegister.findFirst({
-      where: { id: dto.cashRegisterId, tenantId, closedAt: null },
+      where: { id: dto.cashRegisterId, tenantId, companyId: dto.companyId, branchId: dto.branchId, closedAt: null },
     })
     if (!register) throw new BadRequestException('Caja cerrada o no encontrada')
 
     // Load products
     const productIds = dto.items.map(i => i.productId)
     const products = await db.service.findMany({
-      where: { id: { in: productIds }, tenantId, isActive: true },
+      where: { id: { in: productIds }, tenantId, companyId: dto.companyId, isActive: true },
     })
     if (products.length !== productIds.length) throw new BadRequestException('Uno o más productos no encontrados')
+
+    if (dto.clientId) {
+      const client = await db.client.findFirst({
+        where: { id: dto.clientId, tenantId, companyId: dto.companyId, isActive: true },
+        select: { id: true },
+      })
+      if (!client) throw new BadRequestException('Cliente no encontrado para esta empresa')
+    }
 
     // Build typed line totals
     const lines = dto.items.map(item => {
@@ -173,7 +194,7 @@ export class PosService {
           branchId: dto.branchId,
           cashRegisterId: dto.cashRegisterId,
           clientId: dto.clientId,
-          userId,
+          userId: user.sub,
           tipoDte: dto.tipoDte,
           condicionOperacion: dto.condicionOperacion,
           notes: dto.notes,
@@ -248,9 +269,10 @@ export class PosService {
     return this.findOne(sale.id)
   }
 
-  async getStats(companyId: string, period: 'today' | 'month') {
+  async getStats(companyId: string, user: JwtAccessPayload, period: 'today' | 'month') {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
 
     const now = new Date()
     let from: Date
@@ -267,6 +289,7 @@ export class PosService {
     const saleWhere = {
       tenantId,
       companyId,
+      branchId: { in: user.branchIds },
       createdAt: { gte: from, lte: to },
       dteDocument: { isNot: { status: 'ANNULLED' } as any },
     }
@@ -333,13 +356,13 @@ export class PosService {
     const year = new Date().getFullYear()
 
     let control = await db.dteNumberControl.findFirst({
-      where: { companyId, branchId, tipoDte, year },
+      where: { tenantId, companyId, branchId, tipoDte, year },
     })
 
     if (!control) {
       // Auto-create for this year — sequence resets to 0 on each new calendar year
       const branch = await db.branch.findFirst({
-        where: { id: branchId },
+        where: { id: branchId, tenantId, companyId },
         select: { codEstableMH: true, codPuntoVentaMH: true },
       })
       control = await db.dteNumberControl.create({
@@ -366,5 +389,25 @@ export class PosService {
     })
 
     return { ...control, nextNumeroControl }
+  }
+
+  async voidSale(id: string, reason: string, user: JwtAccessPayload) {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+    const sale = await db.sale.findFirst({
+      where: { id, tenantId, companyId: user.companyId },
+      include: { dteDocument: true },
+    })
+    if (!sale) throw new NotFoundException('Venta no encontrada')
+    if (sale.dteDocument?.status === 'ANNULLED') {
+      throw new BadRequestException('Esta venta ya fue anulada')
+    }
+    if (sale.dteDocument) {
+      await db.dteDocument.update({
+        where: { id: sale.dteDocument.id },
+        data: { status: 'ANNULLED', observaciones: [reason] },
+      })
+    }
+    return this.findOne(id)
   }
 }

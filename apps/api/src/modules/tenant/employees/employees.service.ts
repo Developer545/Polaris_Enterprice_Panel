@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common'
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const CreateEmployeeSchema = z.object({
@@ -40,14 +41,24 @@ export class EmployeesService {
     return this.clientFactory.getClient(dbUrl)
   }
 
-  async findAll(companyId: string, branchId?: string, search?: string) {
+  private assertCompanyAccess(user: JwtAccessPayload, companyId: string) {
+    if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
+  }
+
+  private assertBranchAccess(user: JwtAccessPayload, branchId?: string | null) {
+    if (branchId && !user.branchIds.includes(branchId)) throw new ForbiddenException('Sucursal no autorizada')
+  }
+
+  async findAll(companyId: string, user: JwtAccessPayload, branchId?: string, search?: string) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
+    this.assertBranchAccess(user, branchId)
     return db.employee.findMany({
       where: {
         tenantId,
         companyId,
-        ...(branchId ? { branchId } : {}),
+        ...(branchId ? { branchId } : { OR: [{ branchId: null }, { branchId: { in: user.branchIds } }] }),
         ...(search
           ? {
               OR: [
@@ -76,24 +87,28 @@ export class EmployeesService {
         createdAt: true,
       },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      take: 200,
     })
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const employee = await db.employee.findFirst({ where: { id, tenantId } })
+    const employee = await db.employee.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!employee) throw new NotFoundException('Empleado no encontrado')
+    this.assertBranchAccess(user, employee.branchId)
     return employee
   }
 
-  async create(dto: CreateEmployeeDto) {
+  async create(dto: CreateEmployeeDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
+    this.assertBranchAccess(user, dto.branchId)
 
     if (dto.dui) {
       const exists = await db.employee.findFirst({
-        where: { companyId: dto.companyId, dui: dto.dui },
+        where: { tenantId, companyId: dto.companyId, dui: dto.dui },
       })
       if (exists) throw new ConflictException('Ya existe un empleado con ese DUI')
     }
@@ -101,19 +116,22 @@ export class EmployeesService {
     return db.employee.create({ data: { ...dto, tenantId } })
   }
 
-  async update(id: string, dto: UpdateEmployeeDto) {
+  async update(id: string, dto: UpdateEmployeeDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const employee = await db.employee.findFirst({ where: { id, tenantId } })
+    const employee = await db.employee.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!employee) throw new NotFoundException('Empleado no encontrado')
+    this.assertBranchAccess(user, employee.branchId)
+    if (dto.branchId !== undefined) this.assertBranchAccess(user, dto.branchId)
     return db.employee.update({ where: { id }, data: dto })
   }
 
-  async deactivate(id: string) {
+  async deactivate(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const employee = await db.employee.findFirst({ where: { id, tenantId } })
+    const employee = await db.employee.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!employee) throw new NotFoundException('Empleado no encontrado')
+    this.assertBranchAccess(user, employee.branchId)
     return db.employee.update({
       where: { id },
       data: { status: 'INACTIVE', terminationDate: new Date() },

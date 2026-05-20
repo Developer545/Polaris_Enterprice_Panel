@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { EncryptionService } from '../../../infrastructure/crypto/encryption.service'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const UpdateCompanySchema = z.object({
@@ -40,11 +41,15 @@ export class CompanyService {
     return this.clientFactory.getClient(dbUrl)
   }
 
-  async findAll() {
+  private assertCompanyAccess(user: JwtAccessPayload, companyId: string) {
+    if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
+  }
+
+  async findAll(user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     return db.company.findMany({
-      where: { tenantId },
+      where: { tenantId, id: user.companyId },
       select: {
         id: true, name: true, comercialName: true, nit: true, nrc: true,
         actividadEconomica: true, address: true, phone: true, email: true,
@@ -55,9 +60,10 @@ export class CompanyService {
     })
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, id)
     const company = await db.company.findFirst({
       where: { id, tenantId },
       select: {
@@ -84,9 +90,10 @@ export class CompanyService {
     }
   }
 
-  async update(id: string, dto: UpdateCompanyDto) {
+  async update(id: string, dto: UpdateCompanyDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, id)
 
     const company = await db.company.findFirst({ where: { id, tenantId } })
     if (!company) throw new NotFoundException('Empresa no encontrada')
@@ -104,9 +111,10 @@ export class CompanyService {
   }
 
   // Test Hacienda connection — authenticates with provided or stored credentials
-  async testHaciendaConnection(id: string, overrides?: { user?: string; password?: string; ambiente?: 'TEST' | 'PROD' }) {
+  async testHaciendaConnection(id: string, authUser: JwtAccessPayload, overrides?: { user?: string; password?: string; ambiente?: 'TEST' | 'PROD' }) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(authUser, id)
     const company = await db.company.findFirst({
       where: { id, tenantId },
       select: { haciendaUserEnc: true, haciendaPwdEnc: true, dteAmbiente: true },

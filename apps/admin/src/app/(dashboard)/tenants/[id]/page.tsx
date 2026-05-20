@@ -23,6 +23,8 @@ const STATUS_LABEL: Record<string, string> = {
   TRIAL: 'Prueba', ACTIVE: 'Activo', SUSPENDED: 'Suspendido', CANCELLED: 'Cancelado',
 }
 
+type TenantStatus = 'TRIAL' | 'ACTIVE' | 'SUSPENDED' | 'CANCELLED'
+
 function TenantDetailContent({ id }: { id: string }) {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -34,7 +36,7 @@ function TenantDetailContent({ id }: { id: string }) {
   })
 
   const statusMutation = useMutation({
-    mutationFn: (status: string) =>
+    mutationFn: (status: TenantStatus) =>
       api.put(`/api/control-plane/tenants/${id}`, { status }).then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'tenant', id] })
@@ -99,7 +101,7 @@ function TenantDetailContent({ id }: { id: string }) {
               size="small"
               style={{ width: 140 }}
               loading={statusMutation.isPending}
-              onChange={statusMutation.mutate}
+              onChange={(status: TenantStatus) => statusMutation.mutate(status)}
               options={[
                 { value: 'TRIAL', label: 'Prueba' },
                 { value: 'ACTIVE', label: 'Activo' },

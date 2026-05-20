@@ -41,7 +41,7 @@ export default function CategoriesPage() {
     },
     { title: 'Nombre', dataIndex: 'name', key: 'name' },
     { title: 'Descripción', dataIndex: 'description', key: 'description', render: (v: string) => v ?? '—' },
-    { title: 'Productos', key: 'count', render: (r: any) => r._count?.services ?? 0 },
+    { title: 'Servicios', key: 'count', render: (r: any) => r._count?.services ?? 0 },
     {
       title: 'Acciones', key: 'actions',
       render: (r: any) => (

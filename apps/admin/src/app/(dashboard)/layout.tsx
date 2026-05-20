@@ -103,7 +103,8 @@ function AdminDashboardContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', position: 'relative', background: 'transparent' }}>
+
       {/* ── Sidebar ──────────────────────────────────────────────────────── */}
       <Sider
         collapsed={collapsed}
@@ -298,7 +299,7 @@ function AdminDashboardContent({ children }: { children: React.ReactNode }) {
       </Sider>
 
       {/* ── Main ─────────────────────────────────────────────────────────── */}
-      <Layout style={{ marginLeft: collapsed ? 64 : 240, transition: 'margin-left 0.2s' }}>
+      <Layout style={{ marginLeft: collapsed ? 64 : 240, transition: 'margin-left 0.2s', position: 'relative', zIndex: 1, background: 'transparent' }}>
         <Header style={{
           background: token.colorBgContainer,
           padding: '0 24px',
@@ -344,7 +345,7 @@ function AdminDashboardContent({ children }: { children: React.ReactNode }) {
           </Dropdown>
         </Header>
 
-        <Content style={{ margin: 24, minHeight: 'calc(100vh - 112px)' }}>
+        <Content style={{ margin: 24, minHeight: 'calc(100vh - 112px)', background: 'transparent' }}>
           {children}
         </Content>
       </Layout>

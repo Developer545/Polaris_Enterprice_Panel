@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common'
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const CreateCategorySchema = z.object({
@@ -26,9 +27,14 @@ export class CategoriesService {
     return this.clientFactory.getClient(dbUrl)
   }
 
-  async findAll(companyId: string) {
+  private assertCompanyAccess(user: JwtAccessPayload, companyId: string) {
+    if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
+  }
+
+  async findAll(companyId: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
     return db.category.findMany({
       where: { tenantId, companyId, isActive: true },
       select: {
@@ -39,29 +45,30 @@ export class CategoriesService {
     })
   }
 
-  async create(dto: CreateCategoryDto) {
+  async create(dto: CreateCategoryDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
     const exists = await db.category.findFirst({
-      where: { companyId: dto.companyId, name: dto.name },
+      where: { tenantId, companyId: dto.companyId, name: dto.name },
     })
     if (exists) throw new ConflictException('Ya existe una categoría con ese nombre')
     return db.category.create({ data: { ...dto, tenantId } })
   }
 
-  async update(id: string, dto: UpdateCategoryDto) {
+  async update(id: string, dto: UpdateCategoryDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const cat = await db.category.findFirst({ where: { id, tenantId } })
+    const cat = await db.category.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!cat) throw new NotFoundException('Categoría no encontrada')
     return db.category.update({ where: { id }, data: dto })
   }
 
-  async remove(id: string) {
+  async remove(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     const cat = await db.category.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, companyId: user.companyId },
       include: { _count: { select: { services: true } } },
     })
     if (!cat) throw new NotFoundException('Categoría no encontrada')

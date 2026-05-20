@@ -7,7 +7,9 @@ import {
 } from './purchases.service'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
+import { CurrentUser } from '../../../common/decorators/current-user.decorator'
 import { PERMISSIONS } from '@pos-dte/shared-types'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 @Controller('purchases')
@@ -16,20 +18,27 @@ export class PurchasesController {
 
   @Get()
   @RequirePermissions(PERMISSIONS.PURCHASES_VIEW)
-  findAll(@Query('companyId') companyId: string, @Query('status') status?: string) {
-    return this.svc.findAll(companyId, status)
+  findAll(
+    @CurrentUser() user: JwtAccessPayload,
+    @Query('companyId') companyId?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.svc.findAll(companyId ?? user.companyId, user, status)
   }
 
   @Get(':id')
   @RequirePermissions(PERMISSIONS.PURCHASES_VIEW)
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id)
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtAccessPayload) {
+    return this.svc.findOne(id, user)
   }
 
   @Post()
   @RequirePermissions(PERMISSIONS.PURCHASES_CREATE)
-  create(@Body(new ZodValidationPipe(CreatePurchaseOrderSchema)) dto: z.infer<typeof CreatePurchaseOrderSchema>) {
-    return this.svc.create(dto)
+  create(
+    @Body(new ZodValidationPipe(CreatePurchaseOrderSchema)) dto: z.infer<typeof CreatePurchaseOrderSchema>,
+    @CurrentUser() user: JwtAccessPayload,
+  ) {
+    return this.svc.create(dto, user)
   }
 
   @Put(':id')
@@ -37,8 +46,9 @@ export class PurchasesController {
   update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdatePurchaseOrderSchema)) dto: z.infer<typeof UpdatePurchaseOrderSchema>,
+    @CurrentUser() user: JwtAccessPayload,
   ) {
-    return this.svc.update(id, dto)
+    return this.svc.update(id, dto, user)
   }
 
   @Post(':id/receive')
@@ -46,13 +56,14 @@ export class PurchasesController {
   receive(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(ReceivePurchaseOrderSchema)) dto: z.infer<typeof ReceivePurchaseOrderSchema>,
+    @CurrentUser() user: JwtAccessPayload,
   ) {
-    return this.svc.receive(id, dto)
+    return this.svc.receive(id, dto, user)
   }
 
   @Delete(':id/cancel')
   @RequirePermissions(PERMISSIONS.PURCHASES_EDIT)
-  cancel(@Param('id') id: string) {
-    return this.svc.cancel(id)
+  cancel(@Param('id') id: string, @CurrentUser() user: JwtAccessPayload) {
+    return this.svc.cancel(id, user)
   }
 }

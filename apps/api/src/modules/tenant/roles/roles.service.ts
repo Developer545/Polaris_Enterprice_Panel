@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common'
+import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
-import { PERMISSIONS } from '@pos-dte/shared-types'
+import { PERMISSIONS, type JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 const VALID_PERMISSIONS = Object.values(PERMISSIONS)
@@ -27,9 +27,14 @@ export class RolesService {
     return this.clientFactory.getClient(dbUrl)
   }
 
-  async findAll(companyId: string) {
+  private assertCompanyAccess(user: JwtAccessPayload, companyId: string) {
+    if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
+  }
+
+  async findAll(companyId: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
     return db.role.findMany({
       where: { tenantId, companyId },
       select: {
@@ -40,20 +45,21 @@ export class RolesService {
     })
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const role = await db.role.findFirst({ where: { id, tenantId } })
+    const role = await db.role.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!role) throw new NotFoundException('Rol no encontrado')
     return role
   }
 
-  async create(dto: CreateRoleDto) {
+  async create(dto: CreateRoleDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
 
     const exists = await db.role.findFirst({
-      where: { companyId: dto.companyId, name: dto.name },
+      where: { tenantId, companyId: dto.companyId, name: dto.name },
     })
     if (exists) throw new ConflictException('Ya existe un rol con ese nombre')
 
@@ -64,10 +70,10 @@ export class RolesService {
     return db.role.create({ data: { ...dto, tenantId, permissions: dto.permissions } })
   }
 
-  async update(id: string, dto: UpdateRoleDto) {
+  async update(id: string, dto: UpdateRoleDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const role = await db.role.findFirst({ where: { id, tenantId } })
+    const role = await db.role.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!role) throw new NotFoundException('Rol no encontrado')
     if (role.isSystem) throw new BadRequestException('Roles del sistema no se pueden modificar')
 
@@ -79,11 +85,11 @@ export class RolesService {
     return db.role.update({ where: { id }, data: dto as any })
   }
 
-  async remove(id: string) {
+  async remove(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     const role = await db.role.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, companyId: user.companyId },
       include: { _count: { select: { users: true } } },
     })
     if (!role) throw new NotFoundException('Rol no encontrado')
@@ -116,6 +122,9 @@ export class RolesService {
           [PERMISSIONS.CLIENTS_VIEW]: true,
           [PERMISSIONS.CLIENTS_CREATE]: true,
           [PERMISSIONS.PRODUCTS_VIEW]: true,
+          [PERMISSIONS.INVENTORY_VIEW]: true,
+          [PERMISSIONS.ACCOUNTS_RECEIVABLE_VIEW]: true,
+          [PERMISSIONS.ACCOUNTS_RECEIVABLE_CREATE]: true,
           [PERMISSIONS.CASH_REGISTER_OPEN]: true,
           [PERMISSIONS.CASH_REGISTER_CLOSE]: true,
         },
@@ -129,6 +138,9 @@ export class RolesService {
           [PERMISSIONS.SALES_VIEW]: true,
           [PERMISSIONS.CLIENTS_VIEW]: true,
           [PERMISSIONS.PRODUCTS_VIEW]: true,
+          [PERMISSIONS.INVENTORY_VIEW]: true,
+          [PERMISSIONS.ACCOUNTS_RECEIVABLE_VIEW]: true,
+          [PERMISSIONS.ACCOUNTS_RECEIVABLE_EDIT]: true,
           [PERMISSIONS.CASH_REGISTER_VIEW]: true,
           [PERMISSIONS.REPORTS_VIEW]: true,
         },

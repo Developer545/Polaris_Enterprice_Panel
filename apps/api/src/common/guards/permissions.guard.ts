@@ -17,6 +17,8 @@ export class PermissionsGuard implements CanActivate {
     const { user } = ctx.switchToHttp().getRequest() as { user: JwtAccessPayload }
     if (!user) throw new ForbiddenException('Sin permisos')
 
+    if (user.permissions.all === true) return true
+
     const hasAll = required.every((p) => user.permissions[p] === true)
     if (!hasAll) throw new ForbiddenException(`Permiso requerido: ${required.join(', ')}`)
     return true

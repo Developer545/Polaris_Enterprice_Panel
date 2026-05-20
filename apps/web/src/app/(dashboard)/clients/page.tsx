@@ -48,10 +48,11 @@ export default function ClientsPage() {
   const { token } = theme.useToken()
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
-  const [filterCCF, setFilterCCF] = useState<boolean | null>(null)
+  const [filterCCF, setFilterCCF] = useState<boolean | 'all'>('all')
   const [editOpen, setEditOpen] = useState(false)
   const [editing, setEditing] = useState<any>(null)
   const [form] = Form.useForm()
+  const esCreditoFiscal = Form.useWatch('esCreditoFiscal', form)
 
   // Tipo persona (Natural / Jurídica)
   const [tipoPersona, setTipoPersona] = useState<'NATURAL' | 'JURIDICA'>('NATURAL')
@@ -185,6 +186,7 @@ export default function ClientsPage() {
     setMunicipioCod(undefined)
     setMunicipios([])
     setZona(undefined)
+    form.resetFields()
   }
 
   function onTipoPersonaChange(val: 'NATURAL' | 'JURIDICA') {
@@ -403,7 +405,7 @@ export default function ClientsPage() {
       <Card
         size="small"
         style={{ borderRadius: 12, marginBottom: 16, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-        bodyStyle={{ padding: '12px 16px' }}
+        styles={{ body: { padding: '12px 16px' } }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <Space wrap>
@@ -422,7 +424,7 @@ export default function ClientsPage() {
               buttonStyle="solid"
               size="middle"
             >
-              <Radio.Button value={null}>Todos</Radio.Button>
+              <Radio.Button value='all'>Todos</Radio.Button>
               <Radio.Button value={false}>CF</Radio.Button>
               <Radio.Button value={true}>CCF</Radio.Button>
             </Radio.Group>
@@ -447,7 +449,7 @@ export default function ClientsPage() {
       <Card
         size="small"
         style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0 } }}
       >
         <Table
           size="small"
@@ -481,7 +483,6 @@ export default function ClientsPage() {
         okText={editing?.id ? 'Actualizar' : 'Crear cliente'}
         okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={680}
-        destroyOnClose
         style={{ top: 40 }}
         styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
@@ -532,7 +533,7 @@ export default function ClientsPage() {
                 <Switch
                   checkedChildren="CCF"
                   unCheckedChildren="CF"
-                  style={{ backgroundColor: form.getFieldValue('esCreditoFiscal') ? token.colorInfo : undefined }}
+                  style={{ backgroundColor: esCreditoFiscal ? token.colorInfo : undefined }}
                 />
               </Form.Item>
             </Col>

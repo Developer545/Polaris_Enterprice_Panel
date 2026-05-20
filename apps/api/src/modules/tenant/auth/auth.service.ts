@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcryptjs'
+import { createHash } from 'crypto'
 import { v4 as uuidv4 } from 'uuid'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { ControlPlaneClient } from '../../../infrastructure/prisma/control-plane.client'
@@ -41,6 +42,10 @@ export class AuthService {
   /** For login/refresh/logout — bypass middleware, use shared DB directly */
   private getSharedDb() {
     return this.clientFactory.getClient()
+  }
+
+  private hashRefreshToken(refreshToken: string) {
+    return createHash('sha256').update(refreshToken).digest('hex')
   }
 
   async login(dto: LoginDto, reply: FastifyReply) {
@@ -113,11 +118,12 @@ export class AuthService {
 
     const familyId = uuidv4()
     const refreshToken = uuidv4()
+    const refreshTokenHash = this.hashRefreshToken(refreshToken)
 
     await db.session.create({
       data: {
         userId: user.id,
-        refreshToken,
+        refreshToken: refreshTokenHash,
         familyId,
         deviceInfo: 'electron',
         expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_SECONDS * 1000),
@@ -141,9 +147,10 @@ export class AuthService {
 
   async refresh(refreshToken: string, reply: FastifyReply) {
     const db = this.getSharedDb()
+    const refreshTokenHash = this.hashRefreshToken(refreshToken)
 
     const session = await db.session.findFirst({
-      where: { refreshToken, revokedAt: null },
+      where: { OR: [{ refreshToken: refreshTokenHash }, { refreshToken }], revokedAt: null },
       include: {
         user: { include: { role: true, branches: { select: { branchId: true } } } },
       },
@@ -168,10 +175,11 @@ export class AuthService {
     await db.session.update({ where: { id: session.id }, data: { revokedAt: new Date() } })
 
     const newRefreshToken = uuidv4()
+    const newRefreshTokenHash = this.hashRefreshToken(newRefreshToken)
     await db.session.create({
       data: {
         userId: session.userId,
-        refreshToken: newRefreshToken,
+        refreshToken: newRefreshTokenHash,
         familyId: session.familyId,
         deviceInfo: session.deviceInfo,
         expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_SECONDS * 1000),
@@ -205,8 +213,9 @@ export class AuthService {
   async logout(refreshToken: string | undefined, reply: FastifyReply) {
     if (refreshToken) {
       const db = this.getSharedDb()
+      const refreshTokenHash = this.hashRefreshToken(refreshToken)
       await db.session.updateMany({
-        where: { refreshToken, revokedAt: null },
+        where: { OR: [{ refreshToken: refreshTokenHash }, { refreshToken }], revokedAt: null },
         data: { revokedAt: new Date() },
       })
     }

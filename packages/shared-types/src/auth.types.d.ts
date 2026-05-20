@@ -109,5 +109,11 @@ export declare const PERMISSIONS: {
     readonly PAYROLL_VIEW: "payroll.view";
     readonly PAYROLL_CREATE: "payroll.create";
     readonly PAYROLL_APPROVE: "payroll.approve";
+    readonly INVENTORY_VIEW: "inventory.view";
+    readonly INVENTORY_CREATE: "inventory.create";
+    readonly INVENTORY_ADJUST: "inventory.adjust";
+    readonly ACCOUNTS_RECEIVABLE_VIEW: "accounts_receivable.view";
+    readonly ACCOUNTS_RECEIVABLE_CREATE: "accounts_receivable.create";
+    readonly ACCOUNTS_RECEIVABLE_EDIT: "accounts_receivable.edit";
 };
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

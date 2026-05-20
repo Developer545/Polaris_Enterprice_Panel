@@ -2,10 +2,13 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common'
 import * as bcrypt from 'bcryptjs'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const CreateUserSchema = z.object({
@@ -35,9 +38,31 @@ export class UsersService {
     return this.clientFactory.getClient(dbUrl)
   }
 
-  async findAll(companyId: string) {
+  private assertCompanyAccess(user: JwtAccessPayload, companyId: string) {
+    if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
+  }
+
+  private async validateCompanyRelations(
+    db: ReturnType<TenantClientFactory['getClient']>,
+    tenantId: string,
+    companyId: string,
+    roleId?: string,
+    branchIds?: string[],
+  ) {
+    if (roleId) {
+      const role = await db.role.findFirst({ where: { id: roleId, tenantId, companyId }, select: { id: true } })
+      if (!role) throw new BadRequestException('Rol no pertenece a esta empresa')
+    }
+    if (branchIds?.length) {
+      const count = await db.branch.count({ where: { id: { in: branchIds }, tenantId, companyId } })
+      if (count !== branchIds.length) throw new BadRequestException('Una o más sucursales no pertenecen a esta empresa')
+    }
+  }
+
+  async findAll(companyId: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
     return db.user.findMany({
       where: { tenantId, companyId },
       select: {
@@ -50,57 +75,60 @@ export class UsersService {
     })
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const user = await db.user.findFirst({
-      where: { id, tenantId },
+    const found = await db.user.findFirst({
+      where: { id, tenantId, companyId: user.companyId },
       include: {
         role: true,
         branches: { include: { branch: true } },
       },
     })
-    if (!user) throw new NotFoundException('Usuario no encontrado')
-    return user
+    if (!found) throw new NotFoundException('Usuario no encontrado')
+    return found
   }
 
-  async create(dto: CreateUserDto) {
+  async create(dto: CreateUserDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
+    await this.validateCompanyRelations(db, tenantId, dto.companyId, dto.roleId, dto.branchIds)
 
     const exists = await db.user.findFirst({
-      where: { email: dto.email, companyId: dto.companyId },
+      where: { tenantId, email: dto.email, companyId: dto.companyId },
     })
     if (exists) throw new ConflictException('Email ya registrado en esta empresa')
 
     const password = await bcrypt.hash(dto.password, 12)
     const { branchIds, ...userData } = dto
 
-    const user = await db.user.create({
+    const createdUser = await db.user.create({
       data: { ...userData, password, tenantId },
     })
 
     if (branchIds?.length) {
       await db.userBranch.createMany({
-        data: branchIds.map((branchId) => ({ userId: user.id, branchId })),
+        data: branchIds.map((branchId) => ({ userId: createdUser.id, branchId })),
         skipDuplicates: true,
       })
     }
 
-    return { id: user.id, name: user.name, email: user.email }
+    return { id: createdUser.id, name: createdUser.name, email: createdUser.email }
   }
 
-  async update(id: string, dto: UpdateUserDto) {
+  async update(id: string, dto: UpdateUserDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
 
-    await this.findOne(id) // throws if not found
+    await this.findOne(id, user) // throws if not found
+    await this.validateCompanyRelations(db, tenantId, user.companyId, dto.roleId, dto.branchIds)
 
     const { branchIds, password, ...rest } = dto
     const data: Record<string, unknown> = { ...rest }
     if (password) data.password = await bcrypt.hash(password, 12)
 
-    const user = await db.user.update({ where: { id }, data })
+    const updatedUser = await db.user.update({ where: { id }, data })
 
     if (branchIds !== undefined) {
       await db.userBranch.deleteMany({ where: { userId: id } })
@@ -111,12 +139,12 @@ export class UsersService {
       }
     }
 
-    return { id: user.id, name: user.name, email: user.email }
+    return { id: updatedUser.id, name: updatedUser.name, email: updatedUser.email }
   }
 
-  async remove(id: string) {
+  async remove(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
-    await this.findOne(id)
+    await this.findOne(id, user)
     const db = this.getDb()
     await db.user.update({ where: { id }, data: { isActive: false } })
     return { ok: true }

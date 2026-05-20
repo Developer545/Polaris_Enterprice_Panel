@@ -41,6 +41,17 @@ const FORMA_PAGO = [
   { value: '11', label: 'Dinero electrónico' },
 ]
 
+const TILE_COLORS = [
+  '#f5222d', '#fa541c', '#fa8c16', '#faad14', '#52c41a',
+  '#13c2c2', '#1677ff', '#722ed1', '#eb2f96', '#08979c',
+]
+
+function avatarBg(name: string) {
+  let h = 0
+  for (const c of name) h = ((h << 5) - h) + c.charCodeAt(0)
+  return TILE_COLORS[Math.abs(h) % TILE_COLORS.length]
+}
+
 type ClientMode = 'cf' | 'nuevo' | 'registrado'
 
 function calcLine(item: CartItem, tipoDte: '01' | '03') {
@@ -77,7 +88,6 @@ export default function PosPage() {
 
   const { companyId, branchId } = useAppContext()
 
-
   const { data: categories = [] } = useQuery({
     queryKey: ['categories', companyId],
     queryFn: () => api.get('/api/categories', { params: { companyId } }).then(r => r.data),
@@ -89,7 +99,7 @@ export default function PosPage() {
     queryFn: () => api.get('/api/products', {
       params: { companyId, search: deferredProductSearch || undefined, categoryId: selectedCategory || undefined },
     }).then(r => r.data),
-    enabled: !!companyId && (deferredProductSearch.length >= 1 || !!selectedCategory),
+    enabled: !!companyId,
     staleTime: 30_000,
   })
 
@@ -122,7 +132,6 @@ export default function PosPage() {
         params: { companyId, search: barcode },
       })
       const matches: any[] = res.data ?? []
-      // Exact match on SKU or barcode field first, else first result
       const product = matches.find(p => p.sku === barcode || p.barcode === barcode) ?? matches[0]
       if (product) {
         addToCart(product)
@@ -133,7 +142,7 @@ export default function PosPage() {
     } catch {
       message.error({ content: 'Error al buscar por código de barras', duration: 3 })
     }
-  }, { enabled: !payModal }) // disable during payment modal
+  }, { enabled: !payModal })
 
   // F12 drawer + F11 reprint shortcut feedback (Electron only)
   useEffect(() => {
@@ -154,7 +163,6 @@ export default function PosPage() {
     })
   }, [])
 
-  // Create new quick client mutation
   const createClientMut = useMutation({
     mutationFn: (dto: any) => api.post('/api/clients', dto).then(r => r.data),
   })
@@ -164,15 +172,14 @@ export default function PosPage() {
     onSuccess: (response, variables) => {
       message.success('Venta registrada')
 
-      // Build receipt payload for F11 reprint (before cart is cleared)
       if (isElectron) {
         const paymentLabel = FORMA_PAGO.find(f => f.value === variables.payments?.[0]?.formaPago)?.label ?? 'Efectivo'
         const saleNumber = response.data?.saleNumber ?? response.data?.id ?? '—'
 
         const receiptPayload = {
-          businessName: user?.company?.name ?? user?.tenant?.name ?? 'POS DTE',
-          branchName: user?.branch?.name ?? openRegister?.branch?.name ?? '',
-          cashierName: user?.name ?? '',
+          businessName: (window as any).user?.company?.name ?? (window as any).user?.tenant?.name ?? 'POS DTE',
+          branchName: (window as any).user?.branch?.name ?? openRegister?.branch?.name ?? '',
+          cashierName: (window as any).user?.name ?? '',
           saleNumber,
           date: new Date().toLocaleString('es-SV'),
           tipoDte: tipoDte === '03' ? 'CCF' : 'CF',
@@ -190,11 +197,9 @@ export default function PosPage() {
           change: recibidoEfectivo > 0 ? Math.max(0, recibidoEfectivo - totalPagar) : undefined,
         }
 
-        // Store in main process — enables F11 reprint without re-querying API
         window.electron.printer.setLastReceipt(receiptPayload).catch(() => {})
       }
 
-      // Open cash drawer (Electron only — silent fail if not configured)
       const win = window as any
       if (win.electron?.drawer?.open) win.electron.drawer.open().catch(() => {})
 
@@ -238,7 +243,6 @@ export default function PosPage() {
         stock: product.stock ?? 0,
       }]
     })
-    setProductSearch('')
   }
 
   function updateQty(productId: string, qty: number) {
@@ -284,7 +288,6 @@ export default function PosPage() {
         message.error('Error al crear el cliente nuevo'); return
       }
     }
-    // clientMode === 'cf' → clientId stays null, backend uses Consumidor Final
 
     saleMutation.mutate({
       companyId,
@@ -309,9 +312,9 @@ export default function PosPage() {
       title: 'Producto', dataIndex: 'name', key: 'name',
       render: (name: string, r: CartItem) => (
         <div>
-          <div style={{ fontWeight: 500, fontSize: 13 }}>{name}</div>
+          <div style={{ fontWeight: 500, fontSize: 12 }}>{name}</div>
           {r.trackStock && (
-            <Tag color={(r.stock - r.quantity) <= 0 ? 'red' : 'green'} style={{ fontSize: 10, padding: '0 4px' }}>
+            <Tag color={(r.stock - r.quantity) <= 0 ? 'red' : 'green'} style={{ fontSize: 9, padding: '0 4px', lineHeight: '16px' }}>
               Stock: {r.stock}
             </Tag>
           )}
@@ -319,30 +322,26 @@ export default function PosPage() {
       ),
     },
     {
-      title: 'Precio', key: 'price', width: 80,
-      render: (r: CartItem) => <span style={{ color: '#666' }}>${r.price.toFixed(2)}</span>,
-    },
-    {
-      title: 'Cant.', key: 'qty', width: 90,
+      title: 'Cant.', key: 'qty', width: 80,
       render: (r: CartItem) => (
         <InputNumber
           size="small" min={1}
           max={r.trackStock ? r.stock : undefined}
           value={r.quantity}
           onChange={v => updateQty(r.productId, v ?? 1)}
-          style={{ width: 72 }}
+          style={{ width: 64 }}
         />
       ),
     },
     {
-      title: 'Total', key: 'total', width: 90,
+      title: 'Total', key: 'total', width: 80,
       render: (r: CartItem) => {
         const { total } = calcLine(r, tipoDte)
-        return <span style={{ fontWeight: 600, color: token.colorPrimary }}>${total.toFixed(2)}</span>
+        return <span style={{ fontWeight: 600, color: token.colorPrimary, fontSize: 12 }}>${total.toFixed(2)}</span>
       },
     },
     {
-      title: '', key: 'del', width: 40,
+      title: '', key: 'del', width: 36,
       render: (r: CartItem) => (
         <Button type="text" danger size="small" icon={<DeleteOutlined />}
           onClick={() => removeFromCart(r.productId)} />
@@ -351,7 +350,6 @@ export default function PosPage() {
   ]
 
   // ── Client panel ──────────────────────────────────────────────────────────────
-
   const modeOptions = [
     { label: <span style={{ fontSize: 12 }}><IdcardOutlined style={{ marginRight: 4 }} />CF</span>, value: 'cf', disabled: tipoDte === '03' },
     { label: <span style={{ fontSize: 12 }}><UserAddOutlined style={{ marginRight: 4 }} />Nuevo</span>, value: 'nuevo' },
@@ -361,13 +359,13 @@ export default function PosPage() {
   function renderClientContent() {
     if (clientMode === 'cf') {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px' }}>
-          <Avatar style={{ background: '#8c8c8c', flexShrink: 0 }} size={36} icon={<UserOutlined />} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px' }}>
+          <Avatar style={{ background: '#8c8c8c', flexShrink: 0 }} size={32} icon={<UserOutlined />} />
           <div>
-            <div style={{ fontWeight: 600, fontSize: 13 }}>Consumidor Final</div>
-            <div style={{ fontSize: 11, color: '#999' }}>Factura sin cliente específico</div>
+            <div style={{ fontWeight: 600, fontSize: 12 }}>Consumidor Final</div>
+            <div style={{ fontSize: 11, color: '#999' }}>Sin cliente específico</div>
           </div>
-          <Tag color="default" style={{ marginLeft: 'auto' }}>CF</Tag>
+          <Tag color="default" style={{ marginLeft: 'auto', fontSize: 10 }}>CF</Tag>
         </div>
       )
     }
@@ -383,20 +381,20 @@ export default function PosPage() {
             size="small"
           />
           <Input
-            placeholder="Correo electrónico (opcional)"
+            placeholder="Correo (opcional)"
             value={newClientEmail}
             onChange={e => setNewClientEmail(e.target.value)}
             size="small"
             type="email"
           />
           {newClientName.trim() && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: '#f1f1ef', borderRadius: 6 }}>
-              <Avatar style={{ background: token.colorPrimary }} size={28}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: '#f5f5f5', borderRadius: 6 }}>
+              <Avatar style={{ background: token.colorPrimary }} size={26}>
                 {newClientName[0]?.toUpperCase()}
               </Avatar>
               <div style={{ fontSize: 12 }}>
                 <div style={{ fontWeight: 600 }}>{newClientName}</div>
-                {newClientEmail && <div style={{ color: '#999' }}>{newClientEmail}</div>}
+                {newClientEmail && <div style={{ color: '#999', fontSize: 11 }}>{newClientEmail}</div>}
               </div>
               <Tag color="blue" style={{ marginLeft: 'auto', fontSize: 10 }}>Nuevo</Tag>
             </div>
@@ -405,15 +403,14 @@ export default function PosPage() {
       )
     }
 
-    // registrado
     if (selectedClient) {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px' }}>
-          <Avatar style={{ background: selectedClient.esCreditoFiscal ? token.colorInfo : token.colorSuccess, fontWeight: 700 }} size={34}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px' }}>
+          <Avatar style={{ background: selectedClient.esCreditoFiscal ? token.colorInfo : token.colorSuccess, fontWeight: 700 }} size={32}>
             {selectedClient.name?.[0]?.toUpperCase()}
           </Avatar>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontWeight: 600, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {selectedClient.name}
             </div>
             <div style={{ fontSize: 11, color: '#999' }}>
@@ -443,7 +440,7 @@ export default function PosPage() {
           allowClear
         />
         {clientSearch.length >= 2 && clientResults.length > 0 && (
-          <div style={{ marginTop: 6, maxHeight: 160, overflowY: 'auto', border: '1px solid #f0f0f0', borderRadius: 6 }}>
+          <div style={{ marginTop: 6, maxHeight: 140, overflowY: 'auto', border: '1px solid #f0f0f0', borderRadius: 6 }}>
             {(clientResults as any[]).map((c: any) => (
               <div
                 key={c.id}
@@ -452,7 +449,7 @@ export default function PosPage() {
                 onMouseEnter={e => (e.currentTarget.style.background = '#fafafa')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
-                <Avatar size={26} style={{ background: c.esCreditoFiscal ? token.colorInfo : token.colorSuccess, fontSize: 11, fontWeight: 700 }}>
+                <Avatar size={24} style={{ background: c.esCreditoFiscal ? token.colorInfo : token.colorSuccess, fontSize: 10, fontWeight: 700 }}>
                   {c.name?.[0]?.toUpperCase()}
                 </Avatar>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -465,8 +462,8 @@ export default function PosPage() {
           </div>
         )}
         {clientSearch.length >= 2 && !searchingClients && (clientResults as any[]).length === 0 && (
-          <div style={{ fontSize: 12, color: '#999', textAlign: 'center', padding: '8px 0' }}>
-            Sin resultados. ¿Desea crear un cliente nuevo?
+          <div style={{ fontSize: 11, color: '#999', textAlign: 'center', padding: '8px 0' }}>
+            Sin resultados
           </div>
         )}
       </div>
@@ -475,10 +472,12 @@ export default function PosPage() {
 
   return (
     <div style={{ height: 'calc(100vh - 112px)', display: 'flex', gap: 16 }}>
-      {/* Left: product search + cart */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {/* Header */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+
+      {/* ── Left: product browser ── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, gap: 8 }}>
+
+        {/* Top bar */}
+        <div style={{ display: 'flex', gap: 8 }}>
           <Select
             value={tipoDte}
             onChange={v => { setTipoDte(v); if (v === '03' && clientMode === 'cf') setClientMode('registrado') }}
@@ -499,9 +498,9 @@ export default function PosPage() {
           />
         </div>
 
-        {/* Category filter tabs */}
+        {/* Category chips */}
         {(categories as any[]).length > 0 && (
-          <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <Tag.CheckableTag
               checked={!selectedCategory}
               onChange={() => setSelectedCategory(null)}
@@ -522,43 +521,127 @@ export default function PosPage() {
           </div>
         )}
 
-        {/* Product search results */}
-        {productSearch.length >= 1 && products.length > 0 && (
-          <Card size="small" style={{ marginBottom: 12, borderRadius: 8, maxHeight: 200, overflow: 'auto' }}>
-            {(products as any[]).map((p: any) => (
-              <div
-                key={p.id}
-                style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '6px 4px', cursor: 'pointer', borderRadius: 4, transition: 'background 0.15s',
-                }}
-                onClick={() => addToCart(p)}
-                onMouseEnter={e => (e.currentTarget.style.background = '#f5f5f5')}
-                onMouseLeave={e => (e.currentTarget.style.background = '')}
-              >
-                <div>
-                  <span style={{ fontWeight: 500 }}>{p.name}</span>
-                  {p.sku && <span style={{ fontSize: 11, color: '#999', marginLeft: 8 }}>{p.sku}</span>}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {p.trackStock && (
-                    <Tag color={(p.stock ?? 0) <= (p.minStock ?? 0) ? 'red' : 'green'} style={{ fontSize: 11 }}>
-                      Stock: {p.stock}
-                    </Tag>
-                  )}
-                  <span style={{ fontWeight: 600, color: token.colorPrimary }}>${Number(p.price).toFixed(2)}</span>
-                  <Button type="primary" size="small" icon={<PlusOutlined />}
-                    style={{ background: token.colorPrimary, borderColor: token.colorPrimary }} />
-                </div>
-              </div>
-            ))}
-          </Card>
-        )}
-        {productSearch.length >= 1 && !searchingProducts && (products as any[]).length === 0 && (
-          <Card size="small" style={{ marginBottom: 12, borderRadius: 8 }}>
-            <div style={{ textAlign: 'center', color: '#999', padding: '8px 0' }}>No se encontraron productos</div>
-          </Card>
-        )}
+        {/* Product tile grid */}
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          {searchingProducts ? (
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 60 }}>
+              <Spin size="large" />
+            </div>
+          ) : (products as any[]).length === 0 ? (
+            <Empty
+              description={<span style={{ color: '#ccc' }}>Sin productos. Busca o filtra por categoría.</span>}
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              style={{ padding: 48 }}
+            />
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(128px, 1fr))',
+              gap: 8,
+              paddingBottom: 8,
+            }}>
+              {(products as any[]).map((p: any) => {
+                const inCart = cart.find(c => c.productId === p.id)
+                const bg = avatarBg(p.name)
+                const isLowStock = p.trackStock && (p.stock ?? 0) <= (p.minStock ?? 0)
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => addToCart(p)}
+                    style={{
+                      background: inCart ? `${bg}14` : token.colorBgContainer,
+                      border: `1.5px solid ${inCart ? bg : token.colorBorder}`,
+                      borderRadius: 10,
+                      padding: 10,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 7,
+                      position: 'relative',
+                      userSelect: 'none',
+                      transition: 'border-color .15s, transform .15s, box-shadow .15s',
+                    }}
+                    onMouseEnter={e => {
+                      const el = e.currentTarget as HTMLDivElement
+                      el.style.transform = 'translateY(-2px)'
+                      el.style.boxShadow = '0 6px 16px -6px rgba(0,0,0,.18)'
+                      if (!inCart) el.style.borderColor = token.colorText
+                    }}
+                    onMouseLeave={e => {
+                      const el = e.currentTarget as HTMLDivElement
+                      el.style.transform = ''
+                      el.style.boxShadow = ''
+                      el.style.borderColor = inCart ? bg : token.colorBorder
+                    }}
+                  >
+                    {/* In-cart badge */}
+                    {inCart && (
+                      <div style={{
+                        position: 'absolute', top: 6, right: 6,
+                        background: bg, color: '#fff',
+                        borderRadius: 99, fontSize: 10, fontWeight: 700,
+                        padding: '1px 7px', lineHeight: '16px',
+                        pointerEvents: 'none',
+                      }}>
+                        ×{inCart.quantity}
+                      </div>
+                    )}
+
+                    {/* Thumb */}
+                    <div style={{
+                      height: 54,
+                      borderRadius: 8,
+                      background: `linear-gradient(135deg, ${bg}28, ${bg}0a)`,
+                      display: 'grid',
+                      placeItems: 'center',
+                      fontSize: p.emoji ? 28 : 22,
+                      fontWeight: p.emoji ? 400 : 800,
+                      color: bg,
+                      letterSpacing: -1,
+                    }}>
+                      {p.emoji || p.name[0]?.toUpperCase()}
+                    </div>
+
+                    {/* Name */}
+                    <div style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      lineHeight: 1.3,
+                      color: token.colorText,
+                      wordBreak: 'break-word',
+                    }}>
+                      {p.name}
+                    </div>
+
+                    {/* Price + stock */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                      <span style={{
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: token.colorPrimary,
+                      }}>
+                        ${Number(p.price).toFixed(2)}
+                      </span>
+                      {p.trackStock && (
+                        <Tag
+                          color={isLowStock ? 'red' : 'green'}
+                          style={{ fontSize: 9, padding: '0 4px', margin: 0, lineHeight: '16px' }}
+                        >
+                          {p.stock}
+                        </Tag>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Right: cart + client + totals ── */}
+      <div style={{ width: 340, display: 'flex', flexDirection: 'column', gap: 10 }}>
 
         {/* Cart */}
         <Card
@@ -568,20 +651,22 @@ export default function PosPage() {
               <ShoppingCartOutlined style={{ marginRight: 6, color: token.colorPrimary }} />
               Carrito
               {cart.length > 0 && (
-                <Tag color="orange" style={{ marginLeft: 8, fontSize: 11 }}>{cart.length} ítem{cart.length !== 1 ? 's' : ''}</Tag>
+                <Tag color="orange" style={{ marginLeft: 8, fontSize: 11 }}>
+                  {cart.length} ítem{cart.length !== 1 ? 's' : ''}
+                </Tag>
               )}
             </span>
           }
           extra={cart.length > 0 && (
             <Button size="small" danger type="text" onClick={() => setCart([])}>Limpiar</Button>
           )}
-          style={{ flex: 1, borderRadius: 10, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+          style={{ flex: 1, borderRadius: 10, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}
           styles={{ body: { flex: 1, overflow: 'auto', padding: 0 } }}
         >
           {cart.length === 0 ? (
             <Empty
-              description={<span style={{ color: '#ccc' }}>Busca y agrega productos al carrito</span>}
-              style={{ padding: 40 }}
+              description={<span style={{ color: '#ccc' }}>Clic en productos para agregar</span>}
+              style={{ padding: 32 }}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           ) : (
@@ -594,12 +679,8 @@ export default function PosPage() {
             />
           )}
         </Card>
-      </div>
 
-      {/* Right: client + totals */}
-      <div style={{ width: 300, display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-        {/* Client card */}
+        {/* Client */}
         <Card
           size="small"
           title={
@@ -611,7 +692,6 @@ export default function PosPage() {
           style={{ borderRadius: 10 }}
           styles={{ body: { paddingTop: 10 } }}
         >
-          {/* Mode selector */}
           <Segmented
             block
             size="small"
@@ -626,12 +706,11 @@ export default function PosPage() {
             options={modeOptions}
             style={{ marginBottom: 12 }}
           />
-
           {renderClientContent()}
         </Card>
 
         {/* Register status */}
-        <Card size="small" style={{ borderRadius: 10, padding: 0 }} styles={{ body: { padding: '8px 12px' } }}>
+        <Card size="small" style={{ borderRadius: 10 }} styles={{ body: { padding: '8px 12px' } }}>
           {openRegister
             ? <Badge status="success" text={<span style={{ fontSize: 12 }}>Caja abierta — {openRegister.openedBy?.name ?? '—'}</span>} />
             : <Badge status="error" text={<span style={{ fontSize: 12 }}>Sin caja abierta en esta sucursal</span>} />
@@ -666,7 +745,11 @@ export default function PosPage() {
           size="large"
           block
           icon={<DollarOutlined />}
-          style={{ background: token.colorPrimary, borderColor: token.colorPrimary, height: 48, fontSize: 16, fontWeight: 600, borderRadius: 10 }}
+          style={{
+            background: token.colorPrimary,
+            borderColor: token.colorPrimary,
+            height: 48, fontSize: 16, fontWeight: 600, borderRadius: 10,
+          }}
           onClick={openPayModal}
           disabled={cart.length === 0 || (tipoDte === '03' && !selectedClient)}
         >
@@ -680,7 +763,7 @@ export default function PosPage() {
         )}
       </div>
 
-      {/* Payment modal */}
+      {/* ── Payment modal ── */}
       <Modal destroyOnClose
         open={payModal}
         title={
@@ -701,7 +784,11 @@ export default function PosPage() {
         styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Form form={payForm} layout="vertical" onFinish={submitSale}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, padding: '10px 14px', background: '#f9f9f8', borderRadius: 8, border: '1px solid #e9e9e7' }}>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            marginBottom: 16, padding: '10px 14px',
+            background: '#f9f9f8', borderRadius: 8, border: '1px solid #e9e9e7',
+          }}>
             <div>
               <div style={{ fontSize: 12, color: '#999' }}>Total a cobrar</div>
               <div style={{ fontSize: 24, fontWeight: 700, color: token.colorPrimary }}>${totalPagar.toFixed(2)}</div>
@@ -737,7 +824,7 @@ export default function PosPage() {
             )}
           </Form.List>
 
-          {/* Calculadora de vuelto (efectivo) */}
+          {/* Calculadora de vuelto */}
           <div style={{ marginTop: 16, padding: '10px 14px', background: '#f9f9f8', borderRadius: 8, border: '1px solid #e9e9e7' }}>
             <div style={{ fontSize: 12, color: '#666', marginBottom: 8, fontWeight: 500 }}>Calculadora de cambio (efectivo)</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

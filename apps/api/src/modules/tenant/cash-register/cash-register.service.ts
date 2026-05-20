@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import { Decimal } from '@prisma/client/runtime/library'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const OpenRegisterSchema = z.object({
@@ -35,11 +36,24 @@ export class CashRegisterService {
     return this.clientFactory.getClient(dbUrl)
   }
 
-  async findAll(branchId?: string) {
+  private assertCompanyAccess(user: JwtAccessPayload, companyId: string) {
+    if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
+  }
+
+  private assertBranchAccess(user: JwtAccessPayload, branchId: string) {
+    if (!user.branchIds.includes(branchId)) throw new ForbiddenException('Sucursal no autorizada')
+  }
+
+  async findAll(user: JwtAccessPayload, branchId?: string) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    if (branchId) this.assertBranchAccess(user, branchId)
     return db.cashRegister.findMany({
-      where: { tenantId, ...(branchId ? { branchId } : {}) },
+      where: {
+        tenantId,
+        companyId: user.companyId,
+        ...(branchId ? { branchId } : { branchId: { in: user.branchIds } }),
+      },
       include: {
         branch: { select: { id: true, name: true } },
         openedBy: { select: { id: true, name: true } },
@@ -51,11 +65,12 @@ export class CashRegisterService {
     })
   }
 
-  async findOpen(branchId: string) {
+  async findOpen(user: JwtAccessPayload, branchId: string) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertBranchAccess(user, branchId)
     return db.cashRegister.findFirst({
-      where: { tenantId, branchId, closedAt: null },
+      where: { tenantId, companyId: user.companyId, branchId, closedAt: null },
       include: {
         openedBy: { select: { id: true, name: true } },
         _count: { select: { sales: true } },
@@ -63,12 +78,14 @@ export class CashRegisterService {
     })
   }
 
-  async open(dto: OpenRegisterDto, userId: string) {
+  async open(dto: OpenRegisterDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
+    this.assertBranchAccess(user, dto.branchId)
 
     const alreadyOpen = await db.cashRegister.findFirst({
-      where: { tenantId, branchId: dto.branchId, closedAt: null },
+      where: { tenantId, companyId: dto.companyId, branchId: dto.branchId, closedAt: null },
     })
     if (alreadyOpen) throw new BadRequestException('Ya hay una caja abierta en esta sucursal')
 
@@ -77,19 +94,21 @@ export class CashRegisterService {
         tenantId,
         companyId: dto.companyId,
         branchId: dto.branchId,
-        openedById: userId,
+        openedById: user.sub,
         openingBalance: new Decimal(dto.openingBalance),
         notes: dto.notes,
       },
     })
   }
 
-  async close(id: string, dto: CloseRegisterDto, userId: string) {
+  async close(id: string, dto: CloseRegisterDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
 
     const register = await db.cashRegister.findFirst({ where: { id, tenantId } })
     if (!register) throw new NotFoundException('Caja no encontrada')
+    this.assertCompanyAccess(user, register.companyId)
+    this.assertBranchAccess(user, register.branchId)
     if (register.closedAt) throw new BadRequestException('Esta caja ya está cerrada')
 
     // Payment totals by method (single query)
@@ -127,7 +146,7 @@ export class CashRegisterService {
       where: { id },
       data: {
         closedAt: new Date(),
-        closedById: userId,
+        closedById: user.sub,
         closingBalance: actualBalance,
         difference,
         montoEsperado,
@@ -143,12 +162,14 @@ export class CashRegisterService {
     })
   }
 
-  async getSummary(id: string) {
+  async getSummary(user: JwtAccessPayload, id: string) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
 
     const register = await db.cashRegister.findFirst({ where: { id, tenantId } })
     if (!register) throw new NotFoundException('Caja no encontrada')
+    this.assertCompanyAccess(user, register.companyId)
+    this.assertBranchAccess(user, register.branchId)
 
     const [salesCount, totalSales, paymentsByMethod] = await Promise.all([
       db.sale.count({ where: { cashRegisterId: id, tenantId } }),

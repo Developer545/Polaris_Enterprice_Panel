@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common'
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const CreateSupplierSchema = z.object({
@@ -32,9 +33,14 @@ export class SuppliersService {
     return this.clientFactory.getClient(dbUrl)
   }
 
-  async findAll(companyId: string, search?: string) {
+  private assertCompanyAccess(user: JwtAccessPayload, companyId: string) {
+    if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
+  }
+
+  async findAll(companyId: string, user: JwtAccessPayload, search?: string) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
     return db.supplier.findMany({
       where: {
         tenantId,
@@ -59,21 +65,22 @@ export class SuppliersService {
     })
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const supplier = await db.supplier.findFirst({ where: { id, tenantId } })
+    const supplier = await db.supplier.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!supplier) throw new NotFoundException('Proveedor no encontrado')
     return supplier
   }
 
-  async create(dto: CreateSupplierDto) {
+  async create(dto: CreateSupplierDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
 
     if (dto.nit) {
       const exists = await db.supplier.findFirst({
-        where: { companyId: dto.companyId, nit: dto.nit },
+        where: { tenantId, companyId: dto.companyId, nit: dto.nit },
       })
       if (exists) throw new ConflictException('Ya existe un proveedor con ese NIT')
     }
@@ -81,18 +88,18 @@ export class SuppliersService {
     return db.supplier.create({ data: { ...dto, tenantId } })
   }
 
-  async update(id: string, dto: UpdateSupplierDto) {
+  async update(id: string, dto: UpdateSupplierDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const supplier = await db.supplier.findFirst({ where: { id, tenantId } })
+    const supplier = await db.supplier.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!supplier) throw new NotFoundException('Proveedor no encontrado')
     return db.supplier.update({ where: { id }, data: dto })
   }
 
-  async remove(id: string) {
+  async remove(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const supplier = await db.supplier.findFirst({ where: { id, tenantId } })
+    const supplier = await db.supplier.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!supplier) throw new NotFoundException('Proveedor no encontrado')
     await db.supplier.update({ where: { id }, data: { isActive: false } })
     return { ok: true }

@@ -32,6 +32,7 @@ import { RolesModule } from './modules/tenant/roles/roles.module'
 import { ClientsModule } from './modules/tenant/clients/clients.module'
 import { CategoriesModule } from './modules/tenant/categories/categories.module'
 import { ProductsModule } from './modules/tenant/products/products.module'
+import { UnitsModule } from './modules/tenant/units/units.module'
 import { CashRegisterModule } from './modules/tenant/cash-register/cash-register.module'
 
 // Tenant — Phase 2: POS + DTE
@@ -47,6 +48,10 @@ import { ExpensesModule } from './modules/tenant/expenses/expenses.module'
 // Tenant — Phase 4: RRHH
 import { EmployeesModule } from './modules/tenant/employees/employees.module'
 import { PayrollModule } from './modules/tenant/payroll/payroll.module'
+
+// Tenant — Phase 5
+import { InventoryModule } from './modules/tenant/inventory/inventory.module'
+import { AccountsReceivableModule } from './modules/tenant/accounts-receivable/accounts-receivable.module'
 
 // Tenant — Catalogs (global, read-only for tenant users)
 import { CatalogsModule } from './modules/tenant/catalogs/catalogs.module'
@@ -89,6 +94,7 @@ import { CatalogsModule } from './modules/tenant/catalogs/catalogs.module'
     ClientsModule,
     CategoriesModule,
     ProductsModule,
+    UnitsModule,
     CashRegisterModule,
 
     // Tenant — Phase 2
@@ -104,6 +110,10 @@ import { CatalogsModule } from './modules/tenant/catalogs/catalogs.module'
     // Tenant — Phase 4
     EmployeesModule,
     PayrollModule,
+
+    // Tenant — Phase 5
+    InventoryModule,
+    AccountsReceivableModule,
 
     // Tenant — Catalogs (global read-only)
     CatalogsModule,

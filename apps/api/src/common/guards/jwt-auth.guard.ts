@@ -10,6 +10,7 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator'
 import { IS_ADMIN_KEY } from '../decorators/admin.decorator'
 import { getEnv } from '../../config/env'
 import { ACCESS_COOKIE } from '../../config/constants'
+import { getCurrentTenantOrNull } from '../../modules/tenant/tenant-resolver/tenant.context'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
 
 @Injectable()
@@ -41,6 +42,10 @@ export class JwtAuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync<JwtAccessPayload>(token, {
         secret: getEnv().JWT_ACCESS_SECRET,
       })
+      const tenant = getCurrentTenantOrNull()
+      if (tenant && payload.tenantId !== tenant.tenantId) {
+        throw new UnauthorizedException('Token no corresponde al tenant solicitado')
+      }
       request.user = payload
       return true
     } catch {

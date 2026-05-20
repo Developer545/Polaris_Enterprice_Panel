@@ -3,11 +3,13 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common'
 import { Decimal } from '@prisma/client/runtime/library'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import { calcPayrollItem } from './payroll-calculator'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 // ─── Zod Schemas ──────────────────────────────────────────────────────────────
@@ -34,11 +36,16 @@ export class PayrollService {
     return this.clientFactory.getClient(dbUrl)
   }
 
+  private assertCompanyAccess(user: JwtAccessPayload, companyId: string) {
+    if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
+  }
+
   // ── Periods ───────────────────────────────────────────────────────────────
 
-  async findPeriods(companyId: string) {
+  async findPeriods(companyId: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
     return db.payrollPeriod.findMany({
       where: { tenantId, companyId },
       orderBy: { startDate: 'desc' },
@@ -61,11 +68,11 @@ export class PayrollService {
     })
   }
 
-  async findPeriod(id: string) {
+  async findPeriod(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     const period = await db.payrollPeriod.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, companyId: user.companyId },
       include: {
         items: {
           include: {
@@ -88,9 +95,10 @@ export class PayrollService {
     return period
   }
 
-  async createPeriod(dto: CreatePeriodDto) {
+  async createPeriod(dto: CreatePeriodDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
 
     if (dto.endDate <= dto.startDate) {
       throw new BadRequestException('La fecha de fin debe ser posterior a la fecha de inicio')
@@ -101,11 +109,11 @@ export class PayrollService {
 
   // ── Generate payroll ──────────────────────────────────────────────────────
 
-  async generatePayroll(periodId: string) {
+  async generatePayroll(periodId: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
 
-    const period = await db.payrollPeriod.findFirst({ where: { id: periodId, tenantId } })
+    const period = await db.payrollPeriod.findFirst({ where: { id: periodId, tenantId, companyId: user.companyId } })
     if (!period) throw new NotFoundException('Período de planilla no encontrado')
     if (period.status !== 'DRAFT') {
       throw new BadRequestException('Solo se puede generar la planilla en estado BORRADOR')
@@ -186,10 +194,10 @@ export class PayrollService {
 
   // ── Approve / Pay ─────────────────────────────────────────────────────────
 
-  async approvePeriod(id: string) {
+  async approvePeriod(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const period = await db.payrollPeriod.findFirst({ where: { id, tenantId } })
+    const period = await db.payrollPeriod.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!period) throw new NotFoundException('Período de planilla no encontrado')
     if (period.status !== 'DRAFT') {
       throw new BadRequestException('Solo se puede aprobar un período en estado BORRADOR')
@@ -206,10 +214,10 @@ export class PayrollService {
     })
   }
 
-  async markPaid(id: string) {
+  async markPaid(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const period = await db.payrollPeriod.findFirst({ where: { id, tenantId } })
+    const period = await db.payrollPeriod.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!period) throw new NotFoundException('Período de planilla no encontrado')
     if (period.status !== 'APPROVED') {
       throw new BadRequestException('Solo se puede marcar como pagado un período APROBADO')

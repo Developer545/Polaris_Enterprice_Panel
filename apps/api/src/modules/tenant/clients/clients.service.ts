@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common'
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const CreateClientSchema = z.object({
@@ -35,9 +36,14 @@ export class ClientsService {
     return this.clientFactory.getClient(dbUrl)
   }
 
-  async findAll(companyId: string, search?: string) {
+  private assertCompanyAccess(user: JwtAccessPayload, companyId: string) {
+    if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
+  }
+
+  async findAll(companyId: string, user: JwtAccessPayload, search?: string) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
     return db.client.findMany({
       where: {
         tenantId,
@@ -64,21 +70,22 @@ export class ClientsService {
     })
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const client = await db.client.findFirst({ where: { id, tenantId } })
+    const client = await db.client.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!client) throw new NotFoundException('Cliente no encontrado')
     return client
   }
 
-  async create(dto: CreateClientDto) {
+  async create(dto: CreateClientDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
 
     if (dto.numDocumento && dto.tipoDocumento) {
       const exists = await db.client.findFirst({
-        where: { companyId: dto.companyId, numDocumento: dto.numDocumento, tipoDocumento: dto.tipoDocumento },
+        where: { tenantId, companyId: dto.companyId, numDocumento: dto.numDocumento, tipoDocumento: dto.tipoDocumento },
       })
       if (exists) throw new ConflictException('Ya existe un cliente con ese número de documento')
     }
@@ -86,27 +93,28 @@ export class ClientsService {
     return db.client.create({ data: { ...dto, tenantId } })
   }
 
-  async update(id: string, dto: UpdateClientDto) {
+  async update(id: string, dto: UpdateClientDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const client = await db.client.findFirst({ where: { id, tenantId } })
+    const client = await db.client.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!client) throw new NotFoundException('Cliente no encontrado')
     return db.client.update({ where: { id }, data: dto })
   }
 
-  async remove(id: string) {
+  async remove(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const client = await db.client.findFirst({ where: { id, tenantId } })
+    const client = await db.client.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!client) throw new NotFoundException('Cliente no encontrado')
     await db.client.update({ where: { id }, data: { isActive: false } })
     return { ok: true }
   }
 
   // Returns the "consumidor final" generic client (auto-created)
-  async getConsumidorFinal(companyId: string) {
+  async getConsumidorFinal(companyId: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
     let cf = await db.client.findFirst({
       where: { companyId, tenantId, numDocumento: '0000000000000' },
     })

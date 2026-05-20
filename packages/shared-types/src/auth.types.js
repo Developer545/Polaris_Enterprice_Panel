@@ -89,5 +89,13 @@ exports.PERMISSIONS = {
     PAYROLL_VIEW: 'payroll.view',
     PAYROLL_CREATE: 'payroll.create',
     PAYROLL_APPROVE: 'payroll.approve',
+    // Inventory
+    INVENTORY_VIEW: 'inventory.view',
+    INVENTORY_CREATE: 'inventory.create',
+    INVENTORY_ADJUST: 'inventory.adjust',
+    // Accounts Receivable (CxC)
+    ACCOUNTS_RECEIVABLE_VIEW: 'accounts_receivable.view',
+    ACCOUNTS_RECEIVABLE_CREATE: 'accounts_receivable.create',
+    ACCOUNTS_RECEIVABLE_EDIT: 'accounts_receivable.edit',
 };
 //# sourceMappingURL=auth.types.js.map

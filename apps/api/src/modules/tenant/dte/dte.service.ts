@@ -1,11 +1,11 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { EncryptionService } from '../../../infrastructure/crypto/encryption.service'
 import { CompanyService } from '../company/company.service'
 import { FirmadorService } from './firmador.service'
 import { HaciendaService } from './hacienda.service'
 import { DteBuilderService } from './dte-builder.service'
-import { tenantStorage } from '../tenant-resolver/tenant.context'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const AnulacionSchema = z.object({
@@ -38,6 +38,12 @@ export class DteService {
     return this.clientFactory.getClient(dbUrl)
   }
 
+  private assertSaleAccess(user: JwtAccessPayload, sale: { companyId: string; branchId: string }) {
+    if (sale.companyId !== user.companyId || !user.branchIds.includes(sale.branchId)) {
+      throw new ForbiddenException('Venta no autorizada')
+    }
+  }
+
   /**
    * Main emission method — called from BullMQ processor.
    * Runs outside an HTTP request so we must provide tenant context.
@@ -55,7 +61,12 @@ export class DteService {
 
     // Load sale with all relations
     const sale = await db.sale.findFirst({
-      where: { id: payload.saleId, tenantId: payload.tenantId },
+      where: {
+        id: payload.saleId,
+        tenantId: payload.tenantId,
+        companyId: payload.companyId,
+        branchId: payload.branchId,
+      },
       include: {
         client: true,
         items: { include: { product: { select: { sku: true } } } },
@@ -159,16 +170,22 @@ export class DteService {
     }
   }
 
-  async findBySale(saleId: string, tenantId: string, dbUrl?: string) {
+  async findBySale(saleId: string, user: JwtAccessPayload, tenantId: string, dbUrl?: string) {
     const db = this.getDb(dbUrl)
-    return db.dteDocument.findFirst({ where: { saleId, tenantId } })
+    const sale = await db.sale.findFirst({
+      where: { id: saleId, tenantId, companyId: user.companyId },
+      select: { companyId: true, branchId: true },
+    })
+    if (!sale) throw new NotFoundException('Venta no encontrada')
+    this.assertSaleAccess(user, sale)
+    return db.dteDocument.findFirst({ where: { saleId, tenantId, companyId: user.companyId } })
   }
 
-  async anular(dto: AnulacionDto, tenantId: string, dbUrl?: string) {
+  async anular(dto: AnulacionDto, user: JwtAccessPayload, tenantId: string, dbUrl?: string) {
     const db = this.getDb(dbUrl)
 
     const sale = await db.sale.findFirst({
-      where: { id: dto.saleId, tenantId },
+      where: { id: dto.saleId, tenantId, companyId: user.companyId },
       include: {
         dteDocument: true,
         company: {
@@ -181,6 +198,7 @@ export class DteService {
       },
     })
     if (!sale) throw new NotFoundException('Venta no encontrada')
+    this.assertSaleAccess(user, sale)
     if (!sale.dteDocument || sale.dteDocument.status !== 'ACCEPTED') {
       throw new NotFoundException('No hay DTE aceptado para anular')
     }

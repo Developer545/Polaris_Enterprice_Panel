@@ -2,7 +2,8 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/
 import { BranchesService, CreateBranchSchema, UpdateBranchSchema } from './branches.service'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
-import { PERMISSIONS } from '@pos-dte/shared-types'
+import { CurrentUser } from '../../../common/decorators/current-user.decorator'
+import { PERMISSIONS, type JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 @Controller('branches')
@@ -11,34 +12,38 @@ export class BranchesController {
 
   @Get()
   @RequirePermissions(PERMISSIONS.BRANCHES_VIEW)
-  findAll(@Query('companyId') companyId?: string) {
-    return this.svc.findAll(companyId)
+  findAll(@CurrentUser() user: JwtAccessPayload, @Query('companyId') companyId?: string) {
+    return this.svc.findAll(user, companyId)
   }
 
   @Get(':id')
   @RequirePermissions(PERMISSIONS.BRANCHES_VIEW)
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id)
+  findOne(@CurrentUser() user: JwtAccessPayload, @Param('id') id: string) {
+    return this.svc.findOne(id, user)
   }
 
   @Post()
   @RequirePermissions(PERMISSIONS.BRANCHES_CREATE)
-  create(@Body(new ZodValidationPipe(CreateBranchSchema)) dto: z.infer<typeof CreateBranchSchema>) {
-    return this.svc.create(dto)
+  create(
+    @CurrentUser() user: JwtAccessPayload,
+    @Body(new ZodValidationPipe(CreateBranchSchema)) dto: z.infer<typeof CreateBranchSchema>,
+  ) {
+    return this.svc.create(dto, user)
   }
 
   @Put(':id')
   @RequirePermissions(PERMISSIONS.BRANCHES_EDIT)
   update(
     @Param('id') id: string,
+    @CurrentUser() user: JwtAccessPayload,
     @Body(new ZodValidationPipe(UpdateBranchSchema)) dto: z.infer<typeof UpdateBranchSchema>,
   ) {
-    return this.svc.update(id, dto)
+    return this.svc.update(id, dto, user)
   }
 
   @Delete(':id')
   @RequirePermissions(PERMISSIONS.BRANCHES_DELETE)
-  remove(@Param('id') id: string) {
-    return this.svc.remove(id)
+  remove(@CurrentUser() user: JwtAccessPayload, @Param('id') id: string) {
+    return this.svc.remove(id, user)
   }
 }

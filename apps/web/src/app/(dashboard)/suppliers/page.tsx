@@ -79,6 +79,7 @@ export default function SuppliersPage() {
   function closeModal() {
     setEditOpen(false)
     setEditing(null)
+    form.resetFields()
   }
 
   // KPIs
@@ -278,7 +279,6 @@ export default function SuppliersPage() {
         okText={editing?.id ? 'Actualizar' : 'Crear proveedor'}
         okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={680}
-        destroyOnClose
         style={{ top: 40 }}
         styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
@@ -294,7 +294,10 @@ export default function SuppliersPage() {
             </Col>
             <Col span={8}>
               <Form.Item name="paymentTermDays" label={LBL('Días de crédito')} initialValue={0} style={MB}>
-                <InputNumber min={0} addonAfter="días" style={{ width: '100%', borderRadius: 8 }} />
+                <Space.Compact style={{ width: '100%' }}>
+                  <InputNumber min={0} style={{ width: '100%', borderRadius: 8 }} />
+                  <span style={{ display: 'flex', alignItems: 'center', padding: '0 11px', background: '#fafafa', border: '1px solid #d9d9d9', borderLeft: 0, borderRadius: '0 8px 8px 0', color: '#666', fontSize: 13 }}>días</span>
+                </Space.Compact>
               </Form.Item>
             </Col>
             <Col span={12}>

@@ -1,6 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common'
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
 import { PrismaClient } from '@pos-dte/db/tenant'
 import { getEnv } from '../../config/env'
+
+// Neon serverless sleeps after ~5 min of inactivity — ping every 4 min to keep alive
+const KEEP_ALIVE_MS = 4 * 60 * 1000
 
 /**
  * Creates and caches PrismaClient instances per tenant database URL.
@@ -8,10 +11,18 @@ import { getEnv } from '../../config/env'
  * - NEON_DEDICATED / LOCAL_DEDICATED → one client per dbUrl
  */
 @Injectable()
-export class TenantClientFactory implements OnModuleDestroy {
+export class TenantClientFactory implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TenantClientFactory.name)
   private readonly clients = new Map<string, PrismaClient>()
   private readonly connecting = new Map<string, Promise<PrismaClient>>()
+  private keepAliveTimer?: NodeJS.Timeout
+
+  /** Pre-warm shared tenant DB at API startup so first user request is fast. */
+  async onModuleInit(): Promise<void> {
+    await this.ensureClient()
+    this.startKeepAlive()
+    this.logger.log('Shared tenant DB pre-warmed ✓')
+  }
 
   /**
    * Eagerly connects the PrismaClient for a tenant DB URL.
@@ -60,7 +71,24 @@ export class TenantClientFactory implements OnModuleDestroy {
     return client
   }
 
+  /** Pings all cached Neon connections every 4 min to prevent cold sleep. */
+  private startKeepAlive(): void {
+    this.keepAliveTimer = setInterval(async () => {
+      for (const [url, client] of this.clients) {
+        try {
+          await client.$queryRaw`SELECT 1`
+          this.logger.debug(`Keep-alive ping OK: ${url.substring(0, 40)}...`)
+        } catch (err) {
+          this.logger.warn(`Keep-alive ping failed for ${url.substring(0, 40)}...: ${err}`)
+          // Remove stale client so next request re-connects
+          this.clients.delete(url)
+        }
+      }
+    }, KEEP_ALIVE_MS)
+  }
+
   async onModuleDestroy(): Promise<void> {
+    if (this.keepAliveTimer) clearInterval(this.keepAliveTimer)
     for (const [url, client] of this.clients) {
       await client.$disconnect()
       this.logger.debug(`Disconnected PrismaClient for: ${url.substring(0, 40)}...`)

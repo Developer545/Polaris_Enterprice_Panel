@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import { Decimal } from '@prisma/client/runtime/library'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const CreateAccountPayableSchema = z.object({
@@ -34,9 +35,14 @@ export class AccountsPayableService {
     return this.clientFactory.getClient(dbUrl)
   }
 
-  async findAll(companyId: string, status?: string, supplierId?: string) {
+  private assertCompanyAccess(user: JwtAccessPayload, companyId: string) {
+    if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
+  }
+
+  async findAll(companyId: string, user: JwtAccessPayload, status?: string, supplierId?: string) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
     return db.accountPayable.findMany({
       where: {
         tenantId,
@@ -53,11 +59,11 @@ export class AccountsPayableService {
     })
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     const ap = await db.accountPayable.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, companyId: user.companyId },
       include: {
         supplier: true,
         purchaseOrder: { include: { items: true } },
@@ -67,9 +73,22 @@ export class AccountsPayableService {
     return ap
   }
 
-  async create(dto: CreateAccountPayableDto) {
+  async create(dto: CreateAccountPayableDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
+    const supplier = await db.supplier.findFirst({
+      where: { id: dto.supplierId, tenantId, companyId: dto.companyId, isActive: true },
+      select: { id: true },
+    })
+    if (!supplier) throw new BadRequestException('Proveedor no pertenece a la empresa')
+    if (dto.purchaseOrderId) {
+      const order = await db.purchaseOrder.findFirst({
+        where: { id: dto.purchaseOrderId, tenantId, companyId: dto.companyId },
+        select: { id: true },
+      })
+      if (!order) throw new BadRequestException('Orden de compra no pertenece a la empresa')
+    }
     return db.accountPayable.create({
       data: {
         tenantId,
@@ -86,12 +105,26 @@ export class AccountsPayableService {
     })
   }
 
-  async update(id: string, dto: UpdateAccountPayableDto) {
+  async update(id: string, dto: UpdateAccountPayableDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const ap = await db.accountPayable.findFirst({ where: { id, tenantId } })
+    const ap = await db.accountPayable.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!ap) throw new NotFoundException('Cuenta por pagar no encontrada')
     if (ap.status === 'PAID') throw new BadRequestException('No se puede modificar una cuenta ya pagada')
+    if (dto.supplierId) {
+      const supplier = await db.supplier.findFirst({
+        where: { id: dto.supplierId, tenantId, companyId: user.companyId, isActive: true },
+        select: { id: true },
+      })
+      if (!supplier) throw new BadRequestException('Proveedor no pertenece a la empresa')
+    }
+    if (dto.purchaseOrderId) {
+      const order = await db.purchaseOrder.findFirst({
+        where: { id: dto.purchaseOrderId, tenantId, companyId: user.companyId },
+        select: { id: true },
+      })
+      if (!order) throw new BadRequestException('Orden de compra no pertenece a la empresa')
+    }
 
     const { amount, dueDate, ...rest } = dto
     return db.accountPayable.update({
@@ -104,10 +137,10 @@ export class AccountsPayableService {
     })
   }
 
-  async registerPayment(id: string, dto: RegisterPaymentDto) {
+  async registerPayment(id: string, dto: RegisterPaymentDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const ap = await db.accountPayable.findFirst({ where: { id, tenantId } })
+    const ap = await db.accountPayable.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!ap) throw new NotFoundException('Cuenta por pagar no encontrada')
     if (ap.status === 'PAID') throw new BadRequestException('Esta cuenta ya está completamente pagada')
 
@@ -131,9 +164,10 @@ export class AccountsPayableService {
     })
   }
 
-  async markOverdue(companyId: string) {
+  async markOverdue(companyId: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
     const now = new Date()
     const result = await db.accountPayable.updateMany({
       where: {

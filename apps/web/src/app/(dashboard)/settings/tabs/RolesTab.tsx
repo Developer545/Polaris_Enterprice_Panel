@@ -190,7 +190,6 @@ export default function RolesTab({ companyId }: Props) {
         okText={editing ? 'Actualizar' : 'Crear rol'}
         okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={680}
-        destroyOnClose
         style={{ top: 40 }}
         styles={{
           header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 },

@@ -33,7 +33,7 @@ export default function DashboardPage() {
     queryKey: ['open-register', branchId],
     queryFn: () => api.get(`/api/cash-registers/open/${branchId}`).then(r => r.data).catch(() => null),
     enabled: !!branchId,
-    refetchInterval: 60_000,
+    refetchInterval: 5 * 60_000,
   })
 
   const { data: statsToday, isLoading: loadingToday } = useQuery({
@@ -57,8 +57,8 @@ export default function DashboardPage() {
   const { data: recentSales = [], isLoading: loadingSales } = useQuery({
     queryKey: ['recent-sales', companyId],
     queryFn: () =>
-      api.get('/api/sales', { params: { companyId, limit: 10 } })
-        .then(r => r.data)
+      api.get('/api/pos/sales', { params: { companyId, page: 1 } })
+        .then(r => r.data?.sales ?? [])
         .catch(() => []),
     enabled: !!companyId,
   })

@@ -7,7 +7,9 @@ import {
 } from './accounts-payable.service'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
+import { CurrentUser } from '../../../common/decorators/current-user.decorator'
 import { PERMISSIONS } from '@pos-dte/shared-types'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 @Controller('accounts-payable')
@@ -17,23 +19,27 @@ export class AccountsPayableController {
   @Get()
   @RequirePermissions(PERMISSIONS.ACCOUNTS_PAYABLE_VIEW)
   findAll(
-    @Query('companyId') companyId: string,
+    @CurrentUser() user: JwtAccessPayload,
+    @Query('companyId') companyId?: string,
     @Query('status') status?: string,
     @Query('supplierId') supplierId?: string,
   ) {
-    return this.svc.findAll(companyId, status, supplierId)
+    return this.svc.findAll(companyId ?? user.companyId, user, status, supplierId)
   }
 
   @Get(':id')
   @RequirePermissions(PERMISSIONS.ACCOUNTS_PAYABLE_VIEW)
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id)
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtAccessPayload) {
+    return this.svc.findOne(id, user)
   }
 
   @Post()
   @RequirePermissions(PERMISSIONS.ACCOUNTS_PAYABLE_CREATE)
-  create(@Body(new ZodValidationPipe(CreateAccountPayableSchema)) dto: z.infer<typeof CreateAccountPayableSchema>) {
-    return this.svc.create(dto)
+  create(
+    @Body(new ZodValidationPipe(CreateAccountPayableSchema)) dto: z.infer<typeof CreateAccountPayableSchema>,
+    @CurrentUser() user: JwtAccessPayload,
+  ) {
+    return this.svc.create(dto, user)
   }
 
   @Put(':id')
@@ -41,8 +47,9 @@ export class AccountsPayableController {
   update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateAccountPayableSchema)) dto: z.infer<typeof UpdateAccountPayableSchema>,
+    @CurrentUser() user: JwtAccessPayload,
   ) {
-    return this.svc.update(id, dto)
+    return this.svc.update(id, dto, user)
   }
 
   @Post(':id/payment')
@@ -50,13 +57,14 @@ export class AccountsPayableController {
   registerPayment(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(RegisterPaymentSchema)) dto: z.infer<typeof RegisterPaymentSchema>,
+    @CurrentUser() user: JwtAccessPayload,
   ) {
-    return this.svc.registerPayment(id, dto)
+    return this.svc.registerPayment(id, dto, user)
   }
 
   @Post('mark-overdue')
   @RequirePermissions(PERMISSIONS.ACCOUNTS_PAYABLE_EDIT)
-  markOverdue(@Query('companyId') companyId: string) {
-    return this.svc.markOverdue(companyId)
+  markOverdue(@CurrentUser() user: JwtAccessPayload, @Query('companyId') companyId?: string) {
+    return this.svc.markOverdue(companyId ?? user.companyId, user)
   }
 }

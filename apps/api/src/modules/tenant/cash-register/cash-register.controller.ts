@@ -3,7 +3,7 @@ import { CashRegisterService, OpenRegisterSchema, CloseRegisterSchema } from './
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
 import { CurrentUser } from '../../../common/decorators/current-user.decorator'
-import { PERMISSIONS } from '@pos-dte/shared-types'
+import { PERMISSIONS, type JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 @Controller('cash-registers')
@@ -12,29 +12,29 @@ export class CashRegisterController {
 
   @Get()
   @RequirePermissions(PERMISSIONS.CASH_REGISTER_VIEW)
-  findAll(@Query('branchId') branchId?: string) {
-    return this.svc.findAll(branchId)
+  findAll(@CurrentUser() user: JwtAccessPayload, @Query('branchId') branchId?: string) {
+    return this.svc.findAll(user, branchId)
   }
 
   @Get('open/:branchId')
   @RequirePermissions(PERMISSIONS.CASH_REGISTER_VIEW)
-  findOpen(@Param('branchId') branchId: string) {
-    return this.svc.findOpen(branchId)
+  findOpen(@CurrentUser() user: JwtAccessPayload, @Param('branchId') branchId: string) {
+    return this.svc.findOpen(user, branchId)
   }
 
   @Get(':id/summary')
   @RequirePermissions(PERMISSIONS.CASH_REGISTER_VIEW)
-  summary(@Param('id') id: string) {
-    return this.svc.getSummary(id)
+  summary(@CurrentUser() user: JwtAccessPayload, @Param('id') id: string) {
+    return this.svc.getSummary(user, id)
   }
 
   @Post('open')
   @RequirePermissions(PERMISSIONS.CASH_REGISTER_OPEN)
   open(
     @Body(new ZodValidationPipe(OpenRegisterSchema)) dto: z.infer<typeof OpenRegisterSchema>,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: JwtAccessPayload,
   ) {
-    return this.svc.open(dto, userId)
+    return this.svc.open(dto, user)
   }
 
   @Post(':id/close')
@@ -42,8 +42,8 @@ export class CashRegisterController {
   close(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(CloseRegisterSchema)) dto: z.infer<typeof CloseRegisterSchema>,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser() user: JwtAccessPayload,
   ) {
-    return this.svc.close(id, dto, userId)
+    return this.svc.close(id, dto, user)
   }
 }

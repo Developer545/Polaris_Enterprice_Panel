@@ -4,12 +4,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CATALOGO_AMBIENTE = exports.CATALOGO_CONDICION_OPERACION = exports.CATALOGO_FORMA_PAGO = exports.CATALOGO_TIPO_ITEM = exports.CATALOGO_TIPO_DTE = void 0;
 // ─── Catálogos Hacienda (valores más usados) ──────────────────────────────────
 exports.CATALOGO_TIPO_DTE = {
-    '01': 'Factura',
+    '01': 'Factura (Consumidor Final)',
     '03': 'Comprobante de Crédito Fiscal',
     '05': 'Nota de Crédito',
     '06': 'Nota de Débito',
-    '14': 'Factura de Exportación',
-    '11': 'Factura de Sujeto Excluido',
+    '11': 'Factura de Exportación',
+    '14': 'Nota de Remisión / Anulación',
 };
 exports.CATALOGO_TIPO_ITEM = {
     1: 'Bien',

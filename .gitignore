@@ -48,3 +48,9 @@ coverage/
 # Temp
 *.tmp
 *.temp
+
+# Claude Code memory (local only)
+.claude/
+
+# TypeScript build info
+*.tsbuildinfo

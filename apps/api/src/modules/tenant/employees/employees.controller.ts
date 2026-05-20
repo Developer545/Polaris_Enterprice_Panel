@@ -2,7 +2,9 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/
 import { EmployeesService, CreateEmployeeSchema, UpdateEmployeeSchema } from './employees.service'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
+import { CurrentUser } from '../../../common/decorators/current-user.decorator'
 import { PERMISSIONS } from '@pos-dte/shared-types'
+import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 @Controller('employees')
@@ -12,25 +14,27 @@ export class EmployeesController {
   @Get()
   @RequirePermissions(PERMISSIONS.EMPLOYEES_VIEW)
   findAll(
-    @Query('companyId') companyId: string,
+    @CurrentUser() user: JwtAccessPayload,
+    @Query('companyId') companyId?: string,
     @Query('branchId') branchId?: string,
     @Query('search') search?: string,
   ) {
-    return this.svc.findAll(companyId, branchId, search)
+    return this.svc.findAll(companyId ?? user.companyId, user, branchId, search)
   }
 
   @Get(':id')
   @RequirePermissions(PERMISSIONS.EMPLOYEES_VIEW)
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id)
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtAccessPayload) {
+    return this.svc.findOne(id, user)
   }
 
   @Post()
   @RequirePermissions(PERMISSIONS.EMPLOYEES_CREATE)
   create(
     @Body(new ZodValidationPipe(CreateEmployeeSchema)) dto: z.infer<typeof CreateEmployeeSchema>,
+    @CurrentUser() user: JwtAccessPayload,
   ) {
-    return this.svc.create(dto)
+    return this.svc.create(dto, user)
   }
 
   @Put(':id')
@@ -38,13 +42,14 @@ export class EmployeesController {
   update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateEmployeeSchema)) dto: z.infer<typeof UpdateEmployeeSchema>,
+    @CurrentUser() user: JwtAccessPayload,
   ) {
-    return this.svc.update(id, dto)
+    return this.svc.update(id, dto, user)
   }
 
   @Delete(':id')
   @RequirePermissions(PERMISSIONS.EMPLOYEES_DELETE)
-  deactivate(@Param('id') id: string) {
-    return this.svc.deactivate(id)
+  deactivate(@Param('id') id: string, @CurrentUser() user: JwtAccessPayload) {
+    return this.svc.deactivate(id, user)
   }
 }
