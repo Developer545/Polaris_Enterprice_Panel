@@ -11,21 +11,52 @@ import { getEnv } from '../../config/env'
 export class TenantClientFactory implements OnModuleDestroy {
   private readonly logger = new Logger(TenantClientFactory.name)
   private readonly clients = new Map<string, PrismaClient>()
+  private readonly connecting = new Map<string, Promise<PrismaClient>>()
 
-  getClient(dbUrl?: string): PrismaClient {
+  /**
+   * Eagerly connects the PrismaClient for a tenant DB URL.
+   * Called from TenantResolverMiddleware so the connection is warm
+   * before the first query in any service handler.
+   */
+  async ensureClient(dbUrl?: string): Promise<PrismaClient> {
     const url = dbUrl ?? getEnv().SHARED_TENANT_DATABASE_URL
 
     const existing = this.clients.get(url)
     if (existing) return existing
 
+    // Deduplicate concurrent warm-up calls for the same URL
+    const inFlight = this.connecting.get(url)
+    if (inFlight) return inFlight
+
+    const promise = (async () => {
+      const client = new PrismaClient({
+        log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+        datasources: { db: { url } },
+      })
+      await client.$connect()
+      this.clients.set(url, client)
+      this.connecting.delete(url)
+      this.logger.debug(`Connected PrismaClient for: ${url.substring(0, 40)}...`)
+      return client
+    })()
+
+    this.connecting.set(url, promise)
+    return promise
+  }
+
+  /** Synchronous getter — only call after ensureClient() has resolved. */
+  getClient(dbUrl?: string): PrismaClient {
+    const url = dbUrl ?? getEnv().SHARED_TENANT_DATABASE_URL
+    const existing = this.clients.get(url)
+    if (existing) return existing
+
+    // Fallback: create client synchronously (lazy connect) if ensureClient was never awaited
     const client = new PrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
       datasources: { db: { url } },
     })
-
-    // Connect lazily — Prisma connects on first query
     this.clients.set(url, client)
-    this.logger.debug(`Created new PrismaClient for DB: ${url.substring(0, 40)}...`)
+    this.logger.warn(`getClient() called before ensureClient() for: ${url.substring(0, 40)}...`)
     return client
   }
 

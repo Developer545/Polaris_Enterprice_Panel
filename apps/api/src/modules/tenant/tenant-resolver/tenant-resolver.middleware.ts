@@ -3,6 +3,7 @@ import { FastifyRequest, FastifyReply } from 'fastify'
 import { ControlPlaneClient } from '../../../infrastructure/prisma/control-plane.client'
 import { RedisService } from '../../../infrastructure/redis/redis.service'
 import { EncryptionService } from '../../../infrastructure/crypto/encryption.service'
+import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { tenantStorage } from './tenant.context'
 import { TENANT_HEADER, TENANT_CACHE_TTL } from '../../../config/constants'
 import type { TenantContext } from '@pos-dte/shared-types'
@@ -15,6 +16,7 @@ export class TenantResolverMiddleware implements NestMiddleware {
     private readonly cpClient: ControlPlaneClient,
     private readonly redis: RedisService,
     private readonly encryption: EncryptionService,
+    private readonly clientFactory: TenantClientFactory,
   ) {}
 
   async use(
@@ -32,6 +34,8 @@ export class TenantResolverMiddleware implements NestMiddleware {
 
     try {
       const ctx = await this.resolveTenant(slug)
+      // Warm up tenant DB connection before handler runs — eliminates cold-start lag
+      await this.clientFactory.ensureClient(ctx.dbUrl)
       tenantStorage.run(ctx, next)
     } catch (err) {
       next(err as Error)
@@ -40,9 +44,13 @@ export class TenantResolverMiddleware implements NestMiddleware {
 
   private async resolveTenant(slug: string): Promise<TenantContext> {
     const cacheKey = `tenant:${slug}`
-    const cached = await this.redis.get(cacheKey)
-    if (cached) {
-      return JSON.parse(cached) as TenantContext
+
+    // Try Redis cache — fall back to DB if Redis is unavailable
+    try {
+      const cached = await this.redis.get(cacheKey)
+      if (cached) return JSON.parse(cached) as TenantContext
+    } catch {
+      this.logger.warn('Redis unavailable — resolving tenant from DB (cache miss)')
     }
 
     const tenant = await this.cpClient.tenant.findUnique({ where: { slug } })
@@ -60,7 +68,13 @@ export class TenantResolverMiddleware implements NestMiddleware {
           : undefined,
     }
 
-    await this.redis.set(cacheKey, JSON.stringify(ctx), TENANT_CACHE_TTL)
+    // Best-effort cache write — ignore if Redis is down
+    try {
+      await this.redis.set(cacheKey, JSON.stringify(ctx), TENANT_CACHE_TTL)
+    } catch {
+      // Redis down — continue without cache
+    }
+
     return ctx
   }
 }
