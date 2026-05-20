@@ -32,8 +32,8 @@ export default function TitleBar({ sidebarWidth }: TitleBarProps) {
 
   useEffect(() => {
     if (!isElectron) return
-    window.electron.window.isMaximized().then(setMaximized)
-    window.electron.window.onStateChange(({ maximized }) => setMaximized(maximized))
+    window.electron!.window.isMaximized().then(setMaximized)
+    window.electron!.window.onStateChange(({ maximized }) => setMaximized(maximized))
   }, [])
 
   if (!isElectron) return null
@@ -84,7 +84,7 @@ export default function TitleBar({ sidebarWidth }: TitleBarProps) {
           }}
           onMouseEnter={() => setHovered('min')}
           onMouseLeave={() => setHovered(null)}
-          onClick={() => window.electron.window.minimize()}
+          onClick={() => window.electron!.window.minimize()}
           title="Minimizar"
         >
           ─
@@ -99,7 +99,7 @@ export default function TitleBar({ sidebarWidth }: TitleBarProps) {
           }}
           onMouseEnter={() => setHovered('max')}
           onMouseLeave={() => setHovered(null)}
-          onClick={() => window.electron.window.maximizeToggle()}
+          onClick={() => window.electron!.window.maximizeToggle()}
           title={maximized ? 'Restaurar' : 'Maximizar'}
         >
           {maximized ? '❐' : '□'}
@@ -114,7 +114,7 @@ export default function TitleBar({ sidebarWidth }: TitleBarProps) {
           }}
           onMouseEnter={() => setHovered('close')}
           onMouseLeave={() => setHovered(null)}
-          onClick={() => window.electron.window.quit()}
+          onClick={() => window.electron!.window.quit()}
           title="Cerrar"
         >
           ✕

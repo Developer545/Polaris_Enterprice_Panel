@@ -109,7 +109,7 @@ export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Electron: subscribe to nativeTheme changes pushed from main process
     if (isElectron) {
-      window.electron.theme.onThemeChange(setDark)
+      window.electron!.theme.onThemeChange(setDark)
       return
     }
     // Web: subscribe to OS media query

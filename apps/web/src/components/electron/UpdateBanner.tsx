@@ -17,17 +17,17 @@ export default function UpdateBanner() {
   useEffect(() => {
     if (!isElectron) return
 
-    window.electron.app.onUpdateAvailable(({ version }) => {
+    window.electron!.app.onUpdateAvailable(({ version }) => {
       setState({ phase: 'available', version })
       setDismissed(false)
     })
 
-    window.electron.app.onUpdateProgress(({ percent, transferred, total }) => {
+    window.electron!.app.onUpdateProgress(({ percent, transferred, total }) => {
       setState({ phase: 'downloading', percent, transferred, total })
       setDismissed(false)
     })
 
-    window.electron.app.onUpdateDownloaded(({ version }) => {
+    window.electron!.app.onUpdateDownloaded(({ version }) => {
       setState({ phase: 'ready', version })
       setDismissed(false)
     })
@@ -95,7 +95,7 @@ export default function UpdateBanner() {
             size="small"
             type="primary"
             style={{ background: '#69db7c', borderColor: '#69db7c', color: '#1a1a2e', fontWeight: 600 }}
-            onClick={() => window.electron.app.installUpdate()}
+            onClick={() => window.electron!.app.installUpdate()}
           >
             Reiniciar ahora
           </Button>

@@ -147,14 +147,14 @@ export default function PosPage() {
   // F12 drawer + F11 reprint shortcut feedback (Electron only)
   useEffect(() => {
     if (!isElectron) return
-    window.electron.drawer.onShortcut((result) => {
+    window.electron!.drawer.onShortcut((result) => {
       if (result.ok) {
         message.success({ content: 'Cajón abierto (F12)', duration: 2 })
       } else {
         message.error({ content: `Error cajón: ${result.error}`, duration: 4 })
       }
     })
-    window.electron.printer.onPrintShortcut((result) => {
+    window.electron!.printer.onPrintShortcut((result) => {
       if (result.ok) {
         message.success({ content: 'Ticket reimpreso (F11)', duration: 2 })
       } else {
@@ -197,7 +197,7 @@ export default function PosPage() {
           change: recibidoEfectivo > 0 ? Math.max(0, recibidoEfectivo - totalPagar) : undefined,
         }
 
-        window.electron.printer.setLastReceipt(receiptPayload).catch(() => {})
+        window.electron!.printer.setLastReceipt(receiptPayload).catch(() => {})
       }
 
       const win = window as any
