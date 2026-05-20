@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm run build --workspace=apps/api"
+buildCommand = "npm exec --workspace=apps/api -- nest build"
 
 [deploy]
 startCommand = "node apps/api/dist/main"
