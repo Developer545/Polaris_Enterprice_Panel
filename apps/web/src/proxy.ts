@@ -5,7 +5,9 @@ const PUBLIC_PATHS = ['/login']
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p))
-  const hasToken = request.cookies.has('access_token')
+  // access_token lives on API domain (onrender.com) — middleware can't see it.
+  // pos_session is a presence indicator set client-side on the frontend domain after login.
+  const hasToken = request.cookies.has('pos_session') || request.cookies.has('access_token')
 
   if (!isPublic && !hasToken) {
     return NextResponse.redirect(new URL('/login', request.url))

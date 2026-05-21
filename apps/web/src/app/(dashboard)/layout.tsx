@@ -139,6 +139,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (typeof window !== 'undefined') {
       localStorage.clear()
       sessionStorage.clear()
+      document.cookie = 'pos_session=; path=/; max-age=0; SameSite=Lax'
     }
     router.push('/login')
   }

@@ -68,6 +68,8 @@ export default function LoginPage() {
         localStorage.setItem('branchIds',   JSON.stringify(res.data.user.branchIds ?? []))
         localStorage.setItem('permissions', JSON.stringify(res.data.user.permissions ?? {}))
       }
+      // Presence cookie on frontend domain so proxy.ts middleware can detect session
+      document.cookie = `pos_session=1; path=/; max-age=${7 * 24 * 3600}; SameSite=Lax`
       router.push('/')
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Credenciales inválidas')
