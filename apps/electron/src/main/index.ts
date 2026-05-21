@@ -22,7 +22,7 @@ if (!app.requestSingleInstanceLock()) {
 let mainWindow: BrowserWindow | null = null
 
 app.whenReady().then(async () => {
-  app.setAsDefaultProtocolClient('pos-dte')
+  app.setAsDefaultProtocolClient('polaris')
 
   mainWindow = await createMainWindow(WEB_URL)
   setupTray(mainWindow)
@@ -41,7 +41,7 @@ app.on('second-instance', (_, commandLine) => {
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore()
     mainWindow.focus()
-    const url = commandLine.find((arg) => arg.startsWith('pos-dte://'))
+    const url = commandLine.find((arg) => arg.startsWith('polaris://'))
     if (url) mainWindow.webContents.send('deep-link', url)
   }
 })

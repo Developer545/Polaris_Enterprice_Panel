@@ -1,13 +1,15 @@
 import { BrowserWindow, shell, session } from 'electron'
 import path from 'path'
 
+const SPLASH_MIN_MS = 10_000
+
 export async function createMainWindow(webUrl: string): Promise<BrowserWindow> {
   const isDev = process.env.NODE_ENV === 'development'
 
   // Splash: loads instantly from local file
   const splash = new BrowserWindow({
-    width: 480,
-    height: 320,
+    width: 400,
+    height: 240,
     frame: false,
     alwaysOnTop: true,
     resizable: false,
@@ -17,16 +19,15 @@ export async function createMainWindow(webUrl: string): Promise<BrowserWindow> {
 
   // Main window (hidden until ready)
   const main = new BrowserWindow({
+    title: 'Polaris',
     width: 1400,
     height: 900,
     minWidth: 1200,
     minHeight: 700,
     show: false,
     backgroundColor: '#f5f5f5',
-    // Hide native titlebar — web app renders its own with window IPC controls
-    titleBarStyle: 'hidden',
-    // Windows: keep native snap/resize behaviour with hidden titlebar
-    titleBarOverlay: false,
+    // Native title bar with Windows controls (close/min/max)
+    titleBarStyle: 'default',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -51,7 +52,11 @@ export async function createMainWindow(webUrl: string): Promise<BrowserWindow> {
   })
 
   // Register all event listeners BEFORE loadURL to avoid race conditions
-  const showWindow = () => {
+  let mainReady = false
+  let splashDone = false
+
+  const tryShowWindow = () => {
+    if (!mainReady || !splashDone) return
     if (!splash.isDestroyed()) splash.destroy()
     if (!main.isVisible()) {
       main.show()
@@ -59,12 +64,23 @@ export async function createMainWindow(webUrl: string): Promise<BrowserWindow> {
     }
   }
 
-  main.once('ready-to-show', showWindow)
+  // Enforce minimum splash duration (10s)
+  setTimeout(() => {
+    splashDone = true
+    tryShowWindow()
+  }, SPLASH_MIN_MS)
 
-  // Fallback: show window after 8s even if ready-to-show never fires
+  main.once('ready-to-show', () => {
+    mainReady = true
+    tryShowWindow()
+  })
+
+  // Fallback: show window after 15s even if ready-to-show never fires
   const fallbackTimer = setTimeout(() => {
-    showWindow()
-  }, 8000)
+    mainReady = true
+    splashDone = true
+    tryShowWindow()
+  }, 15_000)
 
   main.once('ready-to-show', () => clearTimeout(fallbackTimer))
 

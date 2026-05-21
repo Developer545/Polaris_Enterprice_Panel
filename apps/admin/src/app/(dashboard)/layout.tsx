@@ -5,7 +5,7 @@ import {
   DashboardOutlined, TeamOutlined, CrownOutlined, AuditOutlined,
   BookOutlined, LogoutOutlined, UserOutlined, ControlOutlined,
   MenuFoldOutlined, MenuUnfoldOutlined,
-  CaretDownOutlined, AppstoreOutlined,
+  CaretDownOutlined, AppstoreOutlined, DesktopOutlined,
 } from '@ant-design/icons'
 import { usePathname, useRouter } from 'next/navigation'
 import { api } from '../../lib/api'
@@ -35,8 +35,9 @@ const NAV_GROUPS: NavGroup[] = [
     icon: <CrownOutlined />,
     color: '#1677ff',
     items: [
-      { key: '/plans',    label: 'Planes',    icon: <CrownOutlined /> },
-      { key: '/catalogs', label: 'Catálogos', icon: <BookOutlined /> },
+      { key: '/plans',    label: 'Planes',          icon: <CrownOutlined /> },
+      { key: '/catalogs', label: 'Catálogos',        icon: <BookOutlined /> },
+      { key: '/releases', label: 'Versión Desktop',  icon: <DesktopOutlined /> },
     ],
   },
   {

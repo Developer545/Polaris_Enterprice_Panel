@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>POS DTE</title>
+  <title>Polaris</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -25,81 +25,91 @@
     .logo-wrap {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
+      gap: 14px;
+      margin-bottom: 24px;
     }
 
     .logo-icon {
-      width: 52px;
-      height: 52px;
-      background: #f47920;
-      border-radius: 14px;
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #f47920, #ff6b00);
+      border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 900;
       color: #fff;
       letter-spacing: -1px;
-      box-shadow: 0 4px 20px rgba(244,121,32,0.5);
+      box-shadow: 0 6px 24px rgba(244,121,32,0.45);
     }
 
     .logo-text h1 {
-      font-size: 22px;
+      font-size: 24px;
       font-weight: 700;
       color: #fff;
       line-height: 1.1;
+      letter-spacing: -0.5px;
     }
 
     .logo-text p {
       font-size: 11px;
-      color: #888;
-      margin-top: 2px;
+      color: #666;
+      margin-top: 3px;
     }
 
     .progress-bar {
-      width: 220px;
-      height: 3px;
-      background: #222;
+      width: 200px;
+      height: 2px;
+      background: #1e1e1e;
       border-radius: 2px;
       overflow: hidden;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
 
     .progress-fill {
       height: 100%;
-      width: 30%;
+      width: 40%;
       background: linear-gradient(90deg, #f47920, #ff9a4d);
       border-radius: 2px;
-      animation: slide 1.4s ease-in-out infinite;
+      animation: slide 1.6s ease-in-out infinite;
     }
 
     @keyframes slide {
       0%   { transform: translateX(-100%); width: 40%; }
-      50%  { width: 70%; }
-      100% { transform: translateX(300%); width: 40%; }
+      50%  { width: 65%; }
+      100% { transform: translateX(350%); width: 40%; }
     }
 
     .status {
       font-size: 11px;
-      color: #555;
-      letter-spacing: 0.5px;
+      color: #444;
+      letter-spacing: 0.4px;
     }
 
     .version {
       position: absolute;
-      bottom: 12px;
-      right: 16px;
+      bottom: 14px;
+      right: 18px;
       font-size: 10px;
-      color: #333;
+      color: #2a2a2a;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .brand {
+      position: absolute;
+      bottom: 14px;
+      left: 18px;
+      font-size: 10px;
+      color: #2a2a2a;
     }
   </style>
 </head>
 <body>
   <div class="logo-wrap">
-    <div class="logo-icon">POS</div>
+    <div class="logo-icon">P</div>
     <div class="logo-text">
-      <h1>POS DTE</h1>
+      <h1>Polaris</h1>
       <p>Speeddan System · El Salvador</p>
     </div>
   </div>
@@ -109,23 +119,27 @@
   </div>
   <div class="status" id="status">Iniciando...</div>
 
+  <div class="brand">Polaris Enterprise</div>
   <div class="version" id="ver">v1.0.0</div>
 
   <script>
-    // Receive status messages from main process via window.name trick
-    // (no nodeIntegration needed — main writes to title)
-    const messages = ['Iniciando...', 'Verificando conexion...', 'Cargando aplicacion...']
+    const messages = [
+      'Iniciando...',
+      'Verificando conexión...',
+      'Cargando módulos...',
+      'Conectando al servidor...',
+      'Casi listo...',
+    ]
     let i = 0
     const el = document.getElementById('status')
     setInterval(() => {
       i = (i + 1) % messages.length
       el.textContent = messages[i]
-    }, 900)
+    }, 1800)
 
-    // Show version from title tag (main sets document.title via webContents)
     const verEl = document.getElementById('ver')
     const obs = new MutationObserver(() => {
-      if (document.title && document.title !== 'POS DTE') {
+      if (document.title && document.title !== 'Polaris') {
         verEl.textContent = document.title
       }
     })

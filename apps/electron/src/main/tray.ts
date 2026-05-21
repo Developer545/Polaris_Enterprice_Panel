@@ -8,10 +8,10 @@ export function setupTray(mainWindow: BrowserWindow): void {
   const icon = nativeImage.createFromPath(iconPath)
 
   tray = new Tray(icon.isEmpty() ? nativeImage.createEmpty() : icon.resize({ width: 16, height: 16 }))
-  tray.setToolTip('POS DTE El Salvador')
+  tray.setToolTip('Polaris Enterprise')
 
   const menu = Menu.buildFromTemplate([
-    { label: 'Abrir POS', click: () => { mainWindow.show(); mainWindow.focus() } },
+    { label: 'Abrir Polaris', click: () => { mainWindow.show(); mainWindow.focus() } },
     { type: 'separator' },
     {
       label: 'Verificar actualizaciones',
