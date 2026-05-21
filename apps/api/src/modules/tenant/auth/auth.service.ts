@@ -242,7 +242,9 @@ export class AuthService {
     const cookieOpts = {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? ('strict' as const) : ('lax' as const),
+      // SameSite=None required for cross-origin: frontend (vercel.app) → API (onrender.com)
+      // SameSite=Strict would block cookies in cross-site requests
+      sameSite: isProd ? ('none' as const) : ('lax' as const),
       path: '/',
     }
     reply.setCookie(ACCESS_COOKIE, accessToken, {

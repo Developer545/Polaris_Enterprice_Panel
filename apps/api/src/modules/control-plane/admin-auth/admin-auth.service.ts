@@ -68,7 +68,7 @@ export class AdminAuthService {
     reply.setCookie(ADMIN_COOKIE, token, {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? 'strict' : 'lax',
+      sameSite: isProd ? 'none' : 'lax',
       path: '/',
       maxAge: ADMIN_TOKEN_TTL_SECONDS,
     })
