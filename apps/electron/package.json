@@ -1,7 +1,7 @@
 {
   "name": "@pos-dte/electron",
-  "version": "0.0.1",
-  "description": "POS DTE El Salvador — Desktop App",
+  "version": "1.0.0",
+  "description": "Polaris — Desktop App",
   "author": "Speeddan System <info@speeddan.com>",
   "private": true,
   "main": "dist/main/index.js",

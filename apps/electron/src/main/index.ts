@@ -11,8 +11,7 @@ import { setupWindowIpc } from './ipc/window.ipc'
 import { setupShortcuts, teardownShortcuts } from './shortcuts'
 
 const isDev = process.env.NODE_ENV === 'development'
-// Replace with your production Vercel URL
-const WEB_URL = isDev ? 'http://localhost:3010' : 'https://pos-dte.vercel.app'
+const WEB_URL = isDev ? 'http://localhost:3010' : 'https://polaris-web-sooty.vercel.app'
 
 // Single instance lock
 if (!app.requestSingleInstanceLock()) {
