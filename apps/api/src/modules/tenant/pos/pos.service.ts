@@ -1,11 +1,12 @@
-import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
+import { Injectable, BadRequestException, ForbiddenException, NotFoundException, Logger } from '@nestjs/common'
 import { InjectQueue } from '@nestjs/bullmq'
 import { Queue } from 'bullmq'
+import { randomUUID } from 'crypto'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
-import { calcLineTotals, calcSaleSummary } from '@pos-dte/dte-core'
+import { calcLineTotals, calcSaleSummary, buildNumeroControl } from '@pos-dte/dte-core'
 import { Decimal } from '@prisma/client/runtime/library'
-import type { JwtAccessPayload } from '@pos-dte/shared-types'
+import { PERMISSIONS, type JwtAccessPayload, type TipoDte } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const SaleLineSchema = z.object({
@@ -36,6 +37,8 @@ export type CreateSaleDto = z.infer<typeof CreateSaleSchema>
 
 @Injectable()
 export class PosService {
+  private readonly logger = new Logger(PosService.name)
+
   constructor(
     private readonly clientFactory: TenantClientFactory,
     @InjectQueue('dte') private readonly dteQueue: Queue,
@@ -162,14 +165,13 @@ export class PosService {
       throw new BadRequestException('El total pagado no cubre el total de la venta')
     }
 
-    // Check stock for tracked products
-    for (const { item, product } of lines) {
-      if (product.trackStock && (product.stock ?? 0) < item.quantity) {
-        throw new BadRequestException(`Stock insuficiente para "${product.name}"`)
-      }
+    // Validate tipoDte contra tenant (admin) Y company (configuración local)
+    const { dteAllowedTypes } = getCurrentTenant()
+    if (dto.emitDte && dteAllowedTypes.length > 0 && !dteAllowedTypes.includes(dto.tipoDte)) {
+      throw new BadRequestException(
+        `Tipo de documento '${dto.tipoDte}' no está permitido para este tenant por el administrador de la plataforma.`
+      )
     }
-
-    // Validate tipoDte is enabled for this company
     const companyConfig = await db.company.findFirst({
       where: { id: dto.companyId, tenantId },
       select: { dteEnabledTypes: true },
@@ -182,11 +184,11 @@ export class PosService {
       )
     }
 
-    // Get numero control
-    const dteNumberControl = await this.getNextNumeroControl(dto.companyId, dto.branchId, dto.tipoDte, tenantId)
+    // codigoGeneracion generado antes de la tx para incluirlo en el outbox
+    const codigoGeneracion = randomUUID().toUpperCase()
 
-    // Create sale in transaction
-    const sale = await db.$transaction(async (tx) => {
+    // Create sale in transaction — numero control y stock son atómicos aquí
+    const { sale, numeroControl } = await db.$transaction(async (tx) => {
       const newSale = await tx.sale.create({
         data: {
           tenantId,
@@ -232,26 +234,77 @@ export class PosService {
         },
       })
 
-      // Decrease stock
+      // Stock atómico: updateMany con condición stock >= quantity.
+      // Si count === 0, otro hilo ya vendió el último stock → rollback.
       for (const { item, product } of lines) {
         if (product.trackStock) {
-          await tx.service.update({
-            where: { id: product.id },
+          const result = await tx.service.updateMany({
+            where: { id: product.id, stock: { gte: item.quantity } },
             data: { stock: { decrement: item.quantity } },
           })
+          if (result.count === 0) {
+            throw new BadRequestException(`Stock insuficiente para "${product.name}"`)
+          }
         }
       }
 
-      // Update numero control sequence
-      await tx.dteNumberControl.update({
-        where: { id: dteNumberControl.id },
+      // Número de control atómico dentro de la tx.
+      // update con increment devuelve el lastSequence nuevo — imposible duplicar.
+      const year = new Date().getFullYear()
+      let control = await tx.dteNumberControl.findFirst({
+        where: { tenantId, companyId: dto.companyId, branchId: dto.branchId, tipoDte: dto.tipoDte, year },
+      })
+      if (!control) {
+        const branch = await tx.branch.findFirst({
+          where: { id: dto.branchId, tenantId, companyId: dto.companyId },
+          select: { codEstableMH: true, codPuntoVentaMH: true },
+        })
+        control = await tx.dteNumberControl.create({
+          data: {
+            tenantId,
+            companyId: dto.companyId,
+            branchId: dto.branchId,
+            tipoDte: dto.tipoDte,
+            year,
+            lastSequence: 0,
+            codEstable: branch?.codEstableMH ?? 'M001',
+            codPuntoVenta: branch?.codPuntoVentaMH ?? 'P001',
+          },
+        })
+      }
+      const updatedControl = await tx.dteNumberControl.update({
+        where: { id: control.id },
         data: { lastSequence: { increment: 1 } },
+        select: { lastSequence: true, codEstable: true, codPuntoVenta: true },
+      })
+      const txNumeroControl = buildNumeroControl({
+        tipoDte: dto.tipoDte as TipoDte,
+        codEstable: updatedControl.codEstable,
+        codPuntoVenta: updatedControl.codPuntoVenta,
+        sequence: updatedControl.lastSequence,
       })
 
-      return newSale
+      // Outbox transaccional: DteDocument nace QUEUED dentro de la misma tx.
+      // Si Redis/BullMQ falla después, el registro queda en PG para reprocesar.
+      if (dto.emitDte) {
+        await tx.dteDocument.create({
+          data: {
+            tenantId,
+            saleId: newSale.id,
+            companyId: dto.companyId,
+            branchId: dto.branchId,
+            tipoDte: dto.tipoDte,
+            numeroControl: txNumeroControl,
+            codigoGeneracion,
+            status: 'QUEUED',
+          },
+        })
+      }
+
+      return { sale: newSale, numeroControl: txNumeroControl }
     })
 
-    // Enqueue DTE emission
+    // BullMQ best-effort — el outbox en PG ya garantiza que no se pierde el DTE
     if (dto.emitDte) {
       await this.dteQueue.add('emit', {
         saleId: sale.id,
@@ -259,11 +312,13 @@ export class PosService {
         companyId: dto.companyId,
         branchId: dto.branchId,
         tipoDte: dto.tipoDte,
-        numeroControl: dteNumberControl.nextNumeroControl,
+        numeroControl,
       }, {
         attempts: 5,
         backoff: { type: 'exponential', delay: 5000 },
-      })
+      }).catch((err: Error) =>
+        this.logger.warn(`BullMQ enqueue failed for sale ${sale.id}: ${err.message} — DteDocument QUEUED en PG para reprocesar`)
+      )
     }
 
     return this.findOne(sale.id)
@@ -351,46 +406,6 @@ export class PosService {
     return { totalSales, countSales, activeClients, totalExpenses, last7Days }
   }
 
-  private async getNextNumeroControl(companyId: string, branchId: string, tipoDte: string, tenantId: string) {
-    const db = this.getDb()
-    const year = new Date().getFullYear()
-
-    let control = await db.dteNumberControl.findFirst({
-      where: { tenantId, companyId, branchId, tipoDte, year },
-    })
-
-    if (!control) {
-      // Auto-create for this year — sequence resets to 0 on each new calendar year
-      const branch = await db.branch.findFirst({
-        where: { id: branchId, tenantId, companyId },
-        select: { codEstableMH: true, codPuntoVentaMH: true },
-      })
-      control = await db.dteNumberControl.create({
-        data: {
-          tenantId,
-          companyId,
-          branchId,
-          tipoDte,
-          year,
-          lastSequence: 0,
-          codEstable: branch?.codEstableMH ?? 'M001',
-          codPuntoVenta: branch?.codPuntoVentaMH ?? 'P001',
-        },
-      })
-    }
-
-    const nextSeq = control.lastSequence + 1
-    const { buildNumeroControl } = await import('@pos-dte/dte-core')
-    const nextNumeroControl = buildNumeroControl({
-      tipoDte: tipoDte as import('@pos-dte/shared-types').TipoDte,
-      codEstable: control.codEstable,
-      codPuntoVenta: control.codPuntoVenta,
-      sequence: nextSeq,
-    })
-
-    return { ...control, nextNumeroControl }
-  }
-
   async voidSale(id: string, reason: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
@@ -401,6 +416,12 @@ export class PosService {
     if (!sale) throw new NotFoundException('Venta no encontrada')
     if (sale.dteDocument?.status === 'ANNULLED') {
       throw new BadRequestException('Esta venta ya fue anulada')
+    }
+    // DTE aceptado por Hacienda requiere permiso adicional DTE_ANULAR
+    if (sale.dteDocument?.status === 'ACCEPTED') {
+      if (!user.permissions[PERMISSIONS.DTE_ANULAR]) {
+        throw new ForbiddenException('Se requiere permiso "DTE Anular" para invalidar un documento ya aceptado por Hacienda')
+      }
     }
     if (sale.dteDocument) {
       await db.dteDocument.update({

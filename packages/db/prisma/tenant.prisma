@@ -15,7 +15,8 @@ datasource db {
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 enum DteStatus {
-  PENDING
+  QUEUED    // creado dentro de la tx de venta — outbox durable antes de Redis
+  PENDING   // worker tomó el job, procesando
   ACCEPTED
   REJECTED
   ANNULLED
@@ -243,6 +244,8 @@ model Client {
   accountsReceivable AccountReceivable[]
 
   @@index([tenantId, companyId])
+  @@index([tenantId, companyId, numDocumento])
+  @@index([tenantId, companyId, nrc])
 }
 
 // ─── Services / Products ─────────────────────────────────────────────────────
@@ -298,6 +301,8 @@ model Service {
   inventoryMovements InventoryMovement[]
 
   @@index([tenantId, companyId])
+  @@index([tenantId, companyId, sku])
+  @@index([tenantId, companyId, barcode])
 }
 
 // ─── Units of Measure (fraccionable products) ─────────────────────────────────
@@ -389,6 +394,7 @@ model Sale {
 
   @@index([tenantId, companyId, branchId])
   @@index([tenantId, companyId, createdAt])
+  @@index([tenantId, companyId, cashRegisterId])
 }
 
 model SaleItem {
@@ -416,6 +422,8 @@ model Payment {
   formaPago  String  // 01=Efectivo 02=Tarjeta débito 03=Tarjeta crédito ...
   amount     Decimal @db.Decimal(10, 2)
   reference  String?
+
+  @@index([saleId])
 }
 
 // ─── DTE ─────────────────────────────────────────────────────────────────────
@@ -441,6 +449,8 @@ model DteDocument {
 
   @@index([tenantId, companyId])
   @@index([tenantId, status])
+  @@index([tenantId, companyId, status, createdAt])
+  @@index([tenantId, companyId, tipoDte, createdAt])
 }
 
 model DteNumberControl {

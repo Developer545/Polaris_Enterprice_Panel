@@ -51,10 +51,10 @@ export default function LoginPage() {
       const res = await getClient().post('/api/auth/login', values)
       if (res.data?.tenantSlug) setTenantSlug(res.data.tenantSlug)
       if (values.remember) {
+        // Solo empresa y correo — nunca guardar contraseñas en localStorage
         localStorage.setItem(SAVED_KEY, JSON.stringify({
           companyId: values.companyId,
           email:     values.email,
-          password:  values.password,
         }))
       } else {
         localStorage.removeItem(SAVED_KEY)
@@ -298,7 +298,7 @@ export default function LoginPage() {
 
               <Form.Item name="remember" valuePropName="checked" style={{ marginBottom: 22 }}>
                 <Checkbox style={{ color: '#8b949e', fontSize: 13 }}>
-                  Recordar mis credenciales
+                  Recordar empresa y correo
                 </Checkbox>
               </Form.Item>
 

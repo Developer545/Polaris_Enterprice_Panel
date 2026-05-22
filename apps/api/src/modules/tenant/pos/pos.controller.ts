@@ -4,8 +4,10 @@ import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
 import { CurrentUser } from '../../../common/decorators/current-user.decorator'
 import { PERMISSIONS, type JwtAccessPayload } from '@pos-dte/shared-types'
+import { RequireModule } from '../../../common/decorators/tenant-module.decorator'
 import { z } from 'zod'
 
+@RequireModule('pos')
 @Controller('pos')
 export class PosController {
   constructor(private readonly svc: PosService) {}
@@ -49,7 +51,7 @@ export class PosController {
   }
 
   @Post('sales/:id/void')
-  @RequirePermissions(PERMISSIONS.SALES_VIEW)
+  @RequirePermissions(PERMISSIONS.POS_CANCEL)
   voidSale(
     @Param('id') id: string,
     @Body() body: { reason: string },

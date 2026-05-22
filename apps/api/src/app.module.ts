@@ -12,6 +12,7 @@ import { CryptoModule } from './infrastructure/crypto/crypto.module'
 // Guards & Filters (global)
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard'
 import { PermissionsGuard } from './common/guards/permissions.guard'
+import { TenantModuleGuard } from './common/guards/tenant-module.guard'
 import { AllExceptionsFilter } from './common/filters/http-exception.filter'
 
 // Control Plane
@@ -22,6 +23,7 @@ import { CatalogsAdminModule } from './modules/control-plane/catalogs/catalogs-a
 
 // Tenant middleware
 import { TenantResolverMiddleware } from './modules/tenant/tenant-resolver/tenant-resolver.middleware'
+import { CsrfMiddleware } from './common/middleware/csrf.middleware'
 
 // Tenant — Phase 1: Core
 import { AuthModule } from './modules/tenant/auth/auth.module'
@@ -121,11 +123,22 @@ import { CatalogsModule } from './modules/tenant/catalogs/catalogs.module'
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
+    { provide: APP_GUARD, useClass: TenantModuleGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
+    // CSRF: validar Origin en todas las mutaciones (POST/PUT/PATCH/DELETE)
+    consumer
+      .apply(CsrfMiddleware)
+      .forRoutes(
+        { path: '*', method: RequestMethod.POST },
+        { path: '*', method: RequestMethod.PUT },
+        { path: '*', method: RequestMethod.PATCH },
+        { path: '*', method: RequestMethod.DELETE },
+      )
+
     consumer
       .apply(TenantResolverMiddleware)
       .exclude(

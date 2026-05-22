@@ -12,11 +12,13 @@ import {
   type CreateActividadDto, type UpdateActividadDto,
 } from './catalogs-admin.service'
 import { AdminJwtGuard } from '../../../common/guards/admin-jwt.guard'
+import { AdminRolesGuard } from '../../../common/guards/admin-roles.guard'
 import { AdminRoute } from '../../../common/decorators/admin.decorator'
+import { RequireAdminRoles } from '../../../common/decorators/admin-roles.decorator'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 
 @AdminRoute()
-@UseGuards(AdminJwtGuard)
+@UseGuards(AdminJwtGuard, AdminRolesGuard)
 @Controller('control-plane/catalogs')
 export class CatalogsAdminController {
   constructor(private readonly svc: CatalogsAdminService) {}
@@ -34,6 +36,7 @@ export class CatalogsAdminController {
   }
 
   @Post('departamentos')
+  @RequireAdminRoles('SUPER_ADMIN')
   createDepartamento(
     @Body(new ZodValidationPipe(CreateDepartamentoSchema)) dto: CreateDepartamentoDto,
   ) {
@@ -41,6 +44,7 @@ export class CatalogsAdminController {
   }
 
   @Put('departamentos/:id')
+  @RequireAdminRoles('SUPER_ADMIN')
   updateDepartamento(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateDepartamentoSchema)) dto: UpdateDepartamentoDto,
@@ -49,6 +53,7 @@ export class CatalogsAdminController {
   }
 
   @Patch('departamentos/:id/toggle')
+  @RequireAdminRoles('SUPER_ADMIN')
   toggleDepartamento(@Param('id') id: string) {
     return this.svc.toggleDepartamento(id)
   }
@@ -66,6 +71,7 @@ export class CatalogsAdminController {
   }
 
   @Post('municipios')
+  @RequireAdminRoles('SUPER_ADMIN')
   createMunicipio(
     @Body(new ZodValidationPipe(CreateMunicipioSchema)) dto: CreateMunicipioDto,
   ) {
@@ -73,6 +79,7 @@ export class CatalogsAdminController {
   }
 
   @Put('municipios/:id')
+  @RequireAdminRoles('SUPER_ADMIN')
   updateMunicipio(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateMunicipioSchema)) dto: UpdateMunicipioDto,
@@ -81,6 +88,7 @@ export class CatalogsAdminController {
   }
 
   @Patch('municipios/:id/toggle')
+  @RequireAdminRoles('SUPER_ADMIN')
   toggleMunicipio(@Param('id') id: string) {
     return this.svc.toggleMunicipio(id)
   }
@@ -98,6 +106,7 @@ export class CatalogsAdminController {
   }
 
   @Post('actividades')
+  @RequireAdminRoles('SUPER_ADMIN')
   createActividad(
     @Body(new ZodValidationPipe(CreateActividadSchema)) dto: CreateActividadDto,
   ) {
@@ -105,6 +114,7 @@ export class CatalogsAdminController {
   }
 
   @Put('actividades/:id')
+  @RequireAdminRoles('SUPER_ADMIN')
   updateActividad(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateActividadSchema)) dto: UpdateActividadDto,
@@ -113,6 +123,7 @@ export class CatalogsAdminController {
   }
 
   @Patch('actividades/:id/toggle')
+  @RequireAdminRoles('SUPER_ADMIN')
   toggleActividad(@Param('id') id: string) {
     return this.svc.toggleActividad(id)
   }

@@ -27,7 +27,7 @@ export default function EmpresaTab({ companyId }: Props) {
 
   const { data: company, isLoading } = useQuery({
     queryKey: ['company', companyId],
-    queryFn: () => api.get(`/api/company?companyId=${companyId}`).then(r => r.data),
+    queryFn: () => api.get(`/api/companies/${companyId}`).then(r => r.data),
     enabled: !!companyId,
   })
 
@@ -55,7 +55,7 @@ export default function EmpresaTab({ companyId }: Props) {
   }, [company, form])
 
   const mutation = useMutation({
-    mutationFn: (dto: any) => api.put(`/api/company?companyId=${companyId}`, dto),
+    mutationFn: (dto: any) => api.put(`/api/companies/${companyId}`, dto),
     onSuccess: () => {
       message.success('Configuración guardada')
       qc.invalidateQueries({ queryKey: ['company', companyId] })

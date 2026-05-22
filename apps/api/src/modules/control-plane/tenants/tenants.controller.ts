@@ -13,11 +13,13 @@ import {
   type ProvisionTenantDto,
 } from './tenants.service'
 import { AdminJwtGuard } from '../../../common/guards/admin-jwt.guard'
+import { AdminRolesGuard } from '../../../common/guards/admin-roles.guard'
 import { AdminRoute } from '../../../common/decorators/admin.decorator'
+import { RequireAdminRoles } from '../../../common/decorators/admin-roles.decorator'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 
 @AdminRoute()
-@UseGuards(AdminJwtGuard)
+@UseGuards(AdminJwtGuard, AdminRolesGuard)
 @Controller('control-plane/tenants')
 export class TenantsController {
   constructor(private readonly tenantsService: TenantsService) {}
@@ -33,11 +35,13 @@ export class TenantsController {
   }
 
   @Post()
+  @RequireAdminRoles('SUPER_ADMIN')
   create(@Body(new ZodValidationPipe(CreateTenantSchema)) dto: CreateTenantDto) {
     return this.tenantsService.create(dto)
   }
 
   @Put(':id')
+  @RequireAdminRoles('SUPER_ADMIN')
   update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateTenantSchema)) dto: UpdateTenantDto,
@@ -46,6 +50,7 @@ export class TenantsController {
   }
 
   @Patch(':id/modules')
+  @RequireAdminRoles('SUPER_ADMIN')
   updateModules(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateModulesSchema)) dto: UpdateModulesDto,
@@ -54,6 +59,7 @@ export class TenantsController {
   }
 
   @Patch(':id/dte-types')
+  @RequireAdminRoles('SUPER_ADMIN')
   updateDteTypes(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateDteTypesSchema)) dto: UpdateDteTypesDto,
@@ -62,6 +68,7 @@ export class TenantsController {
   }
 
   @Post(':id/provision')
+  @RequireAdminRoles('SUPER_ADMIN')
   provisionTenant(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(ProvisionTenantSchema)) dto: ProvisionTenantDto,

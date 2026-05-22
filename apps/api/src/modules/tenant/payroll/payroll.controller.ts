@@ -5,8 +5,10 @@ import { RequirePermissions } from '../../../common/decorators/permissions.decor
 import { CurrentUser } from '../../../common/decorators/current-user.decorator'
 import { PERMISSIONS } from '@pos-dte/shared-types'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
+import { RequireModule } from '../../../common/decorators/tenant-module.decorator'
 import { z } from 'zod'
 
+@RequireModule('rrhh')
 @Controller('payroll')
 export class PayrollController {
   constructor(private readonly svc: PayrollService) {}

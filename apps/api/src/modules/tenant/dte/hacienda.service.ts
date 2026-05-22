@@ -56,7 +56,7 @@ export class HaciendaService {
     const base = ENDPOINTS[ambiente]
 
     const body = {
-      ambiente: ambiente === 'PROD' ? '00' : '01',
+      ambiente: ambiente === 'PROD' ? '01' : '00',
       idEnvio: 1,
       version: this.getVersion(tipoDte),
       tipoDte,
@@ -73,6 +73,37 @@ export class HaciendaService {
     })
 
     const { estado, selloRecibido, observaciones } = res.data ?? {}
+    return {
+      selloRecibido: selloRecibido ?? null,
+      observaciones: observaciones ?? [],
+    }
+  }
+
+  async submitInvalidacion(
+    jwsToken: string,
+    codigoGeneracion: string,
+    ambiente: 'TEST' | 'PROD',
+    authToken: string,
+  ): Promise<{ selloRecibido: string | null; observaciones: string[] }> {
+    const base = ENDPOINTS[ambiente]
+
+    const body = {
+      ambiente: ambiente === 'PROD' ? '01' : '00',
+      idEnvio: 1,
+      version: 2,
+      documento: jwsToken,
+      codigoGeneracion,
+    }
+
+    const res = await Axios.post(`${base}/anulardte`, body, {
+      headers: {
+        Authorization: authToken,
+        'Content-Type': 'application/json',
+      },
+      timeout: 30_000,
+    })
+
+    const { selloRecibido, observaciones } = res.data ?? {}
     return {
       selloRecibido: selloRecibido ?? null,
       observaciones: observaciones ?? [],

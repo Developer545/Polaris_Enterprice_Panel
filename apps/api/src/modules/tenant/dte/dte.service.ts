@@ -88,19 +88,33 @@ export class DteService {
     const branch = sale.branch as any
     const client = sale.client as any
 
-    // Mark DTE as processing
-    const dteDoc = await db.dteDocument.create({
-      data: {
-        tenantId: payload.tenantId,
-        saleId: payload.saleId,
-        companyId: payload.companyId,
-        branchId: payload.branchId,
-        tipoDte: payload.tipoDte,
-        numeroControl: payload.numeroControl,
-        codigoGeneracion: this.builder.generateCodigoGeneracion(),
-        status: 'PENDING',
-      },
+    // Outbox: buscar DteDocument QUEUED creado dentro de la tx de venta.
+    // Reutilizar si existe (fix retry crash por saleId @unique).
+    // Crear como fallback solo si no existe (caso legacy o job manual).
+    let dteDoc = await db.dteDocument.findFirst({
+      where: { saleId: payload.saleId, tenantId: payload.tenantId },
     })
+
+    if (!dteDoc) {
+      dteDoc = await db.dteDocument.create({
+        data: {
+          tenantId: payload.tenantId,
+          saleId: payload.saleId,
+          companyId: payload.companyId,
+          branchId: payload.branchId,
+          tipoDte: payload.tipoDte,
+          numeroControl: payload.numeroControl,
+          codigoGeneracion: this.builder.generateCodigoGeneracion(),
+          status: 'PENDING',
+        },
+      })
+    } else {
+      // Marcar como PENDING (era QUEUED o ERROR de retry anterior)
+      await db.dteDocument.update({
+        where: { id: dteDoc.id },
+        data: { status: 'PENDING' },
+      })
+    }
 
     try {
       // Build JSON
@@ -210,17 +224,13 @@ export class DteService {
     const certData = company.certDataEnc ? this.crypto.decrypt(company.certDataEnc) : null
     const certPassword = company.certPwdEnc ? this.crypto.decrypt(company.certPwdEnc) : null
 
-    // Build ND JSON (tipoDte 06 = Nota de Debito, or 14 = Nota de Anulación)
+    // Build invalidacion JSON — usa anulacion-schema-v2.json, endpoint /anulardte
     const now = new Date()
     const anulacionJson = {
       identificacion: {
         version: 2,
-        ambiente: ambiente === 'PROD' ? '00' : '01',
-        tipoDte: '14',
-        numeroControl: sale.dteDocument.numeroControl,
+        ambiente: ambiente === 'PROD' ? '01' : '00',
         codigoGeneracion: this.builder.generateCodigoGeneracion(),
-        tipoModelo: 1,
-        tipoOperacion: 1,
         fecAnula: now.toISOString().split('T')[0],
         horAnula: now.toISOString().split('T')[1].substring(0, 8),
       },
@@ -263,13 +273,24 @@ export class DteService {
     const jws = await this.firmador.firmarDocumento(anulacionJson, certData ?? '', certPassword ?? '')
     const cacheKey = `${tenantId}:${company.id}`
     const authToken = await this.hacienda.authenticate(haciendaUser, haciendaPassword, ambiente, cacheKey)
-    const result = await this.hacienda.submitDte(jws, '14', (anulacionJson as any).identificacion.codigoGeneracion, ambiente, authToken)
+    const result = await this.hacienda.submitInvalidacion(
+      jws,
+      (anulacionJson as any).identificacion.codigoGeneracion,
+      ambiente,
+      authToken,
+    )
 
+    // Solo marcar ANNULLED si Hacienda aceptó — nunca cambiar estado sin sello
     await db.dteDocument.update({
       where: { id: sale.dteDocument.id },
-      data: { status: 'ANNULLED' },
+      data: {
+        status: result.selloRecibido ? 'ANNULLED' : 'REJECTED',
+        selloRecibido: result.selloRecibido ?? undefined,
+        observaciones: result.observaciones,
+        processedAt: new Date(),
+      },
     })
 
-    return { ok: true, selloRecibido: result.selloRecibido }
+    return { ok: !!result.selloRecibido, selloRecibido: result.selloRecibido }
   }
 }

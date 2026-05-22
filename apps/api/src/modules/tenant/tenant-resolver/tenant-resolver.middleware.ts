@@ -66,6 +66,9 @@ export class TenantResolverMiddleware implements NestMiddleware {
         tenant.dbUrl && tenant.dbStrategy !== 'NEON_SHARED'
           ? this.encryption.decrypt(tenant.dbUrl)
           : undefined,
+      // Modules y dteAllowedTypes desde control-plane — gobiernan el runtime
+      modules: (tenant.modules as Record<string, boolean>) ?? {},
+      dteAllowedTypes: (tenant.dteAllowedTypes as string[]) ?? [],
     }
 
     // Best-effort cache write — ignore if Redis is down

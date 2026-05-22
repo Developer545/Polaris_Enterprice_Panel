@@ -68,7 +68,7 @@ export default function PurchasesPage() {
   })
 
   const receiveMutation = useMutation({
-    mutationFn: ({ id, lines }: any) => api.put(`/api/purchases/${id}/receive`, { lines }),
+    mutationFn: ({ id, lines }: any) => api.post(`/api/purchases/${id}/receive`, { items: lines.map((l: any) => ({ itemId: l.id, receivedQty: l.received })) }),
     onSuccess: () => {
       message.success('Recepción registrada')
       qc.invalidateQueries({ queryKey: ['purchases'] })

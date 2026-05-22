@@ -4,6 +4,19 @@
   "private": true,
   "scripts": {
     "db:generate": "prisma generate --schema prisma/control-plane.prisma && prisma generate --schema prisma/tenant.prisma",
+
+    "migrate:dev:cp": "dotenv -e ../../.env -- prisma migrate dev --schema prisma/control-plane.prisma",
+    "migrate:dev:tenant": "dotenv -e ../../.env -- prisma migrate dev --schema prisma/tenant.prisma",
+
+    "migrate:deploy:cp": "dotenv -e ../../.env -- prisma migrate deploy --schema prisma/control-plane.prisma",
+    "migrate:deploy:tenant": "dotenv -e ../../.env -- prisma migrate deploy --schema prisma/tenant.prisma",
+
+    "migrate:status:cp": "dotenv -e ../../.env -- prisma migrate status --schema prisma/control-plane.prisma",
+    "migrate:status:tenant": "dotenv -e ../../.env -- prisma migrate status --schema prisma/tenant.prisma",
+
+    "migrate:reset:cp": "dotenv -e ../../.env -- prisma migrate reset --schema prisma/control-plane.prisma",
+    "migrate:reset:tenant": "dotenv -e ../../.env -- prisma migrate reset --schema prisma/tenant.prisma",
+
     "db:push:cp": "dotenv -e ../../.env -- prisma db push --schema prisma/control-plane.prisma",
     "db:push:tenant": "dotenv -e ../../.env -- prisma db push --schema prisma/tenant.prisma"
   },

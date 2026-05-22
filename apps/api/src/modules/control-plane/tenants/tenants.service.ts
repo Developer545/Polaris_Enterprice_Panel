@@ -212,9 +212,9 @@ export class TenantsService {
       companyId: company.id,
       branchId: branch.id,
       userId: user.id,
+      // No retornar password — el usuario debe usar "olvidé mi contraseña" para activar su cuenta
       credentials: {
         email: dto.adminEmail,
-        password: dto.adminPassword,
         slug: tenant.slug,
       },
     }

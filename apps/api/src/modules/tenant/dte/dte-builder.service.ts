@@ -14,14 +14,14 @@ export class DteBuilderService {
     return {
       identificacion: {
         version: 1,
-        ambiente: company.dteAmbiente === 'PROD' ? '00' : '01',
+        ambiente: company.dteAmbiente === 'PROD' ? '01' : '00',
         tipoDte: '01',
         numeroControl,
         codigoGeneracion,
         tipoModelo: 1,
         tipoOperacion: 1,
         tipoContingencia: null,
-        motivoContigencia: null,
+        motivoContin: null,
         fecEmi: now.toISOString().split('T')[0],
         horEmi: now.toISOString().split('T')[1].substring(0, 8),
         tipoMoneda: 'USD',
@@ -61,14 +61,14 @@ export class DteBuilderService {
     return {
       identificacion: {
         version: 3,
-        ambiente: company.dteAmbiente === 'PROD' ? '00' : '01',
+        ambiente: company.dteAmbiente === 'PROD' ? '01' : '00',
         tipoDte: '03',
         numeroControl,
         codigoGeneracion,
         tipoModelo: 1,
         tipoOperacion: 1,
         tipoContingencia: null,
-        motivoContigencia: null,
+        motivoContin: null,
         fecEmi: now.toISOString().split('T')[0],
         horEmi: now.toISOString().split('T')[1].substring(0, 8),
         tipoMoneda: 'USD',
@@ -116,14 +116,14 @@ export class DteBuilderService {
     return {
       identificacion: {
         version: 1,
-        ambiente: company.dteAmbiente === 'PROD' ? '00' : '01',
+        ambiente: company.dteAmbiente === 'PROD' ? '01' : '00',
         tipoDte: '05',
         numeroControl,
         codigoGeneracion,
         tipoModelo: 1,
         tipoOperacion: 1,
         tipoContingencia: null,
-        motivoContigencia: null,
+        motivoContin: null,
         fecEmi: now.toISOString().split('T')[0],
         horEmi: now.toISOString().split('T')[1].substring(0, 8),
         tipoMoneda: 'USD',
@@ -181,12 +181,20 @@ export class DteBuilderService {
   }
 
   private buildReceptorCF(client: any) {
+    // Consumidor final anónimo: receptor null (fe-fc-v1.json lo permite)
+    if (!client) return null
     return {
       tipoDocumento: client.tipoDocumento ?? '13',
-      numDocumento: client.numDocumento ?? '00000000-0',
-      nombre: client.name,
-      correo: client.email ?? '',
-      telefono: client.phone ?? '',
+      numDocumento: client.numDocumento ?? null,
+      nrc: client.nrc ?? null,
+      nombre: client.name ?? null,
+      codActividad: client.actividadEconomicaCodigo ?? null,
+      descActividad: client.actividadEconomica ?? null,
+      direccion: client.address
+        ? { departamento: client.departamento ?? null, municipio: client.municipio ?? null, complemento: client.address }
+        : null,
+      telefono: client.phone ?? null,
+      correo: client.email ?? null,
     }
   }
 
@@ -226,11 +234,8 @@ export class DteBuilderService {
       descuGravada: Number(sale.totalDescuento),
       porcentajeDescuento: 0,
       totalDescu: Number(sale.totalDescuento),
-      tributos: [{
-        codigo: '20',
-        descripcion: 'IVA 13%',
-        valor: Number(sale.totalIva),
-      }],
+      // Factura CF: IVA va en totalIva, no en tributos (fe-fc-v1.json)
+      tributos: null,
       subTotal: Number(sale.totalGravada) + Number(sale.totalExenta) + Number(sale.totalNoSuj) - Number(sale.totalDescuento),
       ivaRete1: 0,
       reteRenta: 0,

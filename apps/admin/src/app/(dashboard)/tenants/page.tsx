@@ -41,7 +41,7 @@ export default function TenantsPage() {
   const [provisionOpen, setProvisionOpen] = useState(false)
   const [newTenantId, setNewTenantId]   = useState<string | null>(null)
   const [dbStrategy, setDbStrategy]     = useState('NEON_SHARED')
-  const [credentials, setCredentials]   = useState<null | { email: string; password: string; slug: string }>(null)
+  const [credentials, setCredentials]   = useState<null | { email: string; slug: string }>(null)
 
   const { data = [], isLoading, refetch } = useQuery({
     queryKey: ['admin', 'tenants'],
@@ -420,8 +420,8 @@ export default function TenantsPage() {
         footer={<Button type="primary" onClick={() => setCredentials(null)}>Entendido, ya guardé las credenciales</Button>}
         closable={false}
       >
-        <div style={{ marginBottom: 16, padding: '10px 14px', background: '#fff7e6', borderRadius: 8, border: '1px solid #ffd591' }}>
-          <Text style={{ fontSize: 12 }}>Guarda estas credenciales antes de cerrar — no se volverán a mostrar.</Text>
+        <div style={{ marginBottom: 16, padding: '10px 14px', background: '#f6ffed', borderRadius: 8, border: '1px solid #b7eb8f' }}>
+          <Text style={{ fontSize: 12 }}>El tenant fue creado. Comparte el slug y correo con el administrador — deberá usar <strong>"Olvidé mi contraseña"</strong> para establecer su contraseña la primera vez.</Text>
         </div>
         <Descriptions column={1} size="small" bordered>
           <Descriptions.Item label="Slug">
@@ -429,12 +429,6 @@ export default function TenantsPage() {
           </Descriptions.Item>
           <Descriptions.Item label="Email">
             <Space><span>{credentials?.email}</span><Button size="small" icon={<CopyOutlined />} type="text" onClick={() => copy(credentials?.email ?? '')} /></Space>
-          </Descriptions.Item>
-          <Descriptions.Item label="Contraseña">
-            <Space>
-              <code style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: 4 }}>{credentials?.password}</code>
-              <Button size="small" icon={<CopyOutlined />} type="text" onClick={() => copy(credentials?.password ?? '')} />
-            </Space>
           </Descriptions.Item>
         </Descriptions>
       </Modal>
