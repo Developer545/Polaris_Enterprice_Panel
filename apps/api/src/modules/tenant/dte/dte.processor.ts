@@ -36,6 +36,8 @@ export class DteProcessor extends WorkerHost {
         slug: '',            // not needed for queue processing
         dbStrategy: 'NEON_SHARED',
         dbUrl,
+        modules: {},
+        dteAllowedTypes: [],
       },
       () => this.dteService.emitFromQueue(job.data),
     )
