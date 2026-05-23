@@ -152,70 +152,108 @@ export default function LoginPage() {
             }} />
           </div>
 
-          {/* Content */}
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: 'rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.15)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backdropFilter: 'blur(8px)',
-            }}>
-              <ShopOutlined style={{ color: '#93c5fd', fontSize: 17 }} />
-            </div>
-            <div>
-              <div style={{ color: '#fff', fontWeight: 700, fontSize: 16, letterSpacing: '-0.01em' }}>
-                Polaris
-              </div>
-              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>Enterprise</div>
-            </div>
-          </div>
-
+          {/* ── TOP: badge ── */}
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: 'rgba(147,197,253,0.1)',
-              border: '1px solid rgba(147,197,253,0.2)',
-              borderRadius: 20, padding: '4px 14px', marginBottom: 24,
+              background: 'rgba(147,197,253,0.08)',
+              border: '1px solid rgba(147,197,253,0.18)',
+              borderRadius: 20, padding: '5px 14px',
             }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#93c5fd' }} />
-              <span style={{ color: '#93c5fd', fontSize: 12, fontWeight: 500 }}>
-                ERP · Facturación DTE · El Salvador
+              <div style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: '#4ade80',
+                boxShadow: '0 0 6px #4ade80',
+              }} />
+              <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 500, letterSpacing: '0.04em' }}>
+                SISTEMA OFICIAL DTE · EL SALVADOR
+              </span>
+            </div>
+          </div>
+
+          {/* ── CENTER: brand + copy ── */}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            {/* Star icon */}
+            <div style={{ marginBottom: 28 }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L13.5 9.5L20 8L15 13L22 14.5L15 16L20 22L13.5 18.5L12 26L10.5 18.5L4 22L9 16L2 14.5L9 13L4 8L10.5 9.5Z"
+                  fill="white" fillOpacity="0.9"
+                  style={{ filter: 'drop-shadow(0 0 8px rgba(147,197,253,0.9))' }}
+                />
+              </svg>
+            </div>
+
+            {/* Brand name — GRANDE y prominente */}
+            <div style={{ marginBottom: 6 }}>
+              <span style={{
+                fontSize: 48, fontWeight: 900, letterSpacing: '-0.04em',
+                color: '#ffffff',
+                lineHeight: 1,
+                display: 'block',
+                textShadow: '0 0 40px rgba(147,197,253,0.4)',
+              }}>
+                Polaris
+              </span>
+              <span style={{
+                fontSize: 18, fontWeight: 300, letterSpacing: '0.25em',
+                color: 'rgba(255,255,255,0.5)',
+                textTransform: 'uppercase',
+                display: 'block',
+                marginTop: 2,
+              }}>
+                Enterprise
               </span>
             </div>
 
+            {/* Divider */}
+            <div style={{
+              width: 48, height: 2, margin: '24px 0',
+              background: 'linear-gradient(90deg, #93c5fd, transparent)',
+              borderRadius: 2,
+            }} />
+
+            {/* Tagline */}
             <Typography.Title style={{
-              color: '#fff', fontSize: 34, fontWeight: 800,
-              lineHeight: 1.15, letterSpacing: '-0.025em', margin: '0 0 18px',
+              color: '#fff', fontSize: 26, fontWeight: 700,
+              lineHeight: 1.25, letterSpacing: '-0.02em', margin: '0 0 12px',
             }}>
               Control total<br />de tu empresa.
             </Typography.Title>
 
             <Typography.Text style={{
-              color: 'rgba(255,255,255,0.45)', fontSize: 14,
-              lineHeight: 1.7, display: 'block', marginBottom: 32,
+              color: 'rgba(255,255,255,0.4)', fontSize: 13.5,
+              lineHeight: 1.65, display: 'block', marginBottom: 32,
             }}>
               POS, facturación electrónica DTE y ERP<br />
               diseñado para empresas salvadoreñas.
             </Typography.Text>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Features */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
               {[
-                'CF, CCF, Notas de Crédito y Débito',
-                'POS táctil con impresión térmica',
-                'Integración directa con Hacienda',
+                { icon: '✓', text: 'CF, CCF, Notas de Crédito y Débito' },
+                { icon: '✓', text: 'POS táctil con impresión térmica' },
+                { icon: '✓', text: 'Integración directa con Hacienda' },
               ].map(f => (
-                <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#93c5fd', flexShrink: 0 }} />
-                  <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>{f}</span>
+                <div key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: 6, flexShrink: 0,
+                    background: 'rgba(147,197,253,0.12)',
+                    border: '1px solid rgba(147,197,253,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <span style={{ color: '#93c5fd', fontSize: 10, fontWeight: 700 }}>{f.icon}</span>
+                  </div>
+                  <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>{f.text}</span>
                 </div>
               ))}
             </div>
           </div>
 
+          {/* ── BOTTOM: footer ── */}
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11 }}>
-              © {new Date().getFullYear()} Polaris Enterprise
+            <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 11 }}>
+              © {new Date().getFullYear()} Polaris Enterprise · Speeddan System
             </span>
           </div>
         </div>
