@@ -25,9 +25,10 @@ export interface SaleLineTotals {
 }
 
 /**
- * Calculate totals for a single sale line
- * For CF (Factura): prices are IVA-inclusive, ivaItem = ventaGravada * 13/113
- * For CCF (Crédito Fiscal): prices are IVA-exclusive, ivaItem = ventaGravada * 0.13
+ * Calculate totals for a single sale line.
+ * All prices are entered WITHOUT IVA (base price).
+ * IVA = ventaGravada * 13% for both CF and CCF.
+ * totalPagar = ventaGravada + IVA (calculated in calcSaleSummary).
  */
 export function calcLineTotals(
   input: SaleLineInput,
@@ -50,13 +51,8 @@ export function calcLineTotals(
     ventaExenta = subtotalBruto
   } else {
     ventaGravada = subtotalBruto
-    if (tipoDte === '01' || tipoDte === '05') {
-      // CF: precio incluye IVA → IVA = gravada * 13/113
-      ivaItem = ventaGravada.mul(13).div(113).toDecimalPlaces(2)
-    } else {
-      // CCF: precio sin IVA → IVA = gravada * 13%
-      ivaItem = ventaGravada.mul(IVA_RATE).toDecimalPlaces(2)
-    }
+    // Prices are stored without IVA → IVA = base * 13% for both CF and CCF
+    ivaItem = ventaGravada.mul(IVA_RATE).toDecimalPlaces(2)
   }
 
   return {
@@ -107,7 +103,8 @@ export function calcSaleSummary(input: SaleSummaryInput): SaleSummary {
 
   const subTotalVentas = totalNoSuj.plus(totalExenta).plus(totalGravada)
   const subTotal = subTotalVentas.minus(totalDescu)
-  const montoTotalOperacion = subTotal.toDecimalPlaces(2)
+  // totalPagar = base + IVA (prices entered without IVA)
+  const montoTotalOperacion = subTotal.plus(totalIva).toDecimalPlaces(2)
   const totalPagar = montoTotalOperacion
 
   return {
