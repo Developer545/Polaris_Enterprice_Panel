@@ -188,15 +188,15 @@ export default function LoginPage() {
               color: '#fff', fontSize: 34, fontWeight: 800,
               lineHeight: 1.15, letterSpacing: '-0.025em', margin: '0 0 18px',
             }}>
-              Gestiona tu negocio<br />desde las estrellas
+              Control total<br />de tu empresa.
             </Typography.Title>
 
             <Typography.Text style={{
               color: 'rgba(255,255,255,0.45)', fontSize: 14,
               lineHeight: 1.7, display: 'block', marginBottom: 32,
             }}>
-              POS, facturación electrónica y ERP<br />
-              para cualquier giro de empresa.
+              POS, facturación electrónica DTE y ERP<br />
+              diseñado para empresas salvadoreñas.
             </Typography.Text>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
