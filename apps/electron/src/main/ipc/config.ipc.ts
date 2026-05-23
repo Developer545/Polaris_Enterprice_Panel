@@ -3,7 +3,7 @@ import { app } from 'electron'
 import Store from 'electron-store'
 
 // Production NestJS API URL — overridable via electron-store for enterprise deployments
-const DEFAULT_API_URL = process.env.API_URL ?? 'https://api.pos-dte.com'
+const DEFAULT_API_URL = process.env.API_URL ?? 'https://polaris-enterprice-panel.onrender.com'
 
 const store = new Store({
   name: 'pos-dte-config',
