@@ -19,9 +19,19 @@ const envSchema = z.object({
 
   // Redis
   REDIS_URL: z.string().default('redis://localhost:6379'),
+  DTE_QUEUE_DRIVER: z.enum(['bullmq', 'local']).default('bullmq'),
 
   // Encryption (AES-256 for dbUrl and Hacienda credentials)
   ENCRYPTION_KEY: z.string().length(64), // 32 bytes hex
+
+  // Licenses — HMAC secret para hashear claves de licencia
+  // CAMBIAR en producción. Sin este secreto es imposible validar licencias aunque roben la BD.
+  LICENSE_HMAC_SECRET: z.string().min(16).default('dev-license-hmac-secret-change-in-production'),
+
+  // Local desktop bundle (IS_LOCAL_BUNDLE=1 en Electron)
+  IS_LOCAL_BUNDLE: z.string().optional(),
+  // Ruta al JSON de permisos escrito por el proceso Electron principal
+  LOCAL_PERMISSIONS_FILE: z.string().optional(),
 
   // Email (optional)
   RESEND_API_KEY: z.string().optional(),
@@ -42,4 +52,12 @@ export function getEnv(): Env {
   }
   _env = result.data
   return _env
+}
+
+export function useBullDteQueue(): boolean {
+  return (process.env.DTE_QUEUE_DRIVER ?? 'bullmq') === 'bullmq'
+}
+
+export function useLocalMemoryCache(): boolean {
+  return (process.env.DTE_QUEUE_DRIVER ?? 'bullmq') === 'local' || process.env.REDIS_URL === 'memory://local'
 }

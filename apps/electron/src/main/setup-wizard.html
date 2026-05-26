@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Polaris — Configuración Inicial</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f12;
+      color: #e8e8ec;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: none;
+    }
+    .titlebar {
+      height: 34px;
+      background: #0a0a0d;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      -webkit-app-region: drag;
+      flex-shrink: 0;
+    }
+    .titlebar-logo { font-size: 13px; font-weight: 700; color: #f47920; letter-spacing: -0.3px; }
+    .titlebar-logo span { color: #666; font-weight: 400; }
+    .titlebar-close {
+      -webkit-app-region: no-drag;
+      margin-left: auto;
+      cursor: pointer;
+      color: #555;
+      font-size: 15px;
+      line-height: 1;
+      padding: 4px 6px;
+      border-radius: 4px;
+      transition: background .12s, color .12s;
+    }
+    .titlebar-close:hover { background: #c0392b22; color: #e57373; }
+
+    .wizard {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 28px 44px 24px;
+      max-width: 720px;
+      width: 100%;
+      margin: 0 auto;
+      overflow-y: auto;
+    }
+
+    /* Steps */
+    .steps {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 30px;
+    }
+    .step-item { display: flex; align-items: center; gap: 8px; }
+    .step-num {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
+      background: #1c1c22;
+      color: #555;
+      border: 2px solid #2a2a34;
+      transition: all .2s;
+      flex-shrink: 0;
+    }
+    .step-label { font-size: 13px; color: #555; white-space: nowrap; transition: color .2s; }
+    .step-item.active .step-num { background: #f47920; color: #fff; border-color: #f47920; }
+    .step-item.active .step-label { color: #e8e8ec; }
+    .step-item.done .step-num { background: #0d3d0d; color: #66bb6a; border-color: #388e3c; }
+    .step-item.done .step-label { color: #66bb6a; }
+    .step-line { flex: 1; height: 2px; background: #2a2a34; margin: 0 10px; transition: background .2s; }
+    .step-line.done { background: #388e3c; }
+
+    /* Content */
+    h2 { font-size: 21px; font-weight: 700; margin-bottom: 6px; }
+    .subtitle { color: #888; font-size: 14px; margin-bottom: 26px; line-height: 1.5; }
+
+    .step-panel { display: none; }
+    .step-panel.active { display: block; }
+
+    .form-row { margin-bottom: 16px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+    label { display: block; font-size: 12px; color: #999; margin-bottom: 5px; font-weight: 500; letter-spacing: 0.3px; }
+    input {
+      width: 100%;
+      background: #18181e;
+      border: 1.5px solid #2a2a36;
+      border-radius: 8px;
+      padding: 9px 13px;
+      color: #e8e8ec;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+      -webkit-app-region: no-drag;
+    }
+    input:focus { border-color: #f47920; }
+    input::placeholder { color: #444; }
+
+    .hint { font-size: 12px; color: #555; margin-top: 4px; }
+
+    .status {
+      margin-top: 14px;
+      font-size: 13px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      line-height: 1.5;
+      display: none;
+    }
+    .status.show { display: block; }
+    .status.error { background: #2a0f0f; color: #ef9a9a; border: 1px solid #7f1a1a; }
+    .status.success { background: #0d2a0d; color: #a5d6a7; border: 1px solid #1b5e20; }
+    .status.info { background: #0d1a2a; color: #90caf9; border: 1px solid #0d3e6b; }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #1e1e26;
+    }
+    .btn {
+      padding: 9px 22px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, background .15s, border-color .15s;
+      -webkit-app-region: no-drag;
+    }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-primary { background: #f47920; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #d96b18; }
+    .btn-ghost { background: transparent; color: #777; border: 1.5px solid #2a2a36; }
+    .btn-ghost:hover:not(:disabled) { color: #ccc; border-color: #444; }
+
+    .spinner {
+      display: inline-block; width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,.25);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .65s linear infinite;
+      vertical-align: middle; margin-right: 6px; margin-top: -2px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Step 1 extras */
+    .license-note {
+      background: #12182a;
+      border: 1px solid #1a2a44;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #90caf9;
+      margin-bottom: 20px;
+    }
+
+    /* Step 3 final summary */
+    .summary-box {
+      background: #12181a;
+      border: 1px solid #1a2a1a;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 16px;
+    }
+    .summary-box strong { color: #aaa; }
+  </style>
+</head>
+<body>
+  <div class="titlebar">
+    <span class="titlebar-logo">Polaris <span>— Configuración inicial</span></span>
+    <span class="titlebar-close" id="btnClose" title="Cancelar y cerrar">✕</span>
+  </div>
+
+  <div class="wizard">
+    <!-- Steps indicator -->
+    <div class="steps">
+      <div class="step-item active" id="sInd1">
+        <div class="step-num">1</div>
+        <span class="step-label">Licencia</span>
+      </div>
+      <div class="step-line" id="sLine1"></div>
+      <div class="step-item" id="sInd2">
+        <div class="step-num">2</div>
+        <span class="step-label">Base de datos</span>
+      </div>
+      <div class="step-line" id="sLine2"></div>
+      <div class="step-item" id="sInd3">
+        <div class="step-num">3</div>
+        <span class="step-label">Empresa</span>
+      </div>
+    </div>
+
+    <!-- ── PASO 1: Licencia ─────────────────────────────── -->
+    <div class="step-panel active" id="panel1">
+      <h2>Activar Polaris Local</h2>
+      <p class="subtitle">Ingrese la clave de licencia que recibió al adquirir Polaris.<br>Se validará con el servidor de activaciones.</p>
+      <div class="license-note">
+        ℹ️ Si no tiene conexión a internet en este momento, puede continuar sin validar.<br>
+        La licencia se verificará en el próximo inicio con conexión.
+      </div>
+      <div class="form-row">
+        <label>CLAVE DE LICENCIA</label>
+        <input type="text" id="licenseKey" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" />
+        <p class="hint">Formato: grupos de 4 caracteres separados por guiones</p>
+      </div>
+      <div class="status" id="s1"></div>
+      <div class="actions">
+        <button class="btn btn-ghost" id="btnSkipLicense">Omitir por ahora</button>
+        <button class="btn btn-primary" id="btnValidateLicense">Validar licencia</button>
+      </div>
+    </div>
+
+    <!-- ── PASO 2: Base de datos ────────────────────────── -->
+    <div class="step-panel" id="panel2">
+      <h2>Configuración de PostgreSQL</h2>
+      <p class="subtitle">Polaris requiere PostgreSQL instalado y en ejecución.<br>Cree el usuario y las dos bases de datos antes de continuar.</p>
+      <div class="form-grid">
+        <div>
+          <label>HOST</label>
+          <input type="text" id="pgHost" value="127.0.0.1" />
+        </div>
+        <div>
+          <label>PUERTO</label>
+          <input type="number" id="pgPort" value="5432" min="1" max="65535" />
+        </div>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label>USUARIO</label>
+          <input type="text" id="pgUser" value="pos_dte" />
+        </div>
+        <div>
+          <label>CONTRASEÑA</label>
+          <input type="password" id="pgPassword" placeholder="Contraseña del usuario" />
+        </div>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label>BASE DE DATOS — CONTROL</label>
+          <input type="text" id="pgControlDb" value="polaris_control" />
+        </div>
+        <div>
+          <label>BASE DE DATOS — TENANT</label>
+          <input type="text" id="pgTenantDb" value="polaris_tenant" />
+        </div>
+      </div>
+      <p class="hint" style="margin-bottom:0">Las dos bases de datos deben existir y el usuario debe tener permisos de creación de tablas.</p>
+      <div class="status" id="s2"></div>
+      <div class="actions">
+        <button class="btn btn-ghost" id="btnBackDb">Atrás</button>
+        <button class="btn btn-primary" id="btnTestDb">Probar conexión</button>
+      </div>
+    </div>
+
+    <!-- ── PASO 3: Empresa ──────────────────────────────── -->
+    <div class="step-panel" id="panel3">
+      <h2>Empresa y administrador</h2>
+      <p class="subtitle">Estos datos crearán la empresa inicial y el primer usuario administrador.</p>
+      <div class="form-row">
+        <label>NOMBRE DE LA EMPRESA</label>
+        <input type="text" id="companyName" placeholder="Mi Empresa S.A. de C.V." />
+      </div>
+      <div class="form-row">
+        <label>NOMBRE DEL ADMINISTRADOR</label>
+        <input type="text" id="adminName" placeholder="Juan García" />
+      </div>
+      <div class="form-grid">
+        <div>
+          <label>CORREO ELECTRÓNICO</label>
+          <input type="email" id="adminEmail" placeholder="admin@miempresa.com" />
+        </div>
+        <div>
+          <label>CONTRASEÑA (mín. 8 caracteres)</label>
+          <input type="password" id="adminPassword" placeholder="••••••••" />
+        </div>
+      </div>
+      <div class="status" id="s3"></div>
+      <div class="actions">
+        <button class="btn btn-ghost" id="btnBackCompany">Atrás</button>
+        <button class="btn btn-primary" id="btnComplete">Inicializar Polaris</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  'use strict'
+  const { ipcRenderer } = require('electron')
+
+  let step = 1
+  let licenseKey = null
+  let dbCfg = null
+
+  // ── Navegação entre passos ──────────────────────────────────────────────────
+  function goStep(n) {
+    step = n
+    for (let i = 1; i <= 3; i++) {
+      document.getElementById('panel' + i).classList.toggle('active', i === n)
+      const ind = document.getElementById('sInd' + i)
+      ind.classList.remove('active', 'done')
+      if (i === n) ind.classList.add('active')
+      else if (i < n) ind.classList.add('done')
+      if (i <= 2) {
+        document.getElementById('sLine' + i).classList.toggle('done', i < n)
+      }
+    }
+  }
+
+  function showStatus(id, type, msg) {
+    const el = document.getElementById(id)
+    el.className = 'status show ' + type
+    el.textContent = msg
+  }
+
+  function clearStatus(id) {
+    const el = document.getElementById(id)
+    el.className = 'status'
+    el.textContent = ''
+  }
+
+  function busy(btnId, loading, label) {
+    const btn = document.getElementById(btnId)
+    btn.disabled = loading
+    btn.innerHTML = loading ? '<span class="spinner"></span>' + label : label
+  }
+
+  // ── Cerrar / salir ──────────────────────────────────────────────────────────
+  document.getElementById('btnClose').onclick = () => ipcRenderer.invoke('setup:quit')
+
+  // ── Paso 1: Licencia ────────────────────────────────────────────────────────
+  document.getElementById('btnSkipLicense').onclick = () => {
+    licenseKey = null
+    goStep(2)
+  }
+
+  document.getElementById('btnValidateLicense').onclick = async () => {
+    const key = document.getElementById('licenseKey').value.trim()
+    if (!key) { showStatus('s1', 'error', 'Ingrese la clave de licencia o use "Omitir por ahora".'); return }
+    busy('btnValidateLicense', true, 'Validando...')
+    clearStatus('s1')
+    try {
+      const res = await ipcRenderer.invoke('setup:validate-license', key)
+      if (res.ok) {
+        licenseKey = key
+        showStatus('s1', 'success', '✓ Licencia válida. Continuando con la configuración...')
+        setTimeout(() => goStep(2), 900)
+      } else {
+        showStatus('s1', 'error', res.error || 'Licencia no válida. Verifique la clave e intente de nuevo.')
+      }
+    } finally {
+      busy('btnValidateLicense', false, 'Validar licencia')
+    }
+  }
+
+  // ── Paso 2: Base de datos ───────────────────────────────────────────────────
+  document.getElementById('btnBackDb').onclick = () => goStep(1)
+
+  document.getElementById('btnTestDb').onclick = async () => {
+    const cfg = {
+      host: document.getElementById('pgHost').value.trim() || '127.0.0.1',
+      port: parseInt(document.getElementById('pgPort').value, 10) || 5432,
+      user: document.getElementById('pgUser').value.trim(),
+      password: document.getElementById('pgPassword').value,
+      controlDatabase: document.getElementById('pgControlDb').value.trim(),
+      tenantDatabase: document.getElementById('pgTenantDb').value.trim(),
+    }
+    if (!cfg.user || !cfg.password || !cfg.controlDatabase || !cfg.tenantDatabase) {
+      showStatus('s2', 'error', 'Complete todos los campos antes de probar la conexión.'); return
+    }
+    busy('btnTestDb', true, 'Probando conexión...')
+    clearStatus('s2')
+    try {
+      const r1 = await ipcRenderer.invoke('setup:test-db', { ...cfg, database: cfg.controlDatabase })
+      if (!r1.ok) { showStatus('s2', 'error', 'BD control — ' + (r1.error || 'Error de conexión')); return }
+      const r2 = await ipcRenderer.invoke('setup:test-db', { ...cfg, database: cfg.tenantDatabase })
+      if (!r2.ok) { showStatus('s2', 'error', 'BD tenant — ' + (r2.error || 'Error de conexión')); return }
+      dbCfg = cfg
+      showStatus('s2', 'success', '✓ Conexión exitosa a ambas bases de datos.')
+      setTimeout(() => goStep(3), 900)
+    } finally {
+      busy('btnTestDb', false, 'Probar conexión')
+    }
+  }
+
+  // ── Paso 3: Empresa ─────────────────────────────────────────────────────────
+  document.getElementById('btnBackCompany').onclick = () => goStep(2)
+
+  document.getElementById('btnComplete').onclick = async () => {
+    const companyName = document.getElementById('companyName').value.trim()
+    const adminName   = document.getElementById('adminName').value.trim()
+    const adminEmail  = document.getElementById('adminEmail').value.trim()
+    const adminPassword = document.getElementById('adminPassword').value
+
+    if (!companyName || !adminName || !adminEmail || !adminPassword) {
+      showStatus('s3', 'error', 'Complete todos los campos para continuar.'); return
+    }
+    if (adminPassword.length < 8) {
+      showStatus('s3', 'error', 'La contraseña debe tener al menos 8 caracteres.'); return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) {
+      showStatus('s3', 'error', 'Ingrese un correo electrónico válido.'); return
+    }
+
+    busy('btnComplete', true, 'Guardando configuración...')
+    clearStatus('s3')
+    try {
+      const result = await ipcRenderer.invoke('setup:complete', {
+        licenseKey,
+        postgres: dbCfg,
+        companyName,
+        adminName,
+        adminEmail,
+        adminPassword,
+      })
+      if (!result.ok) {
+        showStatus('s3', 'error', result.error || 'Error al guardar la configuración.')
+        busy('btnComplete', false, 'Inicializar Polaris')
+      }
+      // Si ok, el main process cierra la ventana
+    } catch (e) {
+      showStatus('s3', 'error', String(e))
+      busy('btnComplete', false, 'Inicializar Polaris')
+    }
+  }
+  </script>
+</body>
+</html>

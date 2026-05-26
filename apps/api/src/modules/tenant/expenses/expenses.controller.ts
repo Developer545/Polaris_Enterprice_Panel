@@ -12,9 +12,11 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator'
 import { PERMISSIONS } from '@pos-dte/shared-types'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { RequireModule } from '../../../common/decorators/tenant-module.decorator'
+import { RequireLocalModule } from '../../../common/decorators/local-module.decorator'
 import { z } from 'zod'
 
 @RequireModule('gastos')
+@RequireLocalModule('gastos')
 @Controller('expenses')
 export class ExpensesController {
   constructor(private readonly svc: ExpensesService) {}

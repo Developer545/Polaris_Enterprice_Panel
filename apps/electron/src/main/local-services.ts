@@ -1,0 +1,288 @@
+import { app } from 'electron'
+import { spawn, type ChildProcess } from 'child_process'
+import net from 'net'
+import fs from 'fs'
+import path from 'path'
+import { Client } from 'pg'
+
+type LocalServiceConfig = {
+  apiPort?: number
+  webPort?: number
+  dteQueueDriver?: 'local' | 'bullmq'
+  postgres?: {
+    host?: string
+    port?: number
+    user?: string
+    password?: string
+    controlDatabase?: string
+    tenantDatabase?: string
+  }
+  redis?: {
+    host?: string
+    port?: number
+  }
+  controlPlaneDatabaseUrl?: string
+  sharedTenantDatabaseUrl?: string
+  redisUrl?: string
+  corsOrigins?: string
+  jwtAccessSecret?: string
+  jwtRefreshSecret?: string
+  jwtAdminSecret?: string
+  encryptionKey?: string
+}
+
+type LocalServices = {
+  apiUrl: string
+  webUrl: string
+  stop: () => void
+}
+
+const children: ChildProcess[] = []
+
+export function isLocalBundle(): boolean {
+  if (process.env.POS_DTE_LOCAL_BUNDLE === '1') return true
+  return app.isPackaged && fs.existsSync(path.join(process.resourcesPath, 'local', 'api', 'dist', 'main.js'))
+}
+
+export async function startLocalServices(): Promise<LocalServices> {
+  const localRoot = getLocalRoot()
+  const config = readLocalServiceConfig(localRoot)
+  const apiPort = config.apiPort ?? 4000
+  const webPort = config.webPort ?? 3010
+  await assertPortFree(apiPort)
+  await assertPortFree(webPort)
+  const apiUrl = `http://127.0.0.1:${apiPort}`
+  const webUrl = `http://127.0.0.1:${webPort}`
+
+  const nodePath = path.join(localRoot, 'node_modules')
+  const baseEnv = {
+    ...process.env,
+    ELECTRON_RUN_AS_NODE: '1',
+    NODE_ENV: 'production',
+    NODE_PATH: [nodePath, process.env.NODE_PATH].filter(Boolean).join(path.delimiter),
+  }
+
+  const apiEntry = path.join(localRoot, 'api', 'dist', 'main.js')
+  if (!fs.existsSync(apiEntry)) throw new Error(`Local API entry not found: ${apiEntry}`)
+
+  const apiEnv = {
+    ...baseEnv,
+    IS_LOCAL_BUNDLE: '1',
+    PORT: String(apiPort),
+    CORS_ORIGINS: config.corsOrigins ?? `${webUrl},http://localhost:${webPort}`,
+    CONTROL_PLANE_DATABASE_URL: config.controlPlaneDatabaseUrl ?? buildPostgresUrl(config, 'control'),
+    SHARED_TENANT_DATABASE_URL: config.sharedTenantDatabaseUrl ?? buildPostgresUrl(config, 'tenant'),
+    DTE_QUEUE_DRIVER: config.dteQueueDriver ?? 'local',
+    REDIS_URL: config.redisUrl ?? (config.dteQueueDriver === 'bullmq' ? buildRedisUrl(config) : 'memory://local'),
+    JWT_ACCESS_SECRET: config.jwtAccessSecret ?? 'local-access-secret-change-before-production',
+    JWT_REFRESH_SECRET: config.jwtRefreshSecret ?? 'local-refresh-secret-change-before-production',
+    JWT_ADMIN_SECRET: config.jwtAdminSecret ?? 'local-admin-secret-change-before-production',
+    ENCRYPTION_KEY: config.encryptionKey ?? '1111111111111111111111111111111111111111111111111111111111111111',
+    // Ruta del archivo JSON de permisos escrito por el proceso Electron principal
+    LOCAL_PERMISSIONS_FILE: process.env.LOCAL_PERMISSIONS_FILE ?? '',
+  }
+
+  await runLocalMigrations(localRoot, 'control-plane', apiEnv.CONTROL_PLANE_DATABASE_URL)
+  await runLocalMigrations(localRoot, 'tenant', apiEnv.SHARED_TENANT_DATABASE_URL)
+
+  children.push(spawnService('api', apiEntry, [], {
+    cwd: path.join(localRoot, 'api'),
+    env: apiEnv,
+  }))
+
+  await waitForUrl(`${apiUrl}/api/health`, 30_000)
+
+  const webEntry = path.join(localRoot, 'web', 'standalone', 'apps', 'web', 'server.js')
+  if (!fs.existsSync(webEntry)) throw new Error(`Local web entry not found: ${webEntry}`)
+
+  children.push(spawnService('web', webEntry, [], {
+    cwd: path.dirname(webEntry),
+    env: {
+      ...baseEnv,
+      PORT: String(webPort),
+      HOSTNAME: '127.0.0.1',
+      NEXT_PUBLIC_API_URL: apiUrl,
+    },
+  }))
+
+  await waitForUrl(webUrl, 30_000)
+
+  return { apiUrl, webUrl, stop: stopLocalServices }
+}
+
+function buildPostgresUrl(config: LocalServiceConfig, database: 'control' | 'tenant'): string {
+  const pg = config.postgres ?? {}
+  const host = pg.host ?? '127.0.0.1'
+  const port = pg.port ?? 5432
+  const user = pg.user ?? 'pos_dte'
+  const password = pg.password ?? 'pos_dte_local_password'
+  const databaseName = database === 'control'
+    ? (pg.controlDatabase ?? 'pos_dte_control')
+    : (pg.tenantDatabase ?? 'pos_dte_tenant')
+
+  const auth = `${encodeURIComponent(user)}:${encodeURIComponent(password)}`
+  return `postgresql://${auth}@${host}:${port}/${databaseName}?schema=public`
+}
+
+function buildRedisUrl(config: LocalServiceConfig): string {
+  const redis = config.redis ?? {}
+  return `redis://${redis.host ?? '127.0.0.1'}:${redis.port ?? 6379}`
+}
+
+export function stopLocalServices(): void {
+  for (const child of children.splice(0)) {
+    if (!child.killed) child.kill()
+  }
+}
+
+function getLocalRoot(): string {
+  if (process.env.POS_DTE_LOCAL_ROOT) return process.env.POS_DTE_LOCAL_ROOT
+  if (app.isPackaged) return path.join(process.resourcesPath, 'local')
+  return findWorkspaceRoot()
+}
+
+function findWorkspaceRoot(): string {
+  const starts = [process.cwd(), app.getAppPath(), __dirname]
+  for (const start of starts) {
+    let dir = path.resolve(start)
+    while (dir !== path.dirname(dir)) {
+      if (
+        fs.existsSync(path.join(dir, 'package.json')) &&
+        fs.existsSync(path.join(dir, 'apps', 'api')) &&
+        fs.existsSync(path.join(dir, 'apps', 'web'))
+      ) {
+        return dir
+      }
+      dir = path.dirname(dir)
+    }
+  }
+  return path.resolve(__dirname, '../../../..')
+}
+
+function readLocalServiceConfig(localRoot: string): LocalServiceConfig {
+  const candidates = [
+    path.join(localRoot, 'local-server.json'),
+    path.join(process.resourcesPath ?? '', 'local-server.json'),
+    app.isReady() ? path.join(app.getPath('userData'), 'local-server.json') : '',
+  ].filter(Boolean)
+
+  for (const file of candidates) {
+    try {
+      if (!fs.existsSync(file)) continue
+      return JSON.parse(fs.readFileSync(file, 'utf8')) as LocalServiceConfig
+    } catch {
+      // Keep defaults when the optional local server config is missing or malformed.
+    }
+  }
+  return {}
+}
+
+function spawnService(
+  name: string,
+  script: string,
+  args: string[],
+  options: { cwd: string; env: NodeJS.ProcessEnv },
+): ChildProcess {
+  const child = spawn(process.execPath, [script, ...args], {
+    cwd: options.cwd,
+    env: options.env,
+    windowsHide: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+
+  child.stdout?.on('data', (chunk) => console.log(`[local:${name}] ${chunk}`.trim()))
+  child.stderr?.on('data', (chunk) => console.error(`[local:${name}] ${chunk}`.trim()))
+  child.on('exit', (code, signal) => console.warn(`[local:${name}] exited code=${code} signal=${signal}`))
+  return child
+}
+
+async function waitForUrl(url: string, timeoutMs: number): Promise<void> {
+  const start = Date.now()
+  let lastError: unknown
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const res = await fetch(url)
+      if (res.ok || res.status < 500) return
+    } catch (err) {
+      lastError = err
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+  throw new Error(`Timed out waiting for ${url}: ${String(lastError)}`)
+}
+
+async function assertPortFree(port: number): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const server = net.createServer()
+    server.once('error', () => reject(new Error(`Local port ${port} is already in use`)))
+    server.once('listening', () => server.close(() => resolve()))
+    server.listen(port, '127.0.0.1')
+  })
+}
+
+async function runLocalMigrations(localRoot: string, scope: 'control-plane' | 'tenant', databaseUrl: string): Promise<void> {
+  const dir = path.join(localRoot, 'migrations', scope)
+  if (!fs.existsSync(dir)) return
+
+  const files = fs.readdirSync(dir)
+    .filter((file) => file.toLowerCase().endsWith('.sql'))
+    .sort((a, b) => a.localeCompare(b))
+
+  if (files.length === 0) return
+
+  const client = new Client({ connectionString: databaseUrl })
+  await client.connect()
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "_pos_local_migrations" (
+        "scope" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "appliedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY ("scope", "name")
+      )
+    `)
+
+    for (const file of files) {
+      const applied = await client.query(
+        'SELECT 1 FROM "_pos_local_migrations" WHERE "scope" = $1 AND "name" = $2',
+        [scope, file],
+      )
+      if (applied.rowCount) continue
+
+      if (file.includes('baseline') && await hasExistingSchema(client, scope)) {
+        await client.query(
+          'INSERT INTO "_pos_local_migrations" ("scope", "name") VALUES ($1, $2)',
+          [scope, file],
+        )
+        console.log(`[local:migrations] marked existing baseline ${scope}/${file}`)
+        continue
+      }
+
+      const sql = fs.readFileSync(path.join(dir, file), 'utf8')
+      await client.query('BEGIN')
+      try {
+        await client.query(sql)
+        await client.query(
+          'INSERT INTO "_pos_local_migrations" ("scope", "name") VALUES ($1, $2)',
+          [scope, file],
+        )
+        await client.query('COMMIT')
+        console.log(`[local:migrations] applied ${scope}/${file}`)
+      } catch (err) {
+        await client.query('ROLLBACK')
+        throw err
+      }
+    }
+  } finally {
+    await client.end()
+  }
+}
+
+async function hasExistingSchema(client: Client, scope: 'control-plane' | 'tenant'): Promise<boolean> {
+  const anchorTable = scope === 'control-plane' ? 'Tenant' : 'Company'
+  const result = await client.query(
+    "SELECT to_regclass($1) AS table_name",
+    [`public."${anchorTable}"`],
+  )
+  return !!result.rows[0]?.table_name
+}

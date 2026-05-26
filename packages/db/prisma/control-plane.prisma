@@ -27,6 +27,13 @@ enum TenantStatus {
   CANCELLED
 }
 
+enum LicenseStatus {
+  PENDING    // generada, sin activar
+  ACTIVE     // en uso
+  SUSPENDED  // suspendida manualmente
+  EXPIRED    // venció fecha de expiración
+}
+
 enum AdminRole {
   SUPER_ADMIN
   OPERATOR
@@ -58,6 +65,7 @@ model Tenant {
   updatedAt        DateTime     @updatedAt
   companies        TenantCompany[]
   auditLogs        PlatformAuditLog[]
+  licenses         License[]
 }
 
 // Maps tenant → companies created in the tenant DB
@@ -100,6 +108,48 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   auditLogs    PlatformAuditLog[]
+}
+
+// ─── License ──────────────────────────────────────────────────────────────────
+// La clave en texto plano NUNCA se guarda.
+// keyHash = HMAC-SHA256(rawKey.replace(/-/g,'').toUpperCase(), LICENSE_HMAC_SECRET)
+// Sin ese secreto es imposible validar aunque roben la BD.
+
+model License {
+  id             String        @id @default(cuid())
+  keyHash        String        @unique  // HMAC-SHA256 — nunca la clave real
+  keyPreview     String        // "ABCD-****-****-WXYZ" — seguro mostrar
+  label          String?       // nota: "Cliente: Ferretería García"
+  status         LicenseStatus @default(PENDING)
+  plan           String        @default("LOCAL")
+  expiresAt      DateTime?
+  tenantId       String?
+  tenant         Tenant?       @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  // HWID binding — null hasta primera activación
+  hwid           String?       // hash del machine ID del cliente
+  // Módulos habilitados remotamente (todos en el bundle, solo se activan los de aquí)
+  enabledModules String[]      @default(["pos", "ventas", "clientes", "inventario", "servicios"])
+  activatedAt    DateTime?
+  lastSeenAt     DateTime?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  dailyStats     DteDailyLog[]
+
+  @@index([tenantId])
+}
+
+// Registro diario de DTE emitidos por cada licencia (heartbeat nocturno)
+model DteDailyLog {
+  id        String   @id @default(cuid())
+  licenseId String
+  license   License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  stats     Json     // { "01": 5, "03": 2 } — count por tipoDte
+  createdAt DateTime @default(now())
+
+  @@unique([licenseId, date])
+  @@index([licenseId])
 }
 
 model PlatformAuditLog {

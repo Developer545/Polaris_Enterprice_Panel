@@ -5,8 +5,10 @@ import { RequirePermissions } from '../../../common/decorators/permissions.decor
 import { CurrentUser } from '../../../common/decorators/current-user.decorator'
 import { PERMISSIONS } from '@pos-dte/shared-types'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
+import { RequireLocalModule } from '../../../common/decorators/local-module.decorator'
 import { z } from 'zod'
 
+@RequireLocalModule('proveedores')
 @Controller('suppliers')
 export class SuppliersController {
   constructor(private readonly svc: SuppliersService) {}

@@ -1,0 +1,66 @@
+extends: electron-builder.yml
+
+productName: Polaris Local
+artifactName: "${productName}-${version}-${os}-${arch}.${ext}"
+compression: store
+
+extraMetadata:
+  name: "@pos-dte/electron-local"
+  main: "bootstrap.cjs"
+
+extraResources:
+  - from: resources/local-config.local-bundle.json
+    to: local-config.json
+  - from: resources/local-server.example.json
+    to: local-server.example.json
+  - from: ../api/dist
+    to: local/api/dist
+  - from: ../api/package.json
+    to: local/api/package.json
+  - from: ../web/.next/standalone
+    to: local/web/standalone
+  - from: ../web/.next/static
+    to: local/web/standalone/apps/web/.next/static
+  - from: ../../node_modules
+    to: local/node_modules
+    filter:
+      - "**/*"
+      - "!@pos-dte/**"
+      - "!.cache/**"
+      - "!.vite/**"
+      - "!.bin/**"
+      - "!@types/**"
+      - "!typescript/**"
+      - "!turbo/**"
+      - "!@turbo/**"
+      - "!prisma/**"
+      - "!@prisma/engines/**"
+      - "!electron/dist/**"
+      - "!electron-builder/**"
+      - "!app-builder-bin/**"
+      - "!builder-util/**"
+      - "!7zip-bin/**"
+      - "!@esbuild/**"
+      - "!esbuild/**"
+  - from: ../../packages/db
+    to: local/node_modules/@pos-dte/db
+    filter:
+      - "generated/**"
+      - "package.json"
+  - from: ../../packages/db/migrations
+    to: local/migrations
+    filter:
+      - "**/*.sql"
+  - from: ../../packages/dte-core
+    to: local/node_modules/@pos-dte/dte-core
+    filter:
+      - "dist/**"
+      - "package.json"
+  - from: ../../packages/shared-types
+    to: local/node_modules/@pos-dte/shared-types
+    filter:
+      - "dist/**"
+      - "package.json"
+
+directories:
+  output: release-local

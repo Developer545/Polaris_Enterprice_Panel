@@ -2,7 +2,7 @@ import { Module, MiddlewareConsumer, NestModule, RequestMethod } from '@nestjs/c
 import { APP_GUARD, APP_FILTER } from '@nestjs/core'
 import { JwtModule } from '@nestjs/jwt'
 import { BullModule } from '@nestjs/bullmq'
-import { getEnv } from './config/env'
+import { getEnv, useBullDteQueue } from './config/env'
 
 // Infrastructure
 import { PrismaModule } from './infrastructure/prisma/prisma.module'
@@ -13,6 +13,7 @@ import { CryptoModule } from './infrastructure/crypto/crypto.module'
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard'
 import { PermissionsGuard } from './common/guards/permissions.guard'
 import { TenantModuleGuard } from './common/guards/tenant-module.guard'
+import { LocalModuleGuard } from './common/guards/local-module.guard'
 import { AllExceptionsFilter } from './common/filters/http-exception.filter'
 
 // Control Plane
@@ -20,6 +21,7 @@ import { AdminAuthModule } from './modules/control-plane/admin-auth/admin-auth.m
 import { TenantsModule } from './modules/control-plane/tenants/tenants.module'
 import { PlansModule } from './modules/control-plane/plans/plans.module'
 import { CatalogsAdminModule } from './modules/control-plane/catalogs/catalogs-admin.module'
+import { LicensesModule } from './modules/control-plane/licenses/licenses.module'
 
 // Tenant middleware
 import { TenantResolverMiddleware } from './modules/tenant/tenant-resolver/tenant-resolver.middleware'
@@ -58,6 +60,9 @@ import { AccountsReceivableModule } from './modules/tenant/accounts-receivable/a
 // Tenant — Catalogs (global, read-only for tenant users)
 import { CatalogsModule } from './modules/tenant/catalogs/catalogs.module'
 
+// Local desktop setup (only active when IS_LOCAL_BUNDLE=1)
+import { LocalSetupModule } from './modules/local-setup/local-setup.module'
+
 @Module({
   imports: [
     // Global infrastructure
@@ -66,26 +71,32 @@ import { CatalogsModule } from './modules/tenant/catalogs/catalogs.module'
     CryptoModule,
     JwtModule.register({ global: true }),
 
-    // BullMQ — Redis connection for DTE queue (non-blocking for dev)
-    BullModule.forRootAsync({
-      useFactory: () => {
-        const env = getEnv()
-        return {
-          connection: {
-            url: env.REDIS_URL,
-            lazyConnect: true,
-            enableReadyCheck: false,
-            maxRetriesPerRequest: null,
-          },
-        }
-      },
-    }),
+    // BullMQ is enabled for online/server deployments. Local desktop can run
+    // without Redis and process the DTE outbox directly from PostgreSQL.
+    ...(useBullDteQueue()
+      ? [
+          BullModule.forRootAsync({
+            useFactory: () => {
+              const env = getEnv()
+              return {
+                connection: {
+                  url: env.REDIS_URL,
+                  lazyConnect: true,
+                  enableReadyCheck: false,
+                  maxRetriesPerRequest: null,
+                },
+              }
+            },
+          }),
+        ]
+      : []),
 
     // Control plane (no tenant middleware)
     AdminAuthModule,
     TenantsModule,
     PlansModule,
     CatalogsAdminModule,
+    LicensesModule,
 
     // Tenant — Phase 1
     AuthModule,
@@ -119,19 +130,29 @@ import { CatalogsModule } from './modules/tenant/catalogs/catalogs.module'
 
     // Tenant — Catalogs (global read-only)
     CatalogsModule,
+
+    // Local setup wizard (public endpoints, guarded internally by IS_LOCAL_BUNDLE)
+    LocalSetupModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
     { provide: APP_GUARD, useClass: TenantModuleGuard },
+    { provide: APP_GUARD, useClass: LocalModuleGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     // CSRF: validar Origin en todas las mutaciones (POST/PUT/PATCH/DELETE)
+    // Excluir /setup/* — llamado desde proceso Node.js de Electron sin Origin header
     consumer
       .apply(CsrfMiddleware)
+      .exclude(
+        { path: 'setup/(.*)', method: RequestMethod.ALL },
+        { path: 'licenses/validate', method: RequestMethod.POST },
+        { path: 'licenses/heartbeat', method: RequestMethod.POST },
+      )
       .forRoutes(
         { path: '*', method: RequestMethod.POST },
         { path: '*', method: RequestMethod.PUT },
@@ -148,6 +169,9 @@ export class AppModule implements NestModule {
         { path: 'auth/refresh', method: RequestMethod.POST },
         { path: 'auth/logout', method: RequestMethod.POST },
         { path: 'catalogs/(.*)', method: RequestMethod.GET },
+        { path: 'setup/(.*)', method: RequestMethod.ALL },
+        { path: 'licenses/validate', method: RequestMethod.POST },
+        { path: 'licenses/heartbeat', method: RequestMethod.POST },
       )
       .forRoutes('*')
   }
