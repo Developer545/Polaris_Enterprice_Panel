@@ -149,7 +149,7 @@ export class AppModule implements NestModule {
     consumer
       .apply(CsrfMiddleware)
       .exclude(
-        { path: 'setup/(.*)', method: RequestMethod.ALL },
+        { path: 'setup/*path', method: RequestMethod.ALL },
         { path: 'licenses/validate', method: RequestMethod.POST },
         { path: 'licenses/heartbeat', method: RequestMethod.POST },
       )
@@ -163,13 +163,13 @@ export class AppModule implements NestModule {
     consumer
       .apply(TenantResolverMiddleware)
       .exclude(
-        { path: 'control-plane/(.*)', method: RequestMethod.ALL },
+        { path: 'control-plane/*path', method: RequestMethod.ALL },
         { path: 'health', method: RequestMethod.GET },
         { path: 'auth/login', method: RequestMethod.POST },
         { path: 'auth/refresh', method: RequestMethod.POST },
         { path: 'auth/logout', method: RequestMethod.POST },
-        { path: 'catalogs/(.*)', method: RequestMethod.GET },
-        { path: 'setup/(.*)', method: RequestMethod.ALL },
+        { path: 'catalogs/*path', method: RequestMethod.GET },
+        { path: 'setup/*path', method: RequestMethod.ALL },
         { path: 'licenses/validate', method: RequestMethod.POST },
         { path: 'licenses/heartbeat', method: RequestMethod.POST },
       )
