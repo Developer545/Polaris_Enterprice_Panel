@@ -37,7 +37,6 @@ nsis:
   createStartMenuShortcut: true
   runAfterFinish: true
   language: 3082
-  include: resources/uninstall-cleanup.nsh
 
 publish:
   provider: github

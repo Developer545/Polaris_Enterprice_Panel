@@ -62,5 +62,8 @@ extraResources:
       - "dist/**"
       - "package.json"
 
+nsis:
+  include: resources/uninstall-cleanup.nsh
+
 directories:
   output: release-local
