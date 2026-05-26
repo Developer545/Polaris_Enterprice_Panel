@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, InternalServerErrorException } from '@nestjs/common'
+import { Injectable, ConflictException, InternalServerErrorException, NotFoundException } from '@nestjs/common'
 import { ControlPlaneClient } from '../../infrastructure/prisma/control-plane.client'
 import { TenantClientFactory } from '../../infrastructure/prisma/tenant-client.factory'
 import { getEnv } from '../../config/env'
@@ -14,6 +14,14 @@ export const LocalSetupSchema = z.object({
 })
 
 export type LocalSetupDto = z.infer<typeof LocalSetupSchema>
+
+export const LocalResetAdminSchema = z.object({
+  adminEmail: z.string().email('Correo inválido'),
+  adminPassword: z.string().min(8, 'Contraseña mínimo 8 caracteres'),
+  adminName: z.string().min(2, 'Nombre del administrador requerido').optional(),
+})
+
+export type LocalResetAdminDto = z.infer<typeof LocalResetAdminSchema>
 
 const LOCAL_TENANT_SLUG = 'local'
 
@@ -32,6 +40,50 @@ export class LocalSetupService {
     private readonly cpClient: ControlPlaneClient,
     private readonly clientFactory: TenantClientFactory,
   ) {}
+
+  async resetAdmin(dto: LocalResetAdminDto) {
+    const tenant = await this.cpClient.tenant.findUnique({
+      where: { slug: LOCAL_TENANT_SLUG },
+      select: { id: true, provisioned: true },
+    })
+
+    if (!tenant?.provisioned) {
+      throw new NotFoundException('Polaris Local no ha sido inicializado')
+    }
+
+    const env = getEnv()
+    const db = this.clientFactory.getClient(env.SHARED_TENANT_DATABASE_URL)
+
+    // Buscar rol admin del sistema para ubicar al primer administrador
+    const adminRole = await db.role.findFirst({
+      where: { tenantId: tenant.id, isSystem: true },
+      select: { id: true },
+    })
+
+    const user = await db.user.findFirst({
+      where: {
+        tenantId: tenant.id,
+        ...(adminRole ? { roleId: adminRole.id } : {}),
+      },
+      select: { id: true },
+    })
+
+    if (!user) {
+      throw new NotFoundException('Usuario administrador no encontrado en el sistema')
+    }
+
+    const hash = await bcrypt.hash(dto.adminPassword, 12)
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        password: hash,
+        email: dto.adminEmail,
+        ...(dto.adminName ? { name: dto.adminName } : {}),
+      },
+    })
+
+    return { ok: true }
+  }
 
   async getStatus() {
     const tenant = await this.cpClient.tenant.findUnique({

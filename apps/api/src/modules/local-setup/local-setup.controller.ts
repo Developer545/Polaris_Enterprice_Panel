@@ -1,5 +1,9 @@
 import { Controller, Get, Post, Body, ForbiddenException, HttpCode } from '@nestjs/common'
-import { LocalSetupService, LocalSetupSchema, type LocalSetupDto } from './local-setup.service'
+import {
+  LocalSetupService,
+  LocalSetupSchema, type LocalSetupDto,
+  LocalResetAdminSchema, type LocalResetAdminDto,
+} from './local-setup.service'
 import { Public } from '../../common/decorators/public.decorator'
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe'
 
@@ -26,5 +30,18 @@ export class LocalSetupController {
   init(@Body(new ZodValidationPipe(LocalSetupSchema)) dto: LocalSetupDto) {
     assertLocalBundle()
     return this.service.init(dto)
+  }
+
+  /**
+   * Reinstalación: actualiza email/nombre/contraseña del admin existente.
+   * Solo disponible en instalación local. Sin autenticación porque se llama
+   * antes del primer login.
+   */
+  @Public()
+  @Post('reset-admin')
+  @HttpCode(200)
+  resetAdmin(@Body(new ZodValidationPipe(LocalResetAdminSchema)) dto: LocalResetAdminDto) {
+    assertLocalBundle()
+    return this.service.resetAdmin(dto)
   }
 }

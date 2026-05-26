@@ -84,7 +84,7 @@ app.whenReady().then(async () => {
           }
           if (body.valid) {
             savePermissions({
-              enabledModules: body.enabledModules ?? ['pos', 'ventas', 'clientes', 'inventario', 'servicios'],
+              enabledModules: body.enabledModules ?? ['pos', 'ventas', 'clientes', 'inventario', 'servicios', 'dte'],
               signature:      body.signature ?? '',
               validatedAt:    new Date().toISOString(),
               expiresAt:      body.expiresAt ?? null,
@@ -143,24 +143,77 @@ app.on('second-instance', (_, commandLine) => {
 })
 
 async function provisionLocalTenant(apiUrl: string, setup: SetupResult): Promise<void> {
-  try {
-    const res = await fetch(`${apiUrl}/api/setup/init`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        licenseKey: setup.licenseKey,
-        companyName: setup.companyName,
-        adminName: setup.adminName,
-        adminEmail: setup.adminEmail,
-        adminPassword: setup.adminPassword,
-      }),
-    })
-    if (!res.ok && res.status !== 409) {
-      const err = await res.json().catch(() => ({}))
-      console.error('[local:setup] provision failed:', (err as any).message ?? `HTTP ${res.status}`)
+  // Reintentar hasta 5 veces — la API puede tardar un poco en iniciar
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      const res = await fetch(`${apiUrl}/api/setup/init`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          licenseKey:    setup.licenseKey,
+          companyName:   setup.companyName,
+          adminName:     setup.adminName,
+          adminEmail:    setup.adminEmail,
+          adminPassword: setup.adminPassword,
+        }),
+        signal: AbortSignal.timeout(12_000),
+      })
+
+      if (res.status === 409) {
+        // Reinstalación — tenant ya existe, actualizar credenciales del admin
+        console.log('[local:setup] tenant ya existe (409) — actualizando contraseña del admin')
+        try {
+          const resetRes = await fetch(`${apiUrl}/api/setup/reset-admin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              adminEmail:    setup.adminEmail,
+              adminPassword: setup.adminPassword,
+              adminName:     setup.adminName,
+            }),
+            signal: AbortSignal.timeout(8_000),
+          })
+          if (resetRes.ok) {
+            console.log('[local:setup] credenciales admin actualizadas correctamente')
+          } else {
+            const errBody = await resetRes.json().catch(() => ({})) as any
+            console.warn('[local:setup] no se pudo actualizar credenciales admin:', errBody?.message ?? resetRes.status)
+          }
+        } catch (err: any) {
+          console.warn('[local:setup] error actualizando credenciales admin:', err.message)
+        }
+        return
+      }
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as any
+        const msg = body?.message ?? `HTTP ${res.status}`
+        if (attempt < 5) {
+          console.warn(`[local:setup] intento ${attempt} falló: ${msg} — reintentando...`)
+          await new Promise(r => setTimeout(r, 2000))
+          continue
+        }
+        // Último intento fallido — mostrar diálogo
+        dialog.showErrorBox(
+          'Error al inicializar empresa',
+          `No se pudo crear el perfil de tu empresa en Polaris.\n\nDetalle: ${msg}\n\nSi el problema persiste, desinstala y vuelve a instalar Polaris.`,
+        )
+        return
+      }
+
+      console.log('[local:setup] tenant provisionado correctamente')
+      return
+    } catch (err: any) {
+      if (attempt < 5) {
+        console.warn(`[local:setup] intento ${attempt} error: ${err.message} — reintentando...`)
+        await new Promise(r => setTimeout(r, 2000))
+      } else {
+        dialog.showErrorBox(
+          'Error al inicializar empresa',
+          `No se pudo conectar con el servidor local de Polaris.\n\nDetalle: ${err.message}\n\nAsegúrate de que PostgreSQL esté encendido y vuelve a intentarlo.`,
+        )
+      }
     }
-  } catch (err: any) {
-    console.error('[local:setup] provision error:', err.message)
   }
 }
 

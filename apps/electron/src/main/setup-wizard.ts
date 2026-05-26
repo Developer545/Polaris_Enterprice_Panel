@@ -3,11 +3,13 @@ import path from 'path'
 import fs from 'fs'
 import os from 'os'
 import crypto from 'crypto'
+import net from 'net'
 import { Client } from 'pg'
+import { generateHwid, loadLicenseInfo } from './module-permissions'
 // @ts-ignore — Vite ?raw is valid but not typed in SSR tsconfig
 import wizardHtml from './setup-wizard.html?raw'
 
-const PANEL_URL = 'https://polaris-enterprice-panel.onrender.com'
+const PANEL_URL = process.env.LICENSE_PANEL_URL ?? 'https://polaris-api.speeddan.com'
 
 export type SetupResult = {
   licenseKey: string | null
@@ -72,45 +74,155 @@ export async function showSetupWizard(): Promise<SetupResult> {
       reject(new Error('Configuración cancelada'))
     })
 
+    handle('setup:get-hwid', () => generateHwid())
+
+    // Devuelve la licencia guardada (si existe) para pre-rellenar en reinstalación
+    handle('setup:get-existing-license', () => {
+      const info = loadLicenseInfo()
+      return { licenseKey: info?.licenseKey ?? null }
+    })
+
+    handle('setup:check-pg', async (_, cfg: { host: string; port: number }) => {
+      return new Promise<{ ok: boolean; error?: string }>((resolve) => {
+        const sock = new net.Socket()
+        const timeout = setTimeout(() => {
+          sock.destroy()
+          resolve({ ok: false, error: 'Tiempo de espera agotado' })
+        }, 4000)
+        sock.connect(cfg.port, cfg.host, () => {
+          clearTimeout(timeout)
+          sock.destroy()
+          resolve({ ok: true })
+        })
+        sock.on('error', (err) => {
+          clearTimeout(timeout)
+          resolve({ ok: false, error: err.message })
+        })
+      })
+    })
+
     handle('setup:validate-license', async (_, key: string) => {
+      const hwid = generateHwid()
       try {
-        const res = await fetch(`${PANEL_URL}/api/licenses/validate`, {
+        const res = await fetch(`${PANEL_URL}/licenses/validate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ licenseKey: key }),
+          body: JSON.stringify({ licenseKey: key, hwid }),
           signal: AbortSignal.timeout(8000),
         })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) return { ok: false, error: (data as any).message ?? 'Licencia inválida' }
+        const data = await res.json().catch(() => ({})) as any
+        if (!res.ok) {
+          if (data?.reason === 'hwid_mismatch') {
+            return { ok: false, hwidMismatch: true, error: 'hwid_mismatch' }
+          }
+          return { ok: false, error: data?.message ?? 'Contraseña no válida' }
+        }
+        if (!data?.valid) {
+          if (data?.reason === 'hwid_mismatch') {
+            return { ok: false, hwidMismatch: true, error: 'hwid_mismatch' }
+          }
+          return { ok: false, error: data?.reason ?? 'Contraseña no válida' }
+        }
         return { ok: true, data }
       } catch {
-        // Panel offline — allow anyway, license checked on next online start
-        return { ok: true, data: {} }
+        // Panel offline — guardar clave para verificar en próximo inicio con internet
+        return { ok: true, offline: true, data: {} }
       }
     })
 
-    handle('setup:test-db', async (_, cfg: {
-      host: string; port: number; user: string; password: string; database: string
+    handle('setup:auto-config-db', async (_, opts: {
+      host: string; port: number; adminPassword: string; dbName: string
     }) => {
-      const client = new Client({
-        host: cfg.host,
-        port: cfg.port,
-        user: cfg.user,
-        password: cfg.password,
-        database: cfg.database,
-        connectionTimeoutMillis: 6000,
+      const { host, port, adminPassword, dbName } = opts
+      const appUser     = 'pos_dte'
+      const appPassword = crypto.randomBytes(20).toString('hex')
+      const controlDb   = `${dbName}_control`
+      const tenantDb    = `${dbName}_tenant`
+
+      const admin = new Client({
+        host, port,
+        user: 'postgres',
+        password: adminPassword,
+        database: 'postgres',
+        connectionTimeoutMillis: 8000,
       })
       try {
-        await client.connect()
-        await client.query('SELECT 1')
-        return { ok: true }
+        await admin.connect()
+
+        // Crear usuario (o actualizar contraseña si ya existe)
+        const userExists = await admin.query(`SELECT 1 FROM pg_roles WHERE rolname = $1`, [appUser])
+        if ((userExists.rowCount ?? 0) > 0) {
+          await admin.query(`ALTER USER "${appUser}" WITH PASSWORD '${appPassword}'`)
+        } else {
+          await admin.query(`CREATE USER "${appUser}" WITH PASSWORD '${appPassword}'`)
+        }
+
+        // Crear BD control
+        const ctrlExists = await admin.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [controlDb])
+        if ((ctrlExists.rowCount ?? 0) === 0) {
+          await admin.query(`CREATE DATABASE "${controlDb}" OWNER "${appUser}"`)
+        } else {
+          await admin.query(`ALTER DATABASE "${controlDb}" OWNER TO "${appUser}"`)
+        }
+
+        // Crear BD datos
+        const tenantExists = await admin.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [tenantDb])
+        if ((tenantExists.rowCount ?? 0) === 0) {
+          await admin.query(`CREATE DATABASE "${tenantDb}" OWNER "${appUser}"`)
+        } else {
+          await admin.query(`ALTER DATABASE "${tenantDb}" OWNER TO "${appUser}"`)
+        }
+
+        await admin.query(`GRANT ALL PRIVILEGES ON DATABASE "${controlDb}" TO "${appUser}"`)
+        await admin.query(`GRANT ALL PRIVILEGES ON DATABASE "${tenantDb}" TO "${appUser}"`)
+
+        // PostgreSQL 15+ requiere GRANT explícito en schema public
+        const grantSchema = async (dbName: string) => {
+          const c = new Client({ host, port, user: 'postgres', password: adminPassword, database: dbName, connectionTimeoutMillis: 6000 })
+          try {
+            await c.connect()
+            await c.query(`GRANT ALL ON SCHEMA public TO "${appUser}"`)
+            await c.query(`GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${appUser}"`)
+            await c.query(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "${appUser}"`)
+          } finally { await c.end().catch(() => {}) }
+        }
+        await grantSchema(controlDb)
+        await grantSchema(tenantDb)
+
+        // Verificación final: conectar como pos_dte a ambas BDs para confirmar
+        const verifyDb = async (db: string) => {
+          const c = new Client({
+            host, port,
+            user:     appUser,
+            password: appPassword,
+            database: db,
+            connectionTimeoutMillis: 6000,
+          })
+          try {
+            await c.connect()
+            await c.query('SELECT 1')
+          } finally {
+            await c.end().catch(() => {})
+          }
+        }
+        await verifyDb(controlDb)
+        await verifyDb(tenantDb)
+
+        return {
+          ok:          true,
+          controlDb,
+          tenantDb,
+          config: { host, port, user: appUser, password: appPassword, controlDatabase: controlDb, tenantDatabase: tenantDb },
+        }
       } catch (err: any) {
         return { ok: false, error: err.message ?? String(err) }
       } finally {
-        await client.end().catch(() => { /* ignore */ })
+        await admin.end().catch(() => {})
       }
     })
 
+    // Guarda config + permanece en paso 4 (NO cierra ventana aún)
+    let pendingPayload: SetupResult | null = null
     handle('setup:complete', (_, payload: SetupResult) => {
       try {
         const serverConfig = {
@@ -123,15 +235,22 @@ export async function showSetupWizard(): Promise<SetupResult> {
         }
         fs.mkdirSync(path.dirname(configPath()), { recursive: true })
         fs.writeFileSync(configPath(), JSON.stringify(serverConfig, null, 2), 'utf8')
-
-        cleanup()
-        win.removeAllListeners('closed')
-        win.close()
-        resolve(payload)
+        pendingPayload = payload
         return { ok: true }
       } catch (err: any) {
         return { ok: false, error: err.message ?? String(err) }
       }
+    })
+
+    // Usuario presionó "Abrir Polaris" en paso 4 → cerrar wizard y continuar
+    handle('setup:open', () => {
+      if (!pendingPayload) return { ok: false, error: 'Sin datos pendientes' }
+      const payload = pendingPayload
+      cleanup()
+      win.removeAllListeners('closed')
+      win.close()
+      resolve(payload)
+      return { ok: true }
     })
 
     handle('setup:quit', () => {
