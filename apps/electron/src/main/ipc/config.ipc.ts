@@ -1,11 +1,16 @@
 import { ipcMain, safeStorage } from 'electron'
 import { app } from 'electron'
-import Store from 'electron-store'
+import { SimpleStore } from '../simple-store'
+import fs from 'fs'
+import path from 'path'
 
 // Production NestJS API URL — overridable via electron-store for enterprise deployments
-const DEFAULT_API_URL = process.env.API_URL ?? 'https://polaris-enterprice-panel.onrender.com'
+const REMOTE_API_URL = 'https://polaris-enterprice-panel.onrender.com'
+const REMOTE_WEB_URL = 'https://polaris-web-sooty.vercel.app'
+const CONFIG_KEYS = new Set(['apiUrl', 'webUrl', 'printerInterface', 'printerType', 'printerAddress', 'cashDrawerPort'])
+const SECURE_CONFIG_KEYS = new Set(['apiToken', 'licenseKey'])
 
-const store = new Store({
+const store = new SimpleStore({
   name: 'pos-dte-config',
   defaults: {
     printerInterface: 'usb',
@@ -16,7 +21,55 @@ const store = new Store({
 
 export function getApiUrl(): string {
   const override = store.get('apiUrl') as string | undefined
-  return override?.trim() || DEFAULT_API_URL
+  return normalizeHttpUrl(override?.trim())
+    ?? normalizeHttpUrl(process.env.API_URL)
+    ?? normalizeHttpUrl(readLocalDefaults().apiUrl)
+    ?? REMOTE_API_URL
+}
+
+export function getWebUrl(): string {
+  const override = store.get('webUrl') as string | undefined
+  return normalizeHttpUrl(override?.trim())
+    ?? normalizeHttpUrl(process.env.WEB_URL)
+    ?? normalizeHttpUrl(readLocalDefaults().webUrl)
+    ?? REMOTE_WEB_URL
+}
+
+function readLocalDefaults(): { apiUrl?: string; webUrl?: string } {
+  const candidates = [
+    path.join(process.resourcesPath ?? '', 'local-config.json'),
+    path.join(process.cwd(), 'local-config.json'),
+    app.isReady() ? path.join(app.getPath('userData'), 'local-config.json') : '',
+  ].filter(Boolean)
+
+  for (const file of candidates) {
+    try {
+      if (!fs.existsSync(file)) continue
+      const parsed = JSON.parse(fs.readFileSync(file, 'utf8'))
+      return {
+        apiUrl: typeof parsed.apiUrl === 'string' ? parsed.apiUrl : undefined,
+        webUrl: typeof parsed.webUrl === 'string' ? parsed.webUrl : undefined,
+      }
+    } catch {
+      // Ignore malformed local defaults and continue to store/env/remote defaults.
+    }
+  }
+  return {}
+}
+
+function normalizeHttpUrl(value: string | undefined): string | null {
+  if (!value) return null
+  try {
+    const parsed = new URL(value)
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null
+    return parsed.toString().replace(/\/$/, '')
+  } catch {
+    return null
+  }
+}
+
+function assertAllowedKey(key: string, allowed: Set<string>) {
+  if (!allowed.has(key)) throw new Error(`Config key not allowed: ${key}`)
 }
 
 export function setupConfigIpc(): void {
@@ -25,20 +78,33 @@ export function setupConfigIpc(): void {
     event.returnValue = getApiUrl()
   })
 
-  ipcMain.handle('config:get', (_, key: string) => store.get(key))
+  ipcMain.handle('config:get', (_, key: string) => {
+    assertAllowedKey(key, CONFIG_KEYS)
+    return store.get(key)
+  })
 
-  ipcMain.handle('config:set', (_, key: string, value: unknown) => { store.set(key, value) })
+  ipcMain.handle('config:set', (_, key: string, value: unknown) => {
+    assertAllowedKey(key, CONFIG_KEYS)
+    if (key === 'apiUrl' || key === 'webUrl') {
+      const normalized = normalizeHttpUrl(String(value ?? ''))
+      if (!normalized) throw new Error('URL must be http or https')
+      store.set(key, normalized)
+      return
+    }
+    store.set(key, value)
+  })
 
   ipcMain.handle('config:get-secure', (_, key: string) => {
+    assertAllowedKey(key, SECURE_CONFIG_KEYS)
     const raw = store.get(`secure.${key}`) as string | undefined
     if (!raw || !safeStorage.isEncryptionAvailable()) return null
     try { return safeStorage.decryptString(Buffer.from(raw, 'base64')) } catch { return null }
   })
 
   ipcMain.handle('config:set-secure', (_, key: string, value: string) => {
-    const encrypted = safeStorage.isEncryptionAvailable()
-      ? safeStorage.encryptString(value).toString('base64')
-      : value
+    assertAllowedKey(key, SECURE_CONFIG_KEYS)
+    if (!safeStorage.isEncryptionAvailable()) throw new Error('Secure storage is not available')
+    const encrypted = safeStorage.encryptString(value).toString('base64')
     store.set(`secure.${key}`, encrypted)
   })
 

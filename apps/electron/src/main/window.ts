@@ -1,10 +1,11 @@
 import { BrowserWindow, shell, session } from 'electron'
 import path from 'path'
 
-const SPLASH_MIN_MS = 10_000
+const SPLASH_MIN_MS = 2_500
 
 export async function createMainWindow(webUrl: string): Promise<BrowserWindow> {
   const isDev = process.env.NODE_ENV === 'development'
+  const allowsLocalHttp = isDev || webUrl.startsWith('http://')
 
   // Splash: loads instantly from local file
   const splash = new BrowserWindow({
@@ -28,6 +29,7 @@ export async function createMainWindow(webUrl: string): Promise<BrowserWindow> {
     backgroundColor: '#f5f5f5',
     // Native title bar with Windows controls (close/min/max)
     titleBarStyle: 'default',
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -37,9 +39,9 @@ export async function createMainWindow(webUrl: string): Promise<BrowserWindow> {
     },
   })
 
-  // CSP: dev allows localhost HTTP, prod restricts to HTTPS
-  const csp = isDev
-    ? "default-src 'self' http://localhost:* ws://localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:*; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https: http://localhost:* blob:; font-src 'self' data: https:; connect-src 'self' http://localhost:* ws://localhost:* https: wss:;"
+  // CSP: LAN builds may load the web/API over http from a private network server.
+  const csp = allowsLocalHttp
+    ? "default-src 'self' http: https: ws: wss:; script-src 'self' 'unsafe-inline' 'unsafe-eval' http: https:; style-src 'self' 'unsafe-inline' http: https:; img-src 'self' data: http: https: blob:; font-src 'self' data: http: https:; connect-src 'self' http: https: ws: wss:;"
     : "default-src 'self' https: wss:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'self' https: wss:;"
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
@@ -70,11 +72,6 @@ export async function createMainWindow(webUrl: string): Promise<BrowserWindow> {
     tryShowWindow()
   }, SPLASH_MIN_MS)
 
-  main.once('ready-to-show', () => {
-    mainReady = true
-    tryShowWindow()
-  })
-
   // Fallback: show window after 15s even if ready-to-show never fires
   const fallbackTimer = setTimeout(() => {
     mainReady = true
@@ -82,7 +79,12 @@ export async function createMainWindow(webUrl: string): Promise<BrowserWindow> {
     tryShowWindow()
   }, 15_000)
 
-  main.once('ready-to-show', () => clearTimeout(fallbackTimer))
+  // Single listener — clears fallback timer AND triggers show logic
+  main.once('ready-to-show', () => {
+    clearTimeout(fallbackTimer)
+    mainReady = true
+    tryShowWindow()
+  })
 
   // Offline fallback
   main.webContents.on('did-fail-load', (_e, code, desc) => {
@@ -95,7 +97,14 @@ export async function createMainWindow(webUrl: string): Promise<BrowserWindow> {
 
   // Open external links in browser
   main.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+        shell.openExternal(url)
+      }
+    } catch {
+      // Ignore malformed or non-web URLs.
+    }
     return { action: 'deny' }
   })
 

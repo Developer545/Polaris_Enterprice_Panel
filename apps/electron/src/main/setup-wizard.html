@@ -562,11 +562,10 @@
     try {
       const res = await ipcRenderer.invoke('setup:validate-license', key)
       if (res.offline) {
-        // Sin internet — clave guardada, se valida en próximo inicio con conexión
-        licenseKey  = key
-        skipLicense = false
-        showStatus('s1', 'warn', '⚠ Sin conexión al servidor de activación. Tu contraseña quedó guardada y se verificará automáticamente cuando haya internet. Continuando...')
-        setTimeout(() => goStep(2), 1800)
+        showStatus('s1', 'error',
+          '❌ <strong>Sin conexión al servidor de activación.</strong><br>' +
+          'Necesitas internet para activar tu licencia por primera vez.<br>' +
+          'Verifica tu conexión y vuelve a intentarlo.')
         return
       }
       if (res.hwidMismatch) {

@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { spawn, type ChildProcess } from 'child_process'
+import { spawn, execSync, type ChildProcess } from 'child_process'
 import net from 'net'
 import fs from 'fs'
 import path from 'path'
@@ -105,7 +105,7 @@ export async function startLocalServices(): Promise<LocalServices> {
     },
   }))
 
-  await waitForUrl(webUrl, 30_000)
+  await waitForUrl(webUrl, 60_000)
 
   return { apiUrl, webUrl, stop: stopLocalServices }
 }
@@ -211,13 +211,57 @@ async function waitForUrl(url: string, timeoutMs: number): Promise<void> {
   throw new Error(`Timed out waiting for ${url}: ${String(lastError)}`)
 }
 
+/**
+ * Verifica que el puerto esté libre. Si está ocupado, intenta matar el proceso
+ * que lo usa (proceso huérfano de una ejecución anterior que crasheó).
+ * Reintenta 3 veces con pausa de 1 segundo entre intentos.
+ */
 async function assertPortFree(port: number): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const free = await isPortFree(port)
+    if (free) return
+
+    if (attempt === 0) {
+      // Primer intento fallido — tratar de matar proceso que usa ese puerto
+      killPortProcess(port)
+      await new Promise(r => setTimeout(r, 1200))
+    } else {
+      await new Promise(r => setTimeout(r, 1000))
+    }
+  }
+  throw new Error(
+    `El puerto ${port} está en uso. Intenta reiniciar la computadora si el problema persiste.`
+  )
+}
+
+function isPortFree(port: number): Promise<boolean> {
+  return new Promise(resolve => {
     const server = net.createServer()
-    server.once('error', () => reject(new Error(`Local port ${port} is already in use`)))
-    server.once('listening', () => server.close(() => resolve()))
+    server.once('error', () => resolve(false))
+    server.once('listening', () => server.close(() => resolve(true)))
     server.listen(port, '127.0.0.1')
   })
+}
+
+function killPortProcess(port: number): void {
+  try {
+    if (process.platform === 'win32') {
+      // netstat -aon | findstr :PORT → obtener PID
+      const raw = execSync(`netstat -aon | findstr :${port}`, { encoding: 'utf8', timeout: 3000 })
+      const pids = new Set<string>()
+      for (const line of raw.split('\n')) {
+        // Buscar entradas LISTENING o ESTABLISHED con el puerto exacto
+        if (!line.includes(`:${port} `)) continue
+        const match = line.trim().match(/(\d+)\s*$/)
+        if (match && match[1] !== '0') pids.add(match[1])
+      }
+      for (const pid of pids) {
+        try { execSync(`taskkill /F /PID ${pid}`, { timeout: 3000 }) } catch { /* ignore */ }
+      }
+    } else {
+      execSync(`fuser -k ${port}/tcp`, { timeout: 3000 })
+    }
+  } catch { /* ignore — port might already be free */ }
 }
 
 async function runLocalMigrations(localRoot: string, scope: 'control-plane' | 'tenant', databaseUrl: string): Promise<void> {

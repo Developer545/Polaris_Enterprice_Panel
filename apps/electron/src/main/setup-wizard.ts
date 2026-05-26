@@ -125,8 +125,8 @@ export async function showSetupWizard(): Promise<SetupResult> {
         }
         return { ok: true, data }
       } catch {
-        // Panel offline — guardar clave para verificar en próximo inicio con internet
-        return { ok: true, offline: true, data: {} }
+        // Panel no disponible — no permitir bypass en primer arranque
+        return { ok: false, offline: true, error: 'Sin conexión al servidor de activación. Necesitas internet para activar tu licencia por primera vez.' }
       }
     })
 

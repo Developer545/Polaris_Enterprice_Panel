@@ -1,6 +1,6 @@
 {
   "name": "@pos-dte/electron",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Polaris — Desktop App",
   "author": "Speeddan System <info@speeddan.com>",
   "private": true,
@@ -9,17 +9,20 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "package": "electron-vite build && electron-builder",
+    "package:local": "powershell -ExecutionPolicy Bypass -File ../../scripts/build-electron-local.ps1",
+    "package:local:dry": "powershell -ExecutionPolicy Bypass -File ../../scripts/build-electron-local.ps1 -SkipInstaller",
     "type-check": "tsc --noEmit -p tsconfig.node.json"
   },
   "dependencies": {
     "electron-log": "^5.2.4",
-    "electron-store": "^8.2.0",
     "electron-updater": "^6.3.9",
     "node-thermal-printer": "^4.4.2",
+    "pg": "^8.21.0",
     "serialport": "^13.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.20.0",
     "electron": "^42.1.0",
     "electron-builder": "^26.8.1",
     "electron-vite": "^5.0.0",
