@@ -8,11 +8,17 @@ import {
 import {
   PlusOutlined, CopyOutlined, StopOutlined,
   CheckCircleOutlined, KeyOutlined, DeleteOutlined,
-  AppstoreOutlined, ReloadOutlined,
+  AppstoreOutlined, ReloadOutlined, CloudDownloadOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { api } from '../../../lib/api'
+import {
+  ADDON_MODULE_IDS,
+  BASE_MODULES as BASE_LICENSE_MODULES,
+  MODULE_REGISTRY,
+  type ModuleId,
+} from '@pos-dte/shared-types'
 
 const { Text } = Typography
 
@@ -40,6 +46,7 @@ const MODULE_GROUPS = [
       { value: 'clientes',   label: 'Clientes' },
       { value: 'inventario', label: 'Inventario' },
       { value: 'servicios',  label: 'Servicios / Productos' },
+      { value: 'dte',        label: 'DTE' },
     ],
     base: true,
   },
@@ -84,7 +91,40 @@ const MODULE_GROUPS = [
   },
 ]
 
-const BASE_MODULES = ['pos', 'ventas', 'clientes', 'inventario', 'servicios']
+const GROUP_LABEL: Record<string, string> = {
+  base:       'Base (siempre incluidos)',
+  ventas:     'Ventas',
+  inventario: 'Inventario',
+  compras:    'Compras',
+  finanzas:   'Finanzas',
+  rrhh:       'RRHH',
+  proyectos:  'Proyectos',
+  reportes:   'Reportes',
+}
+
+const moduleOption = (id: ModuleId) => ({
+  value: id,
+  label: MODULE_REGISTRY[id].name,
+})
+
+const BASE_MODULES = [...BASE_LICENSE_MODULES]
+
+const REGISTRY_MODULE_GROUPS = [
+  {
+    label: GROUP_LABEL.base,
+    modules: BASE_LICENSE_MODULES.map(moduleOption),
+    base: true,
+  },
+  ...(['ventas', 'inventario', 'compras', 'finanzas', 'rrhh', 'proyectos', 'reportes'] as const)
+    .map((category) => ({
+      label: GROUP_LABEL[category],
+      modules: ADDON_MODULE_IDS
+        .filter((id) => MODULE_REGISTRY[id].category === category)
+        .map(moduleOption),
+      base: false,
+    }))
+    .filter((group) => group.modules.length > 0),
+]
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -203,9 +243,21 @@ export default function LicensesPage() {
       api.delete(`/api/control-plane/licenses/${id}`).then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'licenses'] })
-      message.success('Licencia eliminada')
+      message.success('Licencia archivada. Puedes reactivarla si fue un error.')
     },
-    onError: () => message.error('Error al eliminar'),
+    onError: () => message.error('Error al archivar'),
+  })
+
+  const backupMutation = useMutation({
+    mutationFn: (id: string) =>
+      api.post(`/api/control-plane/licenses/${id}/commands/backup`, {
+        reason: 'Solicitud manual desde panel',
+      }).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'licenses'] })
+      message.success('Backup solicitado. La PC local lo ejecutara en el proximo sync.')
+    },
+    onError: () => message.error('Error al solicitar backup'),
   })
 
   // ── Handlers ──────────────────────────────────────────────────────────────────
@@ -339,14 +391,30 @@ export default function LicensesPage() {
             </Popconfirm>
           )}
 
-          {/* Eliminar */}
+          {r.hwid && (
+            <Popconfirm
+              title="Solicitar backup local"
+              description="La orden se enviara a la instalacion local en su proximo sync o arranque."
+              okText="Solicitar" cancelText="Cancelar"
+              onConfirm={() => backupMutation.mutate(r.id)}
+            >
+              <Tooltip title="Solicitar backup">
+                <Button
+                  size="small" type="text"
+                  icon={<CloudDownloadOutlined style={{ color: '#1677ff' }} />}
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
+
+          {/* Archivar: baja reversible, no borra el registro */}
           <Popconfirm
-            title="¿Eliminar esta licencia?"
-            description="Esta acción no se puede deshacer."
-            okText="Eliminar" cancelText="Cancelar" okButtonProps={{ danger: true }}
+            title="¿Archivar esta licencia?"
+            description="No se borrará: quedará suspendida y podrás reactivarla si fue un error."
+            okText="Archivar" cancelText="Cancelar" okButtonProps={{ danger: true }}
             onConfirm={() => deleteMutation.mutate(r.id)}
           >
-            <Tooltip title="Eliminar">
+            <Tooltip title="Archivar licencia">
               <Button size="small" type="text" danger icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
@@ -498,7 +566,7 @@ export default function LicensesPage() {
           El cliente recibirá el cambio en el próximo arranque de la aplicación.
         </div>
 
-        {MODULE_GROUPS.map((group) => (
+        {REGISTRY_MODULE_GROUPS.map((group) => (
           <div key={group.label}>
             <Divider orientation="left" style={{ fontSize: 12, color: '#9b9b99', margin: '12px 0 8px' }}>
               {group.label}

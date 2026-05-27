@@ -1,13 +1,20 @@
-import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
+import { defineConfig } from 'electron-vite'
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    ssr: {
+      noExternal: [
+        'electron-updater',
+        'electron-log',
+        'pg',
+        'node-thermal-printer',
+      ],
+    },
     build: {
       outDir: 'dist/main',
       lib: { entry: 'src/main/index.ts' },
       rollupOptions: {
-        external: ['serialport', 'node-thermal-printer', '@serialport/bindings-cpp'],
+        external: ['electron', 'serialport', '@serialport/bindings-cpp'],
       },
     },
   },

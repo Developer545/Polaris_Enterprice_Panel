@@ -1,5 +1,6 @@
 appId: com.speeddan.polaris
 productName: Polaris
+artifactName: "Polaris-Cloud-${version}-${os}-${arch}.${ext}"
 copyright: Copyright © 2025 Speeddan System
 electronVersion: "42.1.0"
 electronDist: "../../node_modules/electron/dist"

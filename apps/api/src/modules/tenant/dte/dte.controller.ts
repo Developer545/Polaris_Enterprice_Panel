@@ -7,9 +7,11 @@ import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import { PERMISSIONS } from '@pos-dte/shared-types'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { RequireModule } from '../../../common/decorators/tenant-module.decorator'
+import { RequireLocalModule } from '../../../common/decorators/local-module.decorator'
 import { z } from 'zod'
 
 @RequireModule('dte')
+@RequireLocalModule('dte')
 @Controller('dte')
 export class DteController {
   constructor(private readonly svc: DteService) {}

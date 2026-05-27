@@ -54,7 +54,8 @@ async function bootstrap() {
     logger.log(`Swagger: http://localhost:${env.PORT}/api/docs`)
   }
 
-  await app.listen(env.PORT, '0.0.0.0')
+  const host = env.IS_LOCAL_BUNDLE === '1' ? '127.0.0.1' : '0.0.0.0'
+  await app.listen(env.PORT, host)
   logger.log(`🚀 API running on port ${env.PORT} [${env.NODE_ENV}]`)
 }
 

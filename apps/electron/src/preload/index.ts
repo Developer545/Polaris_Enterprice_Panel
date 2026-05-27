@@ -46,6 +46,10 @@ const electronAPI = {
   },
 
   // ── Dialog / File system ─────────────────────────────────────────────────
+  shortcuts: {
+    status: () => ipcRenderer.invoke('shortcuts:status'),
+  },
+
   dialog: {
     savePdf: (payload: SavePdfPayload) => ipcRenderer.invoke('dialog:save-pdf', payload),
     openFile: (opts: { title?: string; extensions?: string[]; multiSelections?: boolean }) =>

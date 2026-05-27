@@ -1,0 +1,18 @@
+{
+  "apiPort": 4000,
+  "webPort": 3010,
+  "dteQueueDriver": "local",
+  "postgres": {
+    "host": "127.0.0.1",
+    "port": 5432,
+    "user": "pos_dte",
+    "password": "pos_dte_local_password",
+    "controlDatabase": "pos_dte_control",
+    "tenantDatabase": "pos_dte_tenant"
+  },
+  "corsOrigins": "http://127.0.0.1:3010,http://localhost:3010",
+  "jwtAccessSecret": "replace-with-unique-local-access-secret-32chars",
+  "jwtRefreshSecret": "replace-with-unique-local-refresh-secret-32chars",
+  "jwtAdminSecret": "replace-with-unique-local-admin-secret-32chars",
+  "encryptionKey": "1111111111111111111111111111111111111111111111111111111111111111"
+}

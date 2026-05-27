@@ -4,6 +4,7 @@ import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-clien
 import { EncryptionService } from '../../../infrastructure/crypto/encryption.service'
 import { RedisService } from '../../../infrastructure/redis/redis.service'
 import { getEnv } from '../../../config/env'
+import { ALL_MODULE_IDS, BASE_MODULES, DTE_TYPE_VALUES, moduleMapFromIds } from '@pos-dte/shared-types'
 import * as bcrypt from 'bcryptjs'
 import { z } from 'zod'
 
@@ -32,7 +33,7 @@ export const UpdateModulesSchema = z.object({
 })
 
 export const UpdateDteTypesSchema = z.object({
-  dteAllowedTypes: z.array(z.enum(['01', '03', '05', '06', '11'])),
+  dteAllowedTypes: z.array(z.enum(DTE_TYPE_VALUES)),
 })
 
 export const ProvisionTenantSchema = z.object({
@@ -49,14 +50,7 @@ export type UpdateDteTypesDto = z.infer<typeof UpdateDteTypesSchema>
 export type ProvisionTenantDto = z.infer<typeof ProvisionTenantSchema>
 
 // Default module configuration for new tenants
-const DEFAULT_MODULES: Record<string, boolean> = {
-  pos: true,
-  dte: true,
-  inventario: true,
-  compras: false,
-  gastos: false,
-  reportes: true,
-}
+const DEFAULT_MODULES: Record<string, boolean> = moduleMapFromIds(BASE_MODULES)
 
 @Injectable()
 export class TenantsService {
@@ -138,7 +132,13 @@ export class TenantsService {
     await this.findOne(id)
     const tenant = await this.cpClient.tenant.findUnique({ where: { id }, select: { slug: true } })
     if (tenant) await this.redis.del(`tenant:${tenant.slug}`)
-    return this.cpClient.tenant.update({ where: { id }, data: { modules: dto.modules } })
+    const modules = Object.fromEntries(
+      ALL_MODULE_IDS.map((moduleId) => [
+        moduleId,
+        (BASE_MODULES as readonly string[]).includes(moduleId) || dto.modules[moduleId] === true,
+      ]),
+    )
+    return this.cpClient.tenant.update({ where: { id }, data: { modules } })
   }
 
   async updateDteTypes(id: string, dto: UpdateDteTypesDto) {

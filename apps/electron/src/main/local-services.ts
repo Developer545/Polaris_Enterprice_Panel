@@ -4,6 +4,7 @@ import net from 'net'
 import fs from 'fs'
 import path from 'path'
 import { Client } from 'pg'
+import { randomBytes } from 'crypto'
 
 type LocalServiceConfig = {
   apiPort?: number
@@ -25,10 +26,13 @@ type LocalServiceConfig = {
   sharedTenantDatabaseUrl?: string
   redisUrl?: string
   corsOrigins?: string
+  backupDir?: string
+  pgDumpPath?: string
   jwtAccessSecret?: string
   jwtRefreshSecret?: string
   jwtAdminSecret?: string
   encryptionKey?: string
+  localSetupToken?: string
 }
 
 type LocalServices = {
@@ -49,6 +53,8 @@ export async function startLocalServices(): Promise<LocalServices> {
   const config = readLocalServiceConfig(localRoot)
   const apiPort = config.apiPort ?? 4000
   const webPort = config.webPort ?? 3010
+  const localSetupToken = config.localSetupToken ?? randomBytes(32).toString('hex')
+  process.env.LOCAL_SETUP_TOKEN = localSetupToken
   await assertPortFree(apiPort)
   await assertPortFree(webPort)
   const apiUrl = `http://127.0.0.1:${apiPort}`
@@ -80,6 +86,9 @@ export async function startLocalServices(): Promise<LocalServices> {
     ENCRYPTION_KEY: config.encryptionKey ?? '1111111111111111111111111111111111111111111111111111111111111111',
     // Ruta del archivo JSON de permisos escrito por el proceso Electron principal
     LOCAL_PERMISSIONS_FILE: process.env.LOCAL_PERMISSIONS_FILE ?? '',
+    LOCAL_SETUP_TOKEN: localSetupToken,
+    LOCAL_BACKUP_DIR: config.backupDir ?? path.join(app.getPath('documents'), 'Polaris Backups'),
+    ...(config.pgDumpPath ? { PG_DUMP_PATH: config.pgDumpPath } : {}),
   }
 
   await runLocalMigrations(localRoot, 'control-plane', apiEnv.CONTROL_PLANE_DATABASE_URL)

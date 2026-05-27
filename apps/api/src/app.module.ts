@@ -152,6 +152,7 @@ export class AppModule implements NestModule {
         { path: 'setup/*path', method: RequestMethod.ALL },
         { path: 'licenses/validate', method: RequestMethod.POST },
         { path: 'licenses/heartbeat', method: RequestMethod.POST },
+        { path: 'licenses/sync', method: RequestMethod.POST },
       )
       .forRoutes(
         { path: '*', method: RequestMethod.POST },
@@ -172,6 +173,7 @@ export class AppModule implements NestModule {
         { path: 'setup/*path', method: RequestMethod.ALL },
         { path: 'licenses/validate', method: RequestMethod.POST },
         { path: 'licenses/heartbeat', method: RequestMethod.POST },
+        { path: 'licenses/sync', method: RequestMethod.POST },
       )
       .forRoutes('*')
   }

@@ -160,19 +160,36 @@ app.whenReady().then(async () => {
             valid:           boolean
             enabledModules?: string[]
             signature?:      string
+            validatedAt?:    string
             expiresAt?:      string | null
+            licenseRevision?: number
             plan?:           string
           }
-          if (body.valid) {
+          if (body.valid && body.signature && body.validatedAt) {
             savePermissions({
-              enabledModules: body.enabledModules ?? ['pos', 'ventas', 'clientes', 'inventario', 'servicios', 'dte'],
-              signature:      body.signature ?? '',
-              validatedAt:    new Date().toISOString(),
-              expiresAt:      body.expiresAt ?? null,
-              plan:           body.plan ?? 'LOCAL',
+              enabledModules: body.enabledModules ?? [
+                'dashboard',
+                'pos',
+                'ventas',
+                'dte',
+                'turnos_caja',
+                'clientes',
+                'proveedores',
+                'inventario',
+                'productos',
+                'servicios',
+              ],
+              signature:      body.signature,
+              validatedAt:    body.validatedAt, // usar el del servidor — es el que está firmado
+              expiresAt:      body.expiresAt   ?? null,
+              plan:           body.plan        ?? 'LOCAL',
               hwid,
+              licenseRevision: body.licenseRevision ?? 1,
+              lastPanelSyncAt: body.validatedAt,
             })
             console.log('[main] Licencia activada — módulos:', body.enabledModules?.join(', '))
+          } else if (body.valid) {
+            console.warn('[main] El panel no devolvió firma/timestamp — permisos rechazados')
           } else {
             console.warn('[main] Licencia inválida:', (body as any).reason)
           }
@@ -181,7 +198,7 @@ app.whenReady().then(async () => {
         }
       } else {
         // Arranque normal — refresh si cache > 7 días
-        await refreshIfStale()
+        await refreshIfStale(localServices.apiUrl)
       }
 
       // Provisionar empresa + usuario admin (primer arranque o reintento)
@@ -236,7 +253,10 @@ async function provisionLocalTenant(apiUrl: string, setup: SetupResult): Promise
     try {
       const res = await fetch(`${apiUrl}/api/setup/init`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Local-Setup-Token': process.env.LOCAL_SETUP_TOKEN ?? '',
+        },
         body: JSON.stringify({
           licenseKey:    setup.licenseKey,
           companyName:   setup.companyName,
@@ -253,7 +273,10 @@ async function provisionLocalTenant(apiUrl: string, setup: SetupResult): Promise
         try {
           const resetRes = await fetch(`${apiUrl}/api/setup/reset-admin`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Local-Setup-Token': process.env.LOCAL_SETUP_TOKEN ?? '',
+            },
             body: JSON.stringify({
               adminEmail:    setup.adminEmail,
               adminPassword: setup.adminPassword,

@@ -24,14 +24,25 @@ const envSchema = z.object({
   // Encryption (AES-256 for dbUrl and Hacienda credentials)
   ENCRYPTION_KEY: z.string().length(64), // 32 bytes hex
 
-  // Licenses — HMAC secret para hashear claves de licencia
+  // Licenses — HMAC secret para hashear claves de licencia (solo en servidor, nunca sale)
   // CAMBIAR en producción. Sin este secreto es imposible validar licencias aunque roben la BD.
   LICENSE_HMAC_SECRET: z.string().min(16).default('dev-license-hmac-secret-change-in-production'),
+
+  // ECDSA P-256 private key (PKCS8 PEM) codificada en base64.
+  // Solo el servidor tiene esta clave. El cliente (Electron) verifica con la clave pública embebida.
+  // Generar: node -e "const {generateKeyPairSync}=require('crypto'); const {privateKey}=generateKeyPairSync('ec',{namedCurve:'prime256v1',publicKeyEncoding:{type:'spki',format:'pem'},privateKeyEncoding:{type:'pkcs8',format:'pem'}}); console.log(Buffer.from(privateKey).toString('base64'))"
+  LICENSE_EC_PRIVATE_KEY_B64: z.string().min(100).optional(),
 
   // Local desktop bundle (IS_LOCAL_BUNDLE=1 en Electron)
   IS_LOCAL_BUNDLE: z.string().optional(),
   // Ruta al JSON de permisos escrito por el proceso Electron principal
   LOCAL_PERMISSIONS_FILE: z.string().optional(),
+  // Token efímero que solo conoce Electron main para endpoints /api/setup/*
+  LOCAL_SETUP_TOKEN: z.string().min(32).optional(),
+  // Carpeta donde Polaris Local escribe respaldos manuales/remotos.
+  LOCAL_BACKUP_DIR: z.string().optional(),
+  // Ruta opcional a pg_dump cuando PostgreSQL no esta en PATH.
+  PG_DUMP_PATH: z.string().optional(),
 
   // Email (optional)
   RESEND_API_KEY: z.string().optional(),

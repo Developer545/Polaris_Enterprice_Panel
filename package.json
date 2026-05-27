@@ -14,6 +14,8 @@
     "dev:admin": "turbo run dev --filter=@pos-dte/admin",
     "dev:electron": "turbo run dev --filter=@pos-dte/electron",
     "build": "turbo run build",
+    "build:electron-local": "powershell -ExecutionPolicy Bypass -File scripts/build-electron-local.ps1",
+    "build:electron-local:dry": "powershell -ExecutionPolicy Bypass -File scripts/build-electron-local.ps1 -SkipInstaller",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "db:generate": "turbo run db:generate --filter=@pos-dte/db",

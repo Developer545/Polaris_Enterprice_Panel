@@ -1,7 +1,8 @@
 import {
   Controller, Get, Post, Patch, Delete,
-  Param, Body, UseGuards, HttpCode,
+  Param, Body, UseGuards, HttpCode, Req, HttpException, HttpStatus,
 } from '@nestjs/common'
+import { createHash } from 'crypto'
 import {
   LicensesService,
   CreateLicenseSchema,         type CreateLicenseDto,
@@ -9,7 +10,9 @@ import {
   UpdateLicenseModulesSchema,  type UpdateLicenseModulesDto,
   ValidateLicenseSchema,       type ValidateLicenseDto,
   HeartbeatSchema,             type HeartbeatDto,
+  SyncLicenseSchema,           type SyncLicenseDto,
   ResetHwidSchema,             type ResetHwidDto,
+  CreateBackupCommandSchema,   type CreateBackupCommandDto,
 } from './licenses.service'
 import { AdminJwtGuard }     from '../../../common/guards/admin-jwt.guard'
 import { AdminRolesGuard }   from '../../../common/guards/admin-roles.guard'
@@ -17,6 +20,36 @@ import { AdminRoute }        from '../../../common/decorators/admin.decorator'
 import { RequireAdminRoles } from '../../../common/decorators/admin-roles.decorator'
 import { Public }            from '../../../common/decorators/public.decorator'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
+
+type RateBucket = { count: number; resetAt: number }
+
+const rateBuckets = new Map<string, RateBucket>()
+
+function hashRatePart(value: string): string {
+  return createHash('sha256').update(value).digest('hex').slice(0, 16)
+}
+
+function getClientIp(req: any): string {
+  const forwarded = req?.headers?.['x-forwarded-for']
+  if (typeof forwarded === 'string' && forwarded.trim()) {
+    return forwarded.split(',')[0].trim()
+  }
+  return req?.ip ?? req?.socket?.remoteAddress ?? 'unknown'
+}
+
+function assertRateLimit(key: string, limit: number, windowMs: number) {
+  const now = Date.now()
+  const bucket = rateBuckets.get(key)
+  if (!bucket || bucket.resetAt <= now) {
+    rateBuckets.set(key, { count: 1, resetAt: now + windowMs })
+    return
+  }
+
+  bucket.count += 1
+  if (bucket.count > limit) {
+    throw new HttpException('Demasiados intentos. Intente de nuevo más tarde.', HttpStatus.TOO_MANY_REQUESTS)
+  }
+}
 
 // ── Admin endpoints (requieren JWT de panel) ──────────────────────────────────
 @AdminRoute()
@@ -71,6 +104,15 @@ export class LicensesAdminController {
     return this.service.resetHwid(id)
   }
 
+  @Post(':id/commands/backup')
+  @RequireAdminRoles('SUPER_ADMIN')
+  requestBackup(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(CreateBackupCommandSchema)) dto: CreateBackupCommandDto,
+  ) {
+    return this.service.requestBackupCommand(id, dto)
+  }
+
   @Delete(':id')
   @RequireAdminRoles('SUPER_ADMIN')
   @HttpCode(204)
@@ -88,7 +130,13 @@ export class LicensesPublicController {
   @Public()
   @Post('validate')
   @HttpCode(200)
-  validate(@Body(new ZodValidationPipe(ValidateLicenseSchema)) dto: ValidateLicenseDto) {
+  validate(
+    @Req() req: any,
+    @Body(new ZodValidationPipe(ValidateLicenseSchema)) dto: ValidateLicenseDto,
+  ) {
+    const ip = getClientIp(req)
+    assertRateLimit(`license:validate:ip:${ip}`, 30, 60_000)
+    assertRateLimit(`license:validate:key:${ip}:${hashRatePart(dto.licenseKey)}`, 8, 60_000)
     return this.service.validate(dto)
   }
 
@@ -96,7 +144,27 @@ export class LicensesPublicController {
   @Public()
   @Post('heartbeat')
   @HttpCode(200)
-  heartbeat(@Body(new ZodValidationPipe(HeartbeatSchema)) dto: HeartbeatDto) {
+  heartbeat(
+    @Req() req: any,
+    @Body(new ZodValidationPipe(HeartbeatSchema)) dto: HeartbeatDto,
+  ) {
+    const ip = getClientIp(req)
+    assertRateLimit(`license:heartbeat:ip:${ip}`, 60, 60_000)
+    assertRateLimit(`license:heartbeat:key:${ip}:${hashRatePart(dto.licenseKey)}`, 20, 60_000)
     return this.service.heartbeat(dto)
+  }
+
+  /** Sync compacto: licencia + mÃ³dulos + heartbeat + comandos pendientes */
+  @Public()
+  @Post('sync')
+  @HttpCode(200)
+  sync(
+    @Req() req: any,
+    @Body(new ZodValidationPipe(SyncLicenseSchema)) dto: SyncLicenseDto,
+  ) {
+    const ip = getClientIp(req)
+    assertRateLimit(`license:sync:ip:${ip}`, 40, 60_000)
+    assertRateLimit(`license:sync:key:${ip}:${hashRatePart(dto.licenseKey)}`, 10, 60_000)
+    return this.service.sync(dto)
   }
 }

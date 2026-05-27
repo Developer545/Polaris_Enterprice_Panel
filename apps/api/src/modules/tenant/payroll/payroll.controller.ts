@@ -9,7 +9,7 @@ import { RequireModule } from '../../../common/decorators/tenant-module.decorato
 import { RequireLocalModule } from '../../../common/decorators/local-module.decorator'
 import { z } from 'zod'
 
-@RequireModule('rrhh')
+@RequireModule('planilla')
 @RequireLocalModule('planilla')
 @Controller('payroll')
 export class PayrollController {

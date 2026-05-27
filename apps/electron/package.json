@@ -1,6 +1,6 @@
 {
   "name": "@pos-dte/electron",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Polaris — Desktop App",
   "author": "Speeddan System <info@speeddan.com>",
   "private": true,
