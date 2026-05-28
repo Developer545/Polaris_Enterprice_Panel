@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import {
   Layout, Avatar, Dropdown, Typography, theme as antTheme,
-  Tooltip, Badge,
+  Tooltip,
 } from 'antd'
 import UpdateBanner from '@/components/electron/UpdateBanner'
 import {
@@ -229,7 +229,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Nav */}
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px 0', height: 0 }}>
+        <div style={{ overflowY: 'auto', overflowX: 'hidden', padding: '8px 0', height: 'calc(100% - 64px)' }}>
           {visibleNavGroups.map(group => {
             const isOpen = openGroups.has(group.key)
             const hasActive = group.items.some(i => isActive(i.key, pathname))
@@ -344,41 +344,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </div>
 
-        {/* User card */}
-        {!collapsed && (
-          <div style={{
-            padding: '12px 16px',
-            borderTop: '1px solid #e9e9e7',
-            flexShrink: 0,
-          }}>
-            <Dropdown menu={userMenu} placement="topRight" trigger={['click']}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                cursor: 'pointer',
-                padding: '6px 8px',
-                borderRadius: 8,
-                transition: 'background 0.15s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#ebebea' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-              >
-                <Avatar size={32} style={{ background: token.colorPrimary, fontWeight: 700, flexShrink: 0 }}>
-                  {user?.name?.[0]?.toUpperCase() ?? 'U'}
-                </Avatar>
-                <div style={{ overflow: 'hidden', flex: 1 }}>
-                  <div style={{ color: '#37352f', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {user?.name ?? '...'}
-                  </div>
-                  <div style={{ color: '#9b9b99', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {user?.role?.name ?? 'Administrador'}
-                  </div>
-                </div>
-              </div>
-            </Dropdown>
-          </div>
-        )}
       </Sider>
 
       <Layout style={{ marginLeft: collapsed ? 64 : 240, transition: 'margin-left 0.2s', background: 'transparent' }}>
