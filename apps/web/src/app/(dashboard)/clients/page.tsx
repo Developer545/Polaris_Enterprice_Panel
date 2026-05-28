@@ -154,7 +154,13 @@ export default function ClientsPage() {
     setMunicipioCod(undefined)
     setMunicipios([])
     setZona(undefined)
-    form.setFieldsValue({ esCreditoFiscal: false, tipoPersona: 'NATURAL', isActive: true })
+    form.setFieldsValue({
+      esCreditoFiscal: false,
+      esGranContribuyente: false,
+      retieneIva1: false,
+      tipoPersona: 'NATURAL',
+      isActive: true,
+    })
     setEditOpen(true)
   }
 
@@ -194,6 +200,8 @@ export default function ClientsPage() {
     form.setFieldsValue({
       tipoDocumento: val === 'JURIDICA' ? '36' : undefined,
       esCreditoFiscal: val === 'JURIDICA',
+      esGranContribuyente: false,
+      retieneIva1: false,
       nrc: undefined,
     })
   }
@@ -538,6 +546,32 @@ export default function ClientsPage() {
               </Form.Item>
             </Col>
           </Row>
+
+          {tipoPersona === 'JURIDICA' && (
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="esGranContribuyente"
+                  label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Gran contribuyente</span>}
+                  valuePropName="checked"
+                  style={{ marginBottom: 16 }}
+                >
+                  <Switch checkedChildren="Si" unCheckedChildren="No" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="retieneIva1"
+                  label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Retiene IVA 1%</span>}
+                  tooltip="Aplica para clientes que actuan como agentes retenedores en CCF desde el umbral fiscal."
+                  valuePropName="checked"
+                  style={{ marginBottom: 16 }}
+                >
+                  <Switch checkedChildren="Si" unCheckedChildren="No" />
+                </Form.Item>
+              </Col>
+            </Row>
+          )}
 
           {/* Documento */}
           <Row gutter={16}>

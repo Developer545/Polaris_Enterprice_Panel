@@ -1,4 +1,4 @@
-import { ipcMain, safeStorage } from 'electron'
+import { ipcMain, safeStorage, dialog } from 'electron'
 import { app } from 'electron'
 import { SimpleStore } from '../simple-store'
 import fs from 'fs'
@@ -7,7 +7,7 @@ import path from 'path'
 // Production NestJS API URL — overridable via electron-store for enterprise deployments
 const REMOTE_API_URL = 'https://polaris-enterprice-panel.onrender.com'
 const REMOTE_WEB_URL = 'https://polaris-web-sooty.vercel.app'
-const CONFIG_KEYS = new Set(['apiUrl', 'webUrl', 'printerInterface', 'printerType', 'printerAddress', 'cashDrawerPort'])
+const CONFIG_KEYS = new Set(['apiUrl', 'webUrl', 'printerInterface', 'printerType', 'printerAddress', 'cashDrawerPort', 'imagesDir'])
 const SECURE_CONFIG_KEYS = new Set(['apiToken', 'licenseKey'])
 
 const store = new SimpleStore({
@@ -109,4 +109,32 @@ export function setupConfigIpc(): void {
   })
 
   ipcMain.handle('config:app-version', () => app.getVersion())
+
+  // Selector de carpeta para imágenes locales (Electron Local)
+  ipcMain.handle('config:select-images-dir', async () => {
+    const result = await dialog.showOpenDialog({
+      title:       'Seleccionar carpeta para imágenes de productos',
+      properties:  ['openDirectory', 'createDirectory'],
+      buttonLabel: 'Seleccionar carpeta',
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    const selectedDir = result.filePaths[0]
+    store.set('imagesDir', selectedDir)
+    // Crear subcarpeta imagenes_polaris automáticamente
+    const imagesPolaris = path.join(selectedDir, 'imagenes_polaris')
+    if (!fs.existsSync(imagesPolaris)) {
+      fs.mkdirSync(imagesPolaris, { recursive: true })
+    }
+    return selectedDir
+  })
+
+  // Exponer IMAGES_BASE_DIR al proceso API local (para .env dinámico)
+  ipcMain.handle('config:get-images-dir', () => {
+    return store.get('imagesDir') as string | undefined ?? null
+  })
+}
+
+export function getImagesDir(): string | null {
+  const store = new SimpleStore({ name: 'pos-dte-config', defaults: {} })
+  return (store.get('imagesDir') as string | undefined) ?? null
 }

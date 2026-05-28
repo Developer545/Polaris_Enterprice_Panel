@@ -33,8 +33,15 @@ const envSchema = z.object({
   // Generar: node -e "const {generateKeyPairSync}=require('crypto'); const {privateKey}=generateKeyPairSync('ec',{namedCurve:'prime256v1',publicKeyEncoding:{type:'spki',format:'pem'},privateKeyEncoding:{type:'pkcs8',format:'pem'}}); console.log(Buffer.from(privateKey).toString('base64'))"
   LICENSE_EC_PRIVATE_KEY_B64: z.string().min(100).optional(),
 
+  // Cloudinary (imágenes de productos/servicios — web y Electron Cloud)
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY:    z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
+
   // Local desktop bundle (IS_LOCAL_BUNDLE=1 en Electron)
   IS_LOCAL_BUNDLE: z.string().optional(),
+  // Carpeta base para imágenes locales (Electron Local). La subcarpeta imagenes_polaris se crea aquí.
+  IMAGES_BASE_DIR: z.string().optional(),
   // Ruta al JSON de permisos escrito por el proceso Electron principal
   LOCAL_PERMISSIONS_FILE: z.string().optional(),
   // Token efímero que solo conoce Electron main para endpoints /api/setup/*

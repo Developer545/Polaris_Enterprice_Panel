@@ -10,6 +10,7 @@ import { createHash } from 'crypto'
 import { v4 as uuidv4 } from 'uuid'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { ControlPlaneClient } from '../../../infrastructure/prisma/control-plane.client'
+import { EncryptionService } from '../../../infrastructure/crypto/encryption.service'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import { getEnv } from '../../../config/env'
 import {
@@ -31,6 +32,7 @@ export class AuthService {
     private readonly clientFactory: TenantClientFactory,
     private readonly cpClient: ControlPlaneClient,
     private readonly jwtService: JwtService,
+    private readonly encryption: EncryptionService,
   ) {}
 
   /** For authenticated routes that already have tenant context via middleware */
@@ -39,7 +41,7 @@ export class AuthService {
     return this.clientFactory.getClient(dbUrl)
   }
 
-  /** For login/refresh/logout — bypass middleware, use shared DB directly */
+  /** Legacy fallback for old sessions and pre-control-plane data. */
   private getSharedDb() {
     return this.clientFactory.getClient()
   }
@@ -48,16 +50,91 @@ export class AuthService {
     return createHash('sha256').update(refreshToken).digest('hex')
   }
 
-  async login(dto: LoginDto, reply: FastifyReply) {
-    const db = this.getSharedDb()
+  private createRefreshToken(tenantId: string) {
+    return `${tenantId}.${uuidv4()}`
+  }
 
-    // Resolve tenantId from companyId (no middleware needed)
+  private parseTenantIdFromRefreshToken(refreshToken: string | undefined) {
+    if (!refreshToken) return null
+    const [tenantId, tokenId] = refreshToken.split('.', 2)
+    return tenantId && tokenId ? tenantId : null
+  }
+
+  private getTenantDbUrl(tenant: { dbStrategy: string; dbUrl: string | null }) {
+    if (tenant.dbStrategy === 'NEON_SHARED') return undefined
+    if (!tenant.dbUrl) throw new UnauthorizedException('Base de datos del tenant no configurada')
+    return this.encryption.decrypt(tenant.dbUrl)
+  }
+
+  private async resolveTenantForCompany(companyId: string) {
+    const tenantCompany = await this.cpClient.tenantCompany.findFirst({
+      where: { companyRef: companyId },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            slug: true,
+            status: true,
+            dbStrategy: true,
+            dbUrl: true,
+          },
+        },
+      },
+    })
+
+    if (tenantCompany?.tenant) {
+      const tenant = tenantCompany.tenant
+      if (tenant.status === 'SUSPENDED' || tenant.status === 'CANCELLED') {
+        throw new ForbiddenException('Tenant suspendido o cancelado')
+      }
+      return {
+        tenantId: tenant.id,
+        tenantSlug: tenant.slug,
+        db: this.clientFactory.getClient(this.getTenantDbUrl(tenant)),
+      }
+    }
+
+    // Legacy fallback: old shared tenants may not have TenantCompany registered.
+    const db = this.getSharedDb()
     const company = await db.company.findUnique({
-      where: { id: dto.companyId },
+      where: { id: companyId },
       select: { tenantId: true },
     })
     if (!company) throw new UnauthorizedException('Empresa no encontrada')
-    const { tenantId } = company
+
+    const tenant = await this.cpClient.tenant.findUnique({
+      where: { id: company.tenantId },
+      select: { slug: true, status: true },
+    })
+    if (tenant?.status === 'SUSPENDED' || tenant?.status === 'CANCELLED') {
+      throw new ForbiddenException('Tenant suspendido o cancelado')
+    }
+
+    return {
+      tenantId: company.tenantId,
+      tenantSlug: tenant?.slug ?? '',
+      db,
+    }
+  }
+
+  private async getDbForRefreshToken(refreshToken: string | undefined) {
+    const tenantId = this.parseTenantIdFromRefreshToken(refreshToken)
+    if (!tenantId) return this.getSharedDb()
+
+    const tenant = await this.cpClient.tenant.findUnique({
+      where: { id: tenantId },
+      select: { status: true, dbStrategy: true, dbUrl: true },
+    })
+    if (!tenant) throw new UnauthorizedException('Tenant no encontrado')
+    if (tenant.status === 'SUSPENDED' || tenant.status === 'CANCELLED') {
+      throw new ForbiddenException('Tenant suspendido o cancelado')
+    }
+
+    return this.clientFactory.getClient(this.getTenantDbUrl(tenant))
+  }
+
+  async login(dto: LoginDto, reply: FastifyReply) {
+    const { db, tenantId, tenantSlug } = await this.resolveTenantForCompany(dto.companyId)
 
     const user = await db.user.findFirst({
       where: { email: dto.email, companyId: dto.companyId, tenantId },
@@ -90,12 +167,6 @@ export class AuthService {
       data: { failedLogins: 0, lockedUntil: null, lastLoginAt: new Date() },
     })
 
-    // Get tenant slug so frontend can inject X-Tenant-Slug in subsequent requests
-    const tenant = await this.cpClient.tenant.findUnique({
-      where: { id: tenantId },
-      select: { slug: true },
-    })
-
     const permissions = user.role.permissions as Record<string, boolean>
     const branchIds = user.branches.map((b) => b.branchId)
 
@@ -117,7 +188,7 @@ export class AuthService {
     })
 
     const familyId = uuidv4()
-    const refreshToken = uuidv4()
+    const refreshToken = this.createRefreshToken(tenantId)
     const refreshTokenHash = this.hashRefreshToken(refreshToken)
 
     await db.session.create({
@@ -141,12 +212,12 @@ export class AuthService {
         permissions,
         branchIds,
       },
-      tenantSlug: tenant?.slug ?? '',
+      tenantSlug,
     }
   }
 
   async refresh(refreshToken: string, reply: FastifyReply) {
-    const db = this.getSharedDb()
+    const db = await this.getDbForRefreshToken(refreshToken)
     const refreshTokenHash = this.hashRefreshToken(refreshToken)
 
     const session = await db.session.findFirst({
@@ -174,7 +245,7 @@ export class AuthService {
 
     await db.session.update({ where: { id: session.id }, data: { revokedAt: new Date() } })
 
-    const newRefreshToken = uuidv4()
+    const newRefreshToken = this.createRefreshToken(session.user.tenantId)
     const newRefreshTokenHash = this.hashRefreshToken(newRefreshToken)
     await db.session.create({
       data: {
@@ -212,7 +283,7 @@ export class AuthService {
 
   async logout(refreshToken: string | undefined, reply: FastifyReply) {
     if (refreshToken) {
-      const db = this.getSharedDb()
+      const db = await this.getDbForRefreshToken(refreshToken)
       const refreshTokenHash = this.hashRefreshToken(refreshToken)
       await db.session.updateMany({
         where: { OR: [{ refreshToken: refreshTokenHash }, { refreshToken }], revokedAt: null },

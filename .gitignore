@@ -12,6 +12,7 @@ out/
 
 # Electron
 release/
+release-local/
 *.dmg
 *.exe
 *.AppImage

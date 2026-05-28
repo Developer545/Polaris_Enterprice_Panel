@@ -20,6 +20,8 @@ export const CreateClientSchema = z.object({
   actividadEconomica: z.string().optional().nullable(),
   actividadEconomicaCodigo: z.string().optional().nullable(),
   esCreditoFiscal: z.boolean().default(false),
+  esGranContribuyente: z.boolean().default(false),
+  retieneIva1: z.boolean().default(false),
 })
 
 export const UpdateClientSchema = CreateClientSchema.partial().omit({ companyId: true })
@@ -63,7 +65,8 @@ export class ClientsService {
         address: true, departamentoCod: true, municipioCod: true,
         tipoDocumento: true, numDocumento: true, nrc: true,
         actividadEconomica: true, actividadEconomicaCodigo: true,
-        esCreditoFiscal: true, isActive: true, createdAt: true,
+        esCreditoFiscal: true, esGranContribuyente: true, retieneIva1: true,
+        isActive: true, createdAt: true,
       },
       orderBy: { name: 'asc' },
       take: 100,

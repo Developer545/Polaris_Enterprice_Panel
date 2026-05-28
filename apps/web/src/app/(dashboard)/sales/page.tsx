@@ -1,7 +1,7 @@
 'use client'
 import { useState, useMemo } from 'react'
 import {
-  Table, Button, Tag, Typography, DatePicker, Select, Modal, Descriptions,
+  Table, Button, Tag, Typography, DatePicker, Select, Modal, Descriptions, Form,
   Space, App, Badge, Input, theme, Row, Col, Card, Statistic, Divider, Tooltip,
 } from 'antd'
 import {
@@ -42,6 +42,12 @@ const FORMA_PAGO_COLOR: Record<string, string> = {
   '04': 'gold',  '05': 'cyan', '06': 'geekblue',
 }
 
+const DOC_OPTIONS = [
+  { value: '13', label: 'DUI (13)' },
+  { value: '36', label: 'NIT (36)' },
+  { value: '03', label: 'Pasaporte (03)' },
+]
+
 export default function SalesPage() {
   const { message } = App.useApp()
   const { token } = theme.useToken()
@@ -56,6 +62,8 @@ export default function SalesPage() {
   const [detail, setDetail]           = useState<any>(null)
   const [anularModal, setAnularModal] = useState<any>(null)
   const [anularReason, setAnularReason] = useState('')
+  const [invalidarModal, setInvalidarModal] = useState<any>(null)
+  const [invalidarForm] = Form.useForm()
 
   const params: Record<string, any> = { companyId, page }
   if (dateRange?.[0]) params.from = dateRange[0].startOf('day').toISOString()
@@ -86,6 +94,30 @@ export default function SalesPage() {
     onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error al anular'),
   })
 
+  const invalidarMutation = useMutation({
+    mutationFn: (values: any) => api.post('/api/dte/anular', { ...values, saleId: invalidarModal.id }),
+    onSuccess: (res) => {
+      if (res.data?.ok) message.success('DTE invalidado ante Hacienda')
+      else message.warning('Hacienda no acepto la invalidacion')
+      qc.invalidateQueries({ queryKey: ['sales'] })
+      qc.invalidateQueries({ queryKey: ['sale-detail'] })
+      setInvalidarModal(null)
+      invalidarForm.resetFields()
+    },
+    onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error al invalidar DTE'),
+  })
+
+  function openInvalidarModal(sale: any) {
+    setInvalidarModal(sale)
+    const userName = localStorage.getItem('userName') ?? ''
+    invalidarForm.setFieldsValue({
+      nombreResponsable: userName,
+      tipDocResponsable: '13',
+      nombreSolicita: userName,
+      tipDocSolicita: '13',
+    })
+  }
+
   function handlePrint(sale: any) {
     const win = window as any
     if (win.electron?.printer?.printReceipt) {
@@ -103,7 +135,9 @@ export default function SalesPage() {
           description: i.productName,
           qty:         Number(i.quantity),
           unitPrice:   Number(i.unitPrice),
-          total:       Number(i.ventaGravada) + Number(i.ivaItem),
+          total:       sale.tipoDte === '03'
+            ? Number(i.ventaGravada) + Number(i.ivaItem)
+            : Number(i.ventaGravada),
         })),
         subtotal:      Number(sale.totalGravada ?? 0),
         iva:           Number(sale.totalIva ?? 0),
@@ -224,12 +258,21 @@ export default function SalesPage() {
             <Button type="text" size="small" icon={<PrinterOutlined />} onClick={() => handlePrint(r)} />
           </Tooltip>
           {r.dteDocument?.status !== 'ANNULLED' && (
-            <Tooltip title="Anular">
-              <Button
-                type="text" size="small" danger icon={<StopOutlined />}
-                onClick={() => { setAnularModal(r); setAnularReason('') }}
-              />
-            </Tooltip>
+            r.dteDocument?.status === 'ACCEPTED' ? (
+              <Tooltip title="Invalidar DTE ante Hacienda">
+                <Button
+                  type="text" size="small" danger icon={<StopOutlined />}
+                  onClick={() => openInvalidarModal(r)}
+                />
+              </Tooltip>
+            ) : (
+              <Tooltip title="Anular venta local">
+                <Button
+                  type="text" size="small" danger icon={<StopOutlined />}
+                  onClick={() => { setAnularModal(r); setAnularReason('') }}
+                />
+              </Tooltip>
+            )
           )}
         </Space>
       ),
@@ -532,6 +575,12 @@ export default function SalesPage() {
                     <Text type="secondary">IVA 13%:</Text>
                     <Text>${Number(saleDetail.totalIva ?? 0).toFixed(2)}</Text>
                   </div>
+                  {Number(saleDetail.ivaRete1 ?? 0) > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
+                      <Text type="secondary">Retencion IVA 1%:</Text>
+                      <Text>-${Number(saleDetail.ivaRete1 ?? 0).toFixed(2)}</Text>
+                    </div>
+                  )}
                   <Divider style={{ margin: '6px 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 700 }}>
                     <Text strong>Total:</Text>
@@ -577,6 +626,103 @@ export default function SalesPage() {
           style={{ borderRadius: 8 }}
           autoFocus
         />
+      </Modal>
+
+      <Modal
+        open={!!invalidarModal}
+        title={<Space style={{ color: token.colorError }}><StopOutlined />Invalidar DTE ante Hacienda</Space>}
+        onCancel={() => { setInvalidarModal(null); invalidarForm.resetFields() }}
+        onOk={() => invalidarForm.submit()}
+        confirmLoading={invalidarMutation.isPending}
+        okText="Enviar invalidacion"
+        okButtonProps={{ danger: true, style: { borderRadius: 8, fontWeight: 600 } }}
+        cancelButtonProps={{ style: { borderRadius: 8 } }}
+        width={640}
+        destroyOnClose
+        style={{ top: 40 }}
+      >
+        <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 14 }}>
+          Se enviara el evento de invalidacion para el DTE{' '}
+          <Text strong>{invalidarModal?.dteDocument?.numeroControl ?? invalidarModal?.id?.substring(0, 8)}</Text>
+          {' '}por un total de{' '}
+          <Text strong style={{ color: token.colorError }}>
+            ${Number(invalidarModal?.totalPagar ?? 0).toFixed(2)}
+          </Text>.
+        </Text>
+        <Form
+          form={invalidarForm}
+          layout="vertical"
+          requiredMark={false}
+          onFinish={(values) => invalidarMutation.mutate(values)}
+        >
+          <Form.Item
+            name="motivo"
+            label="Motivo"
+            rules={[{ required: true, min: 5, message: 'Describe el motivo legal' }]}
+          >
+            <Input.TextArea rows={3} placeholder="Ej. Error en datos del receptor" style={{ borderRadius: 8 }} />
+          </Form.Item>
+
+          <Row gutter={12}>
+            <Col xs={24} md={12}>
+              <Form.Item
+                name="nombreResponsable"
+                label="Responsable"
+                rules={[{ required: true, message: 'Requerido' }]}
+              >
+                <Input style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col xs={10} md={6}>
+              <Form.Item
+                name="tipDocResponsable"
+                label="Tipo doc."
+                rules={[{ required: true, message: 'Requerido' }]}
+              >
+                <Select options={DOC_OPTIONS} />
+              </Form.Item>
+            </Col>
+            <Col xs={14} md={6}>
+              <Form.Item
+                name="numDocResponsable"
+                label="Documento"
+                rules={[{ required: true, message: 'Requerido' }]}
+              >
+                <Input style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={12}>
+            <Col xs={24} md={12}>
+              <Form.Item
+                name="nombreSolicita"
+                label="Solicita"
+                rules={[{ required: true, message: 'Requerido' }]}
+              >
+                <Input style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col xs={10} md={6}>
+              <Form.Item
+                name="tipDocSolicita"
+                label="Tipo doc."
+                rules={[{ required: true, message: 'Requerido' }]}
+              >
+                <Select options={DOC_OPTIONS} />
+              </Form.Item>
+            </Col>
+            <Col xs={14} md={6}>
+              <Form.Item
+                name="numDocSolicita"
+                label="Documento"
+                rules={[{ required: true, message: 'Requerido' }]}
+              >
+                <Input style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
       </Modal>
     </div>
   )

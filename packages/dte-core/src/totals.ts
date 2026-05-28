@@ -4,6 +4,8 @@ import Decimal from 'decimal.js'
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP })
 
 export const IVA_RATE = new Decimal('0.13')
+export const IVA_RETENTION_RATE = new Decimal('0.01')
+export const IVA_RETENTION_MIN_BASE = new Decimal('100')
 
 export interface SaleLineInput {
   quantity: number | string
@@ -11,34 +13,46 @@ export interface SaleLineInput {
   discount?: number | string
   isExempt?: boolean
   isNotSubject?: boolean
+  priceIncludesIva?: boolean
 }
 
 export interface SaleLineTotals {
   quantity: Decimal
   unitPrice: Decimal
   discount: Decimal
-  subtotalBruto: Decimal  // quantity * unitPrice
+  subtotalBruto: Decimal  // quantity * unitPrice before line discount
   ventaGravada: Decimal
   ventaExenta: Decimal
   ventaNoSujeta: Decimal
-  ivaItem: Decimal        // IVA incluido en venta gravada (para CF)
+  ivaItem: Decimal
+}
+
+export type SaleTipoDteForTotals = '01' | '03' | '05' | '06'
+
+function defaultPriceIncludesIva(tipoDte: SaleTipoDteForTotals): boolean {
+  return tipoDte === '01'
 }
 
 /**
  * Calculate totals for a single sale line.
- * All prices are entered WITHOUT IVA (base price).
- * IVA = ventaGravada * 13% for both CF and CCF.
- * totalPagar = ventaGravada + IVA (calculated in calcSaleSummary).
+ * CF (01): unitPrice is the final consumer price with IVA included.
+ * CCF (03): unitPrice is the taxable base; IVA is added visibly.
+ * NC/ND (05/06): default to base prices because they usually adjust CCFs.
  */
 export function calcLineTotals(
   input: SaleLineInput,
-  tipoDte: '01' | '03' | '05' | '06',
+  tipoDte: SaleTipoDteForTotals,
 ): SaleLineTotals {
   const qty = new Decimal(input.quantity)
   const price = new Decimal(input.unitPrice)
   const discount = new Decimal(input.discount ?? 0)
 
-  const subtotalBruto = qty.mul(price).minus(discount)
+  const subtotalBruto = qty.mul(price)
+  if (discount.greaterThan(subtotalBruto)) {
+    throw new Error('El descuento de linea no puede ser mayor que el subtotal')
+  }
+  const taxableAmount = subtotalBruto.minus(discount)
+  const priceIncludesIva = input.priceIncludesIva ?? defaultPriceIncludesIva(tipoDte)
 
   let ventaGravada = new Decimal(0)
   let ventaExenta = new Decimal(0)
@@ -46,13 +60,14 @@ export function calcLineTotals(
   let ivaItem = new Decimal(0)
 
   if (input.isNotSubject) {
-    ventaNoSujeta = subtotalBruto
+    ventaNoSujeta = taxableAmount
   } else if (input.isExempt) {
-    ventaExenta = subtotalBruto
+    ventaExenta = taxableAmount
   } else {
-    ventaGravada = subtotalBruto
-    // Prices are stored without IVA → IVA = base * 13% for both CF and CCF
-    ivaItem = ventaGravada.mul(IVA_RATE).toDecimalPlaces(2)
+    ventaGravada = taxableAmount
+    ivaItem = priceIncludesIva
+      ? ventaGravada.mul(IVA_RATE).div(new Decimal(1).plus(IVA_RATE)).toDecimalPlaces(2)
+      : ventaGravada.mul(IVA_RATE).toDecimalPlaces(2)
   }
 
   return {
@@ -69,6 +84,8 @@ export function calcLineTotals(
 
 export interface SaleSummaryInput {
   lines: SaleLineTotals[]
+  tipoDte: SaleTipoDteForTotals
+  ivaRete1?: number | string | Decimal
   conditionOp?: number
 }
 
@@ -80,8 +97,29 @@ export interface SaleSummary {
   totalDescu: Decimal
   subTotal: Decimal
   totalIva: Decimal
+  ivaRete1: Decimal
   montoTotalOperacion: Decimal
   totalPagar: Decimal
+}
+
+export interface IvaRetentionInput {
+  tipoDte: SaleTipoDteForTotals
+  taxableBase: number | string | Decimal
+  buyerRetainsIva1: boolean
+  sellerSubjectToRetention?: boolean
+  sellerIsGranContribuyente?: boolean
+}
+
+export function calcIvaRetention1(input: IvaRetentionInput): Decimal {
+  if (input.tipoDte !== '03') return new Decimal(0)
+  if (!input.buyerRetainsIva1) return new Decimal(0)
+  if (input.sellerSubjectToRetention === false) return new Decimal(0)
+  if (input.sellerIsGranContribuyente) return new Decimal(0)
+
+  const taxableBase = new Decimal(input.taxableBase).toDecimalPlaces(2)
+  if (taxableBase.lessThan(IVA_RETENTION_MIN_BASE)) return new Decimal(0)
+
+  return taxableBase.mul(IVA_RETENTION_RATE).toDecimalPlaces(2)
 }
 
 export function calcSaleSummary(input: SaleSummaryInput): SaleSummary {
@@ -100,12 +138,16 @@ export function calcSaleSummary(input: SaleSummaryInput): SaleSummary {
   const totalIva = input.lines
     .reduce((a, l) => a.plus(l.ivaItem), new Decimal(0))
     .toDecimalPlaces(2)
+  const ivaRete1 = new Decimal(input.ivaRete1 ?? 0).toDecimalPlaces(2)
 
-  const subTotalVentas = totalNoSuj.plus(totalExenta).plus(totalGravada)
-  const subTotal = subTotalVentas.minus(totalDescu)
-  // totalPagar = base + IVA (prices entered without IVA)
-  const montoTotalOperacion = subTotal.plus(totalIva).toDecimalPlaces(2)
-  const totalPagar = montoTotalOperacion
+  const subTotalVentas = totalNoSuj.plus(totalExenta).plus(totalGravada).toDecimalPlaces(2)
+  // Line amounts are already net of line discounts; do not discount them twice.
+  const subTotal = subTotalVentas
+  const montoTotalOperacion = input.tipoDte === '01'
+    ? subTotal.toDecimalPlaces(2)
+    : subTotal.plus(totalIva).toDecimalPlaces(2)
+  const totalPagar = montoTotalOperacion.minus(ivaRete1).toDecimalPlaces(2)
+  if (totalPagar.lessThan(0)) throw new Error('La retencion no puede ser mayor que el total de la operacion')
 
   return {
     totalNoSuj,
@@ -115,6 +157,7 @@ export function calcSaleSummary(input: SaleSummaryInput): SaleSummary {
     totalDescu,
     subTotal,
     totalIva,
+    ivaRete1,
     montoTotalOperacion,
     totalPagar,
   }

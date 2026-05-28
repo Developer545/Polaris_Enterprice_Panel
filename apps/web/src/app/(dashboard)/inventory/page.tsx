@@ -76,7 +76,7 @@ export default function InventoryPage() {
   const { message } = App.useApp()
   const { token } = theme.useToken()
   const qc = useQueryClient()
-  const { companyId } = useAppContext()
+  const { companyId, branchId } = useAppContext()
 
   const primary = token.colorPrimary
 
@@ -110,14 +110,14 @@ export default function InventoryPage() {
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const statsQ = useQuery({
-    queryKey: ['inventory-stats', companyId],
-    queryFn:  () => api.get('/api/inventory/stats', { params: { companyId } }).then(r => r.data),
+    queryKey: ['inventory-stats', companyId, branchId],
+    queryFn:  () => api.get('/api/inventory/stats', { params: { companyId, branchId } }).then(r => r.data),
     enabled:  !!companyId,
   })
 
   const productsQ = useQuery<any[]>({
-    queryKey: ['products', companyId],
-    queryFn:  () => api.get('/api/products', { params: { companyId } }).then(r => r.data),
+    queryKey: ['products', companyId, branchId],
+    queryFn:  () => api.get('/api/products', { params: { companyId, branchId } }).then(r => r.data),
     enabled:  !!companyId,
   })
 
@@ -128,6 +128,7 @@ export default function InventoryPage() {
   })
 
   const movParams: Record<string, string> = { companyId: companyId! }
+  if (branchId)      movParams.branchId  = branchId
   if (filterType)    movParams.type      = filterType
   if (filterProduct) movParams.productId = filterProduct
   if (dateRange) {
@@ -135,7 +136,7 @@ export default function InventoryPage() {
     movParams.to   = dateRange[1].endOf('day').toISOString()
   }
   const movQ = useQuery({
-    queryKey: ['inventory-movements', companyId, filterType, filterProduct,
+    queryKey: ['inventory-movements', companyId, branchId, filterType, filterProduct,
       dateRange?.[0]?.toString(), dateRange?.[1]?.toString()],
     queryFn:  () => api.get('/api/inventory', { params: movParams }).then(r => r.data),
     enabled:  !!companyId,
@@ -143,16 +144,16 @@ export default function InventoryPage() {
 
   // Per-product kardex
   const kardexQ = useQuery({
-    queryKey: ['inventory-kardex', companyId, kardexProduct?.id],
+    queryKey: ['inventory-kardex', companyId, branchId, kardexProduct?.id],
     queryFn:  () => api.get('/api/inventory', {
-      params: { companyId, productId: kardexProduct!.id },
+      params: { companyId, branchId, productId: kardexProduct!.id },
     }).then(r => r.data),
     enabled:  !!companyId && !!kardexProduct && kardexDrawerOpen,
   })
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const adjustMutation = useMutation({
-    mutationFn: (values: any) => api.post('/api/inventory/adjust', { ...values, companyId }),
+    mutationFn: (values: any) => api.post('/api/inventory/adjust', { ...values, companyId, branchId }),
     onSuccess: () => {
       message.success('Movimiento registrado')
       qc.invalidateQueries({ queryKey: ['inventory-movements'] })

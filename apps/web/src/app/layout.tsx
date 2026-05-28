@@ -14,7 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.__API_URL__ = ${JSON.stringify(apiUrl)};`,
+            __html: `window.__API_URL__ = window.__API_URL__ || ${JSON.stringify(apiUrl)};`,
           }}
         />
       </head>

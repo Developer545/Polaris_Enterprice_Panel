@@ -2,6 +2,11 @@
   "name": "@pos-dte/db",
   "version": "0.0.1",
   "private": true,
+  "main": "./generated/tenant/index.js",
+  "exports": {
+    "./tenant": "./generated/tenant/index.js",
+    "./control-plane": "./generated/control-plane/index.js"
+  },
   "scripts": {
     "db:generate": "prisma generate --schema prisma/control-plane.prisma && prisma generate --schema prisma/tenant.prisma",
 

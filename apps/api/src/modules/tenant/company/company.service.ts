@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { EncryptionService } from '../../../infrastructure/crypto/encryption.service'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
-import type { JwtAccessPayload } from '@pos-dte/shared-types'
+import { DTE_TYPE_VALUES, type JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const UpdateCompanySchema = z.object({
@@ -15,6 +15,8 @@ export const UpdateCompanySchema = z.object({
   address: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email().optional(),
+  esGranContribuyente: z.boolean().optional(),
+  sujetoRetencionIva1: z.boolean().optional(),
   logoUrl: z.string().url().optional().nullable(),
   // Hacienda credentials (stored encrypted)
   haciendaUser: z.string().optional(),
@@ -23,8 +25,7 @@ export const UpdateCompanySchema = z.object({
   certData: z.string().optional(),   // base64 p12
   certPassword: z.string().optional(),
   dteAmbiente: z.enum(['TEST', 'PROD']).optional(),
-  // DTE types enabled for this company — ['01','03','05','06','11']
-  dteEnabledTypes: z.array(z.enum(['01', '03', '05', '06', '11'])).optional(),
+  dteEnabledTypes: z.array(z.enum(DTE_TYPE_VALUES)).optional(),
 })
 
 export type UpdateCompanyDto = z.infer<typeof UpdateCompanySchema>
@@ -53,6 +54,7 @@ export class CompanyService {
       select: {
         id: true, name: true, comercialName: true, nit: true, nrc: true,
         actividadEconomica: true, address: true, phone: true, email: true,
+        esGranContribuyente: true, sujetoRetencionIva1: true,
         logoUrl: true, dteAmbiente: true, isActive: true, createdAt: true,
         _count: { select: { branches: true, users: true } },
       },
@@ -70,6 +72,7 @@ export class CompanyService {
         id: true, name: true, comercialName: true, nit: true, nrc: true,
         actividadEconomica: true, actividadEconomicaCodigo: true,
         address: true, phone: true, email: true, logoUrl: true,
+        esGranContribuyente: true, sujetoRetencionIva1: true,
         dteAmbiente: true, dteEnabledTypes: true, isActive: true, createdAt: true,
         haciendaUserEnc: true,
         certDataEnc: true,

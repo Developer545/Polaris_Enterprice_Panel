@@ -63,6 +63,9 @@ import { CatalogsModule } from './modules/tenant/catalogs/catalogs.module'
 // Local desktop setup (only active when IS_LOCAL_BUNDLE=1)
 import { LocalSetupModule } from './modules/local-setup/local-setup.module'
 
+// Upload (imágenes de productos/servicios — Cloudinary o local según modo)
+import { UploadModule } from './modules/tenant/upload/upload.module'
+
 @Module({
   imports: [
     // Global infrastructure
@@ -130,6 +133,9 @@ import { LocalSetupModule } from './modules/local-setup/local-setup.module'
 
     // Tenant — Catalogs (global read-only)
     CatalogsModule,
+
+    // Upload imágenes (Cloudinary / local)
+    UploadModule,
 
     // Local setup wizard (public endpoints, guarded internally by IS_LOCAL_BUNDLE)
     LocalSetupModule,

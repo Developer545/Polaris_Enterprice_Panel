@@ -1,5 +1,25 @@
 // Catálogos oficiales Ministerio de Hacienda El Salvador
-// Fuente: Guía de Integración Factura Electrónica SV
+// Fuente base: Guía de Integración Factura Electrónica SV y CAT-002.
+
+import {
+  CATALOGO_TIPO_DTE,
+  DTE_SCHEMA_NAME_BY_TYPE,
+  DTE_TYPE_VALUES,
+  DTE_VERSION_BY_TYPE,
+  getDteVersion,
+  isTipoDte,
+  type TipoDte,
+} from '@pos-dte/shared-types'
+
+export {
+  CATALOGO_TIPO_DTE,
+  DTE_SCHEMA_NAME_BY_TYPE,
+  DTE_TYPE_VALUES,
+  DTE_VERSION_BY_TYPE,
+  getDteVersion,
+  isTipoDte,
+  type TipoDte,
+}
 
 export const CAT_001_AMBIENTE = {
   PRUEBAS: '00',
@@ -8,17 +28,17 @@ export const CAT_001_AMBIENTE = {
 
 export const CAT_002_TIPO_DTE = {
   FACTURA: '01',
-  FACTURA_SUJETO_EXCLUIDO: '03', // Note: in some docs 03 is CCF, check official catalog
-  CCF: '03',
+  COMPROBANTE_CREDITO_FISCAL: '03',
   NOTA_REMISION: '04',
   NOTA_CREDITO: '05',
   NOTA_DEBITO: '06',
-  COMPROBANTE_LIQUIDACION: '07',
-  DOC_CONTABLE_LIQUIDACION: '08',
+  COMPROBANTE_RETENCION: '07',
+  COMPROBANTE_LIQUIDACION: '08',
+  DOC_CONTABLE_LIQUIDACION: '09',
   FACTURA_EXPORTACION: '11',
-  COMPROBANTE_DONACION: '14',
-  COMPROBANTE_RETENCION: '15',
-} as const
+  FACTURA_SUJETO_EXCLUIDO: '14',
+  COMPROBANTE_DONACION: '15',
+} as const satisfies Record<string, TipoDte>
 
 export const CAT_005_TIPO_ITEM = {
   BIEN: 1,

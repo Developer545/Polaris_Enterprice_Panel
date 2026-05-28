@@ -31,10 +31,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError]   = useState<string | null>(null)
   const [form]              = Form.useForm<LoginForm>()
+  const [isLocal, setIsLocal] = useState(false)
 
   const stars = useMemo(() => buildStars(180, 42), [])
 
   useEffect(() => {
+    // Local mode: running on localhost (Electron desktop)
+    const local = typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    setIsLocal(local)
+
     try {
       const saved = localStorage.getItem(SAVED_KEY)
       if (saved) {
@@ -42,6 +48,11 @@ export default function LoginPage() {
         form.setFieldsValue({ ...creds, remember: true })
       }
     } catch {}
+
+    // En modo local siempre usar slug 'local'
+    if (local) {
+      form.setFieldsValue({ companyId: 'local' })
+    }
   }, [form])
 
   async function onFinish(values: LoginForm) {
@@ -284,7 +295,9 @@ export default function LoginPage() {
               color: '#8b949e', fontSize: 14,
               display: 'block', marginBottom: 28,
             }}>
-              Ingresa tus credenciales para continuar
+              {isLocal
+                ? 'Ingresa tu correo y contraseña para acceder'
+                : 'Ingresa tus credenciales para continuar'}
             </Typography.Text>
 
             {error && (
@@ -295,18 +308,25 @@ export default function LoginPage() {
             )}
 
             <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false}>
-              <Form.Item
-                name="companyId"
-                label={<span style={{ color: '#24292f', fontWeight: 500, fontSize: 13 }}>ID de empresa</span>}
-                rules={[{ required: true, message: 'Requerido' }]}
-                style={{ marginBottom: 14 }}
-              >
-                <Input
-                  prefix={<ShopOutlined style={{ color: '#8b949e' }} />}
-                  placeholder="company-demo-001" size="large"
-                  style={{ borderRadius: 8, borderColor: '#d0d7de', background: '#f6f8fa', fontSize: 14, height: 42 }}
-                />
-              </Form.Item>
+              {/* En modo local el companyId siempre es 'local' — se envía oculto */}
+              {isLocal ? (
+                <Form.Item name="companyId" hidden>
+                  <Input />
+                </Form.Item>
+              ) : (
+                <Form.Item
+                  name="companyId"
+                  label={<span style={{ color: '#24292f', fontWeight: 500, fontSize: 13 }}>ID de empresa</span>}
+                  rules={[{ required: true, message: 'Requerido' }]}
+                  style={{ marginBottom: 14 }}
+                >
+                  <Input
+                    prefix={<ShopOutlined style={{ color: '#8b949e' }} />}
+                    placeholder="company-demo-001" size="large"
+                    style={{ borderRadius: 8, borderColor: '#d0d7de', background: '#f6f8fa', fontSize: 14, height: 42 }}
+                  />
+                </Form.Item>
+              )}
 
               <Form.Item
                 name="email"

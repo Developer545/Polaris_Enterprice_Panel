@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: pos-dte-local-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pos_dte
+      POSTGRES_PASSWORD: pos_dte_local_password
+      POSTGRES_DB: pos_dte_control
+    ports:
+      - "5432:5432"
+    volumes:
+      - pos_dte_local_postgres:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+
+  redis:
+    image: redis:7-alpine
+    container_name: pos-dte-local-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - pos_dte_local_redis:/data
+
+volumes:
+  pos_dte_local_postgres:
+  pos_dte_local_redis:

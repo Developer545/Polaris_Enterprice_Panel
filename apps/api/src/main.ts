@@ -5,10 +5,13 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify'
 import fastifyCookie from '@fastify/cookie'
+import fastifyStatic from '@fastify/static'
 import { Logger } from '@nestjs/common'
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
 import { AppModule } from './app.module'
 import { getEnv } from './config/env'
+import path from 'path'
+import { mkdirSync } from 'fs'
 
 async function bootstrap() {
   const env = getEnv()
@@ -25,6 +28,17 @@ async function bootstrap() {
 
   // Cookies
   await app.register(fastifyCookie)
+
+  // Local image serving — solo activo en Electron Local (IS_LOCAL_BUNDLE=1)
+  if (env.IS_LOCAL_BUNDLE === '1' && env.IMAGES_BASE_DIR) {
+    const imagesDir = path.join(env.IMAGES_BASE_DIR, 'imagenes_polaris')
+    try { mkdirSync(imagesDir, { recursive: true }) } catch { /* ignore */ }
+    await app.register(fastifyStatic, {
+      root:           imagesDir,
+      prefix:         '/local-images/',
+      decorateReply:  false,
+    })
+  }
 
   // CORS
   app.enableCors({

@@ -85,6 +85,8 @@ model Company {
   address                  String?
   phone                    String?
   email                    String?
+  esGranContribuyente      Boolean     @default(false)
+  sujetoRetencionIva1      Boolean     @default(true)
   // DTE — Hacienda credentials (AES-256 encrypted)
   haciendaUserEnc          String?
   haciendaPwdEnc           String?
@@ -139,6 +141,7 @@ model Branch {
   cashRegisters      CashRegister[]
   sales              Sale[]
   inventoryMovements InventoryMovement[]
+  branchInventories  BranchInventory[]
 
   @@index([tenantId, companyId])
 }
@@ -237,6 +240,8 @@ model Client {
   phone                    String?
   address                  String?
   esCreditoFiscal          Boolean  @default(false)
+  esGranContribuyente      Boolean  @default(false)
+  retieneIva1              Boolean  @default(false)
   isActive                 Boolean  @default(true)
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
@@ -299,6 +304,7 @@ model Service {
   saleItems          SaleItem[]
   purchaseOrderItems PurchaseOrderItem[]
   inventoryMovements InventoryMovement[]
+  branchInventories  BranchInventory[]
 
   @@index([tenantId, companyId])
   @@index([tenantId, companyId, sku])
@@ -380,6 +386,7 @@ model Sale {
   totalExenta      Decimal       @default(0) @db.Decimal(10, 2)
   totalGravada     Decimal       @default(0) @db.Decimal(10, 2)
   totalIva         Decimal       @default(0) @db.Decimal(10, 2)
+  ivaRete1         Decimal       @default(0) @db.Decimal(10, 2)
   totalDescuento   Decimal       @default(0) @db.Decimal(10, 2)
   totalPagar       Decimal       @db.Decimal(10, 2)
   notes            String?
@@ -443,6 +450,12 @@ model DteDocument {
   selloRecibido    String?
   status           DteStatus @default(PENDING)
   observaciones    String[]
+  invalidacionCodigoGeneracion String?
+  invalidacionJson             Json?
+  invalidacionJsonFirmado      String?
+  invalidacionSelloRecibido    String?
+  invalidationReason           String?
+  invalidatedAt                DateTime?
   processedAt      DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -451,6 +464,7 @@ model DteDocument {
   @@index([tenantId, status])
   @@index([tenantId, companyId, status, createdAt])
   @@index([tenantId, companyId, tipoDte, createdAt])
+  @@index([tenantId, companyId, status, invalidatedAt])
 }
 
 model DteNumberControl {
@@ -770,6 +784,24 @@ model InventoryMovement {
 }
 
 // ─── Phase 5: CxC — Cuentas por Cobrar ───────────────────────────────────────
+
+model BranchInventory {
+  id        String   @id @default(cuid())
+  tenantId  String
+  companyId String
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  productId String
+  product   Service  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stock     Int      @default(0)
+  minStock  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, branchId, productId])
+  @@index([tenantId, companyId, branchId])
+  @@index([tenantId, companyId, productId])
+}
 
 model AccountReceivable {
   id          String                   @id @default(cuid())

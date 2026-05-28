@@ -7,6 +7,7 @@
  */
 import { Injectable, Logger } from '@nestjs/common'
 import Axios from 'axios'
+import { getDteVersion, isTipoDte } from '@pos-dte/dte-core'
 
 const ENDPOINTS = {
   TEST: 'https://apitest.dtes.mh.gob.sv/fesv',
@@ -124,10 +125,8 @@ export class HaciendaService {
   }
 
   private getVersion(tipoDte: string): number {
-    const versions: Record<string, number> = {
-      '01': 1, '03': 3, '05': 1, '06': 1, '14': 1,
-    }
-    return versions[tipoDte] ?? 1
+    if (!isTipoDte(tipoDte)) throw new Error(`Tipo DTE no soportado: ${tipoDte}`)
+    return getDteVersion(tipoDte)
   }
 
   invalidateToken(cacheKey: string) {
