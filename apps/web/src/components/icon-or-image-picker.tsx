@@ -22,8 +22,7 @@ const EmojiMartPicker = dynamic(() => import('@emoji-mart/react'), {
 })
 
 // emoji-mart data (JSON estático, importado una vez)
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const emojiData = require('@emoji-mart/data')
+import emojiData from '@emoji-mart/data'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
