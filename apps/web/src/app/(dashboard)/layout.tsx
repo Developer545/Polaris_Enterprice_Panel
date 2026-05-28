@@ -12,10 +12,12 @@ import {
   CalculatorOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
   CaretDownOutlined, CaretRightOutlined, BankOutlined,
   TagOutlined, SafetyOutlined, DatabaseOutlined, AccountBookOutlined,
+  BgColorsOutlined,
 } from '@ant-design/icons'
 import { usePathname, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
+import ThemeSelector from '../../components/theme/ThemeSelector'
 
 const { Sider, Header, Content } = Layout
 const { Text } = Typography
@@ -38,7 +40,7 @@ const NAV_GROUPS: NavGroup[] = [
     key: 'ventas',
     label: 'Ventas',
     icon: <ShoppingCartOutlined />,
-    color: 'var(--ant-color-primary)',
+    color: 'var(--brand-primary)',
     items: [
       { key: '/',                    label: 'Dashboard',           icon: <DashboardOutlined />, module: 'dashboard' },
       { key: '/pos',                 label: 'Caja / POS',          icon: <ShoppingCartOutlined />, module: 'pos' },
@@ -111,6 +113,7 @@ function getActiveGroup(pathname: string, groups: NavGroup[] = NAV_GROUPS) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['ventas']))
+  const [themeOpen, setThemeOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const { token } = antTheme.useToken()
@@ -186,7 +189,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         width={240}
         collapsedWidth={64}
         style={{
-          background: '#fbfbfa',
+          background: 'var(--sidebar-bg)',
           position: 'fixed',
           height: `calc(100vh - ${tbOffset}px)`,
           left: 0,
@@ -195,7 +198,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          borderRight: '1px solid #e9e9e7',
+          borderRight: '1px solid var(--sidebar-border)',
         }}
       >
         {/* Logo */}
@@ -205,7 +208,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'flex-start',
           padding: collapsed ? 0 : '0 16px',
-          borderBottom: '1px solid #e9e9e7',
+          borderBottom: '1px solid var(--sidebar-border)',
           flexShrink: 0,
         }}>
           <div style={{
@@ -218,10 +221,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
           {!collapsed && (
             <div style={{ marginLeft: 10, overflow: 'hidden' }}>
-              <div style={{ color: '#37352f', fontWeight: 700, fontSize: 14, lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+              <div style={{ color: 'var(--sidebar-fg)', fontWeight: 700, fontSize: 14, lineHeight: 1.2, whiteSpace: 'nowrap' }}>
                 Polaris
               </div>
-              <div style={{ color: '#9b9b99', fontSize: 11, whiteSpace: 'nowrap' }}>
+              <div style={{ color: 'var(--sidebar-muted)', fontSize: 11, whiteSpace: 'nowrap' }}>
                 Enterprise
               </div>
             </div>
@@ -250,7 +253,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         margin: '2px 8px',
                         borderRadius: 8,
                         cursor: 'pointer',
-                        color: hasActive ? group.color : '#9b9b99',
+                        color: hasActive ? group.color : 'var(--sidebar-muted)',
                         background: hasActive ? `${group.color}18` : 'transparent',
                         fontSize: 16,
                         transition: 'all 0.2s',
@@ -274,11 +277,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ color: group.color, fontSize: 14 }}>{group.icon}</span>
-                      <Text style={{ color: '#37352f', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                      <Text style={{ color: 'var(--sidebar-fg)', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                         {group.label}
                       </Text>
                     </div>
-                    <span style={{ color: '#c7c7c5', fontSize: 10, transition: 'transform 0.2s', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
+                    <span style={{ color: 'var(--sidebar-muted)', fontSize: 10, transition: 'transform 0.2s', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
                       <CaretDownOutlined />
                     </span>
                   </div>
@@ -299,8 +302,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           margin: '1px 8px',
                           borderRadius: 8,
                           cursor: 'pointer',
-                          color: active ? '#2383e2' : '#9b9b99',
-                          background: active ? '#e8f0fc' : 'transparent',
+                          color: active ? 'var(--sidebar-item-active-color)' : 'var(--sidebar-muted)',
+                          background: active ? 'var(--sidebar-item-active-bg)' : 'transparent',
                           fontSize: 15,
                           transition: 'all 0.15s',
                         }}
@@ -320,14 +323,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         margin: '1px 8px',
                         borderRadius: 8,
                         cursor: 'pointer',
-                        color: active ? '#2383e2' : '#37352f',
-                        background: active ? '#e8f0fc' : 'transparent',
+                        color: active ? 'var(--sidebar-item-active-color)' : 'var(--sidebar-fg)',
+                        background: active ? 'var(--sidebar-item-active-bg)' : 'transparent',
                         fontWeight: active ? 600 : 400,
                         fontSize: 13,
                         transition: 'all 0.15s',
                         borderLeft: active ? 'none' : '2px solid transparent',
                       }}
-                      onMouseEnter={e => { if (!active) e.currentTarget.style.background = '#ebebea' }}
+                      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--sidebar-item-hover-bg)' }}
                       onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
                     >
                       <span style={{ fontSize: 14, flexShrink: 0 }}>{item.icon}</span>
@@ -338,7 +341,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   )
                 })}
 
-                {!collapsed && <div style={{ margin: '4px 16px', borderBottom: '1px solid #ebebea' }} />}
+                {!collapsed && <div style={{ margin: '4px 16px', borderBottom: '1px solid var(--sidebar-border)' }} />}
               </div>
             )
           })}
@@ -366,6 +369,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           </button>
+
+          <Tooltip title="Cambiar tema">
+            <button
+              onClick={() => setThemeOpen(true)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: token.colorText, padding: '4px 8px', borderRadius: 6 }}
+            >
+              <BgColorsOutlined />
+            </button>
+          </Tooltip>
+          <ThemeSelector open={themeOpen} onClose={() => setThemeOpen(false)} />
 
           <Dropdown menu={userMenu} placement="bottomRight" trigger={['click']}>
             <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', borderRadius: 8 }}>
