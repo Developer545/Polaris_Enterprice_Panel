@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import {
   Form, Input, Select, Button, Row, Col, Divider,
-  Typography, App, Spin, Tag, Alert, Card, theme,
+  Typography, App, Spin, Tag, Alert, Card, Switch, theme,
 } from 'antd'
 import { SaveOutlined, LockOutlined, BankOutlined, EnvironmentOutlined, PhoneOutlined, MailOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -48,6 +48,8 @@ export default function EmpresaTab({ companyId }: Props) {
         address: company.address,
         phone: company.phone,
         email: company.email,
+        esGranContribuyente: company.esGranContribuyente ?? false,
+        sujetoRetencionIva1: company.sujetoRetencionIva1 ?? true,
         dteAmbiente: company.dteAmbiente ?? 'TEST',
         haciendaUser: company.haciendaUser,
       })
@@ -137,6 +139,25 @@ export default function EmpresaTab({ companyId }: Props) {
           Facturación Electrónica (DTE)
         </Text>
         <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
+
+        <Row gutter={24}>
+          <Col xs={24} md={12}>
+            <Form.Item label={LBL('Empresa gran contribuyente')} name="esGranContribuyente" valuePropName="checked" style={MB}>
+              <Switch checkedChildren="Si" unCheckedChildren="No" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label={LBL('Sujeta a retencion IVA 1%')}
+              name="sujetoRetencionIva1"
+              valuePropName="checked"
+              style={MB}
+              tooltip="Si esta activo, clientes retenedores pueden aplicar retencion IVA 1% en CCF desde el umbral fiscal."
+            >
+              <Switch checkedChildren="Si" unCheckedChildren="No" />
+            </Form.Item>
+          </Col>
+        </Row>
 
         <Alert
           type="info"

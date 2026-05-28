@@ -223,27 +223,34 @@ export class DteBuilderService {
       plazo: null,
       periodo: null,
     }))
+    const totalNoSuj = Number(sale.totalNoSuj)
+    const totalExenta = Number(sale.totalExenta)
+    const totalGravada = Number(sale.totalGravada)
+    const totalIva = Number(sale.totalIva)
+    const totalDescuento = Number(sale.totalDescuento)
+    const ivaRete1 = Number(sale.ivaRete1 ?? 0)
+    const subTotalVentas = totalGravada + totalExenta + totalNoSuj
 
     return {
-      totalNoSuj: Number(sale.totalNoSuj),
-      totalExenta: Number(sale.totalExenta),
-      totalGravada: Number(sale.totalGravada),
-      subTotalVentas: Number(sale.totalGravada) + Number(sale.totalExenta) + Number(sale.totalNoSuj),
+      totalNoSuj,
+      totalExenta,
+      totalGravada,
+      subTotalVentas,
       descuNoSuj: 0,
       descuExenta: 0,
-      descuGravada: Number(sale.totalDescuento),
+      descuGravada: totalDescuento,
       porcentajeDescuento: 0,
-      totalDescu: Number(sale.totalDescuento),
+      totalDescu: totalDescuento,
       // Factura CF: IVA va en totalIva, no en tributos (fe-fc-v1.json)
       tributos: null,
-      subTotal: Number(sale.totalGravada) + Number(sale.totalExenta) + Number(sale.totalNoSuj) - Number(sale.totalDescuento),
-      ivaRete1: 0,
+      subTotal: subTotalVentas,
+      ivaRete1,
       reteRenta: 0,
-      montoTotalOperacion: Number(sale.totalPagar),
+      montoTotalOperacion: Number(sale.totalPagar) + ivaRete1,
       totalNoGravado: 0,
       totalPagar: Number(sale.totalPagar),
       totalLetras: this.numberToWords(Number(sale.totalPagar)),
-      totalIva: Number(sale.totalIva),
+      totalIva,
       saldoFavor: 0,
       condicionOperacion: parseInt(sale.condicionOperacion),
       pagos: payments,
@@ -255,9 +262,14 @@ export class DteBuilderService {
     const base = this.buildResumenCF(sale)
     return {
       ...base,
-      subTotal: Number(sale.totalGravada) - Number(sale.totalDescuento),
+      subTotal: Number(sale.totalGravada) + Number(sale.totalExenta) + Number(sale.totalNoSuj),
+      montoTotalOperacion:
+        Number(sale.totalGravada) +
+        Number(sale.totalExenta) +
+        Number(sale.totalNoSuj) +
+        Number(sale.totalIva),
       ivaPerci1: 0,
-      ivaRete1: 0,
+      ivaRete1: Number(sale.ivaRete1 ?? 0),
     }
   }
 

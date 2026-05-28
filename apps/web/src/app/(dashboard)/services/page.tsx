@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react'
 import {
   Table, Button, Input, Tag, Space, Typography, Drawer, Form,
   InputNumber, Select, Row, Col, Statistic, Card, Popconfirm,
-  App, Tooltip, Divider, theme, Empty, Popover,
+  App, Tooltip, Divider, theme, Empty, Avatar,
 } from 'antd'
 import {
   PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined,
@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
 import type { ColumnsType } from 'antd/es/table'
+import { IconOrImagePicker, resolveImageUrl } from '../../../components/icon-or-image-picker'
 
 const { Text } = Typography
 
@@ -28,72 +29,6 @@ const COLOR_PRESETS = [
   '#722ed1', '#13c2c2', '#fa8c16', '#eb2f96', '#8c8c8c',
 ]
 
-const EMOJI_LIST = [
-  // Alimentación
-  '🍎','🍌','🥩','🍞','🥛','🥤','🍫','🧃','☕','🍵','🥗','🧂','🫙','🥫','🧁',
-  // Ferretería / construcción
-  '🔧','🔨','🪛','🔩','🪚','🛠️','🔌','💡','🪝','🧱','🪵','🏠','🪣','🎨','🪟',
-  // Salud / belleza
-  '💊','🩺','🩹','💄','💅','🧼','🪥','🌿','🧴','🫧',
-  // Tecnología
-  '📱','💻','🖥️','⌨️','🖱️','📷','🔋','📡',
-  // Ropa / moda
-  '👗','👠','👒','🧣','🧤','👜','👟','🕶️',
-  // Oficina
-  '📝','📋','📊','📁','🗂️','🖨️','📦','📌','✂️',
-  // Servicios / transporte
-  '💼','🚗','🚐','🚚','✈️','🎵','🏋️','📚','🌐','🔑',
-  // Mascotas / animales
-  '🐕','🐈','🐄','🐓','🐖','🐟','🐇','🦜',
-  // Misc
-  '⭐','❤️','✅','🎁','🛍️','🏷️','💎','🌟','🏆','🎯',
-]
-
-function EmojiPicker({ value, onChange }: { value?: string; onChange?: (v: string) => void }) {
-  return (
-    <Popover
-      trigger="click"
-      content={
-        <div style={{ width: 260, maxHeight: 220, overflowY: 'auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 2 }}>
-            <div
-              onClick={() => onChange?.('')}
-              title="Sin emoji"
-              style={{
-                fontSize: 18, cursor: 'pointer', textAlign: 'center', padding: '3px 0',
-                borderRadius: 4, background: !value ? '#f0f0f0' : 'transparent', lineHeight: 1.6,
-              }}
-            >
-              ✕
-            </div>
-            {EMOJI_LIST.map(e => (
-              <div
-                key={e}
-                onClick={() => onChange?.(e)}
-                style={{
-                  fontSize: 18, cursor: 'pointer', textAlign: 'center', padding: '3px 0',
-                  borderRadius: 4, background: value === e ? '#f0f0f0' : 'transparent',
-                  lineHeight: 1.6, transition: 'background .1s',
-                }}
-                onMouseEnter={el => (el.currentTarget.style.background = '#f5f5f5')}
-                onMouseLeave={el => (el.currentTarget.style.background = value === e ? '#f0f0f0' : 'transparent')}
-              >
-                {e}
-              </div>
-            ))}
-          </div>
-        </div>
-      }
-    >
-      <Button
-        style={{ width: '100%', textAlign: 'left', fontSize: value ? 22 : 13 }}
-        title="Seleccionar emoji"
-      >
-        {value || <span style={{ color: '#bbb', fontSize: 13 }}>Sin emoji</span>}
-      </Button>
-    </Popover>
-  )
-}
 
 function ColorSwatch({ value, onChange }: { value?: string; onChange?: (v: string) => void }) {
   return (
@@ -245,6 +180,7 @@ export default function ServicesPage() {
       categoryId:  record.categoryId ?? undefined,
       uniMedida:   Number(record.uniMedida ?? 74),
       emoji:       record.emoji ?? '',
+      imageUrl:    record.imageUrl ?? '',
     })
     setDrawerOpen(true)
   }
@@ -253,11 +189,16 @@ export default function ServicesPage() {
   const columns: ColumnsType<any> = [
     {
       title: 'Servicio', key: 'servicio',
-      render: (r: any) => (
+      render: (r: any) => {
+        const imgSrc = resolveImageUrl(r.imageUrl)
+        return (
         <Space size={10} align="start">
-          {r.emoji && (
-            <span style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>{r.emoji}</span>
-          )}
+          {imgSrc
+            ? <Avatar src={imgSrc} shape="square" size={40} style={{ borderRadius: 8, flexShrink: 0 }} />
+            : r.emoji
+              ? <span style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>{r.emoji}</span>
+              : null
+          }
           <Space direction="vertical" size={2}>
             <Text strong style={{ fontSize: 13 }}>{r.name}</Text>
             {r.description && (
@@ -272,7 +213,8 @@ export default function ServicesPage() {
             )}
           </Space>
         </Space>
-      ),
+        )
+      },
     },
     {
       title: 'Categoría', key: 'categoria', width: 140,
@@ -488,8 +430,23 @@ export default function ServicesPage() {
             <Input.TextArea rows={2} placeholder="Descripción del servicio (opcional)" style={{ borderRadius: 8 }} />
           </Form.Item>
 
-          <Form.Item name="emoji" label="Emoji / Ícono visual" style={{ marginBottom: 14 }}>
-            <EmojiPicker />
+          <Form.Item
+            label="Ícono / Imagen"
+            tooltip="Emoji o foto del servicio para el POS y listados"
+            style={{ marginBottom: 14 }}
+          >
+            <Form.Item name="emoji"    noStyle hidden><Input /></Form.Item>
+            <Form.Item name="imageUrl" noStyle hidden><Input /></Form.Item>
+            <Form.Item noStyle shouldUpdate={(p, c) => p.emoji !== c.emoji || p.imageUrl !== c.imageUrl}>
+              {({ getFieldValue, setFieldsValue }) => (
+                <IconOrImagePicker
+                  emoji={getFieldValue('emoji')}
+                  imageUrl={getFieldValue('imageUrl')}
+                  onChange={({ emoji, imageUrl }) => setFieldsValue({ emoji: emoji ?? '', imageUrl: imageUrl ?? '' })}
+                  folder="polaris/servicios"
+                />
+              )}
+            </Form.Item>
           </Form.Item>
 
           <Row gutter={12}>

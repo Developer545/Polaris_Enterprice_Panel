@@ -1,7 +1,7 @@
 extends: electron-builder.yml
 
 productName: Polaris Local
-artifactName: "${productName}-${version}-${os}-${arch}.${ext}"
+artifactName: "Polaris-Local-${version}-${os}-${arch}.${ext}"
 compression: store
 
 extraMetadata:

@@ -52,11 +52,27 @@ export class ProductsService {
     if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
   }
 
-  async findAll(companyId: string, user: JwtAccessPayload, search?: string, categoryId?: string, lowStock?: boolean) {
+  private assertBranchAccess(user: JwtAccessPayload, branchId?: string | null) {
+    if (branchId && !user.branchIds.includes(branchId)) throw new ForbiddenException('Sucursal no autorizada')
+  }
+
+  async findAll(
+    companyId: string,
+    user: JwtAccessPayload,
+    search?: string,
+    categoryId?: string,
+    lowStock?: boolean,
+    branchId?: string,
+  ) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     this.assertCompanyAccess(user, companyId)
-    return db.service.findMany({
+    this.assertBranchAccess(user, branchId)
+
+    const activeBranchCount = branchId
+      ? await db.branch.count({ where: { tenantId, companyId, isActive: true } })
+      : 0
+    const products = await db.service.findMany({
       where: {
         tenantId,
         companyId,
@@ -69,14 +85,36 @@ export class ProductsService {
             { barcode: { contains: search } },
           ],
         } : {}),
-        ...(lowStock ? { trackStock: true, stock: { lte: db.service.fields.minStock } } : {}),
+        ...(!branchId && lowStock ? { trackStock: true, stock: { lte: db.service.fields.minStock } } : {}),
       },
       include: {
         category: { select: { id: true, name: true, color: true } },
         saleUnit:  { select: { id: true, name: true, symbol: true } },
+        ...(branchId ? {
+          branchInventories: {
+            where: { tenantId, branchId },
+            select: { stock: true, minStock: true },
+            take: 1,
+          },
+        } : {}),
       },
       orderBy: { name: 'asc' },
     })
+
+    if (!branchId) return products
+
+    const mapped = (products as any[]).map(({ branchInventories, ...product }) => {
+      const branchStock = branchInventories?.[0]
+      return {
+        ...product,
+        stock: branchStock?.stock ?? (activeBranchCount <= 1 ? product.stock : 0),
+        minStock: branchStock?.minStock ?? product.minStock,
+      }
+    })
+
+    return lowStock
+      ? mapped.filter((product) => product.trackStock && Number(product.stock ?? 0) <= Number(product.minStock ?? 0))
+      : mapped
   }
 
   async findOne(id: string, user: JwtAccessPayload) {

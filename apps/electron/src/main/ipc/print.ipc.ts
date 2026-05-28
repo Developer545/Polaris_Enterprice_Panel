@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { ThermalPrinter, PrinterTypes, CharacterSet, BreakLine } from 'node-thermal-printer'
+import { SimpleStore } from '../simple-store'
 
 export interface PrintReceiptPayload {
   businessName: string
@@ -220,9 +221,7 @@ function formatMoney(n: number): string {
 
 function getConfig(): { printerInterface?: string; printerType?: string; printerAddress?: string } {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Store = require('electron-store')
-    const store = new Store({ name: 'pos-dte-config' })
+    const store = new SimpleStore({ name: 'pos-dte-config' })
     return {
       printerInterface: store.get('printerInterface') as string | undefined,
       printerType: store.get('printerType') as string | undefined,

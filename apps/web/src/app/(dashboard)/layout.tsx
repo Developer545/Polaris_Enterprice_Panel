@@ -4,9 +4,7 @@ import {
   Layout, Avatar, Dropdown, Typography, theme as antTheme,
   Tooltip, Badge,
 } from 'antd'
-import TitleBar, { TITLEBAR_HEIGHT } from '@/components/electron/TitleBar'
 import UpdateBanner from '@/components/electron/UpdateBanner'
-import { isElectron } from '@/lib/is-electron'
 import {
   DashboardOutlined, ShoppingCartOutlined, TeamOutlined, AppstoreOutlined,
   FileTextOutlined, UserOutlined, SettingOutlined, LogoutOutlined,
@@ -24,7 +22,7 @@ const { Text } = Typography
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-type NavItem = { key: string; label: string; icon: React.ReactNode }
+type NavItem = { key: string; label: string; icon: React.ReactNode; module?: string }
 type NavGroup = {
   key: string
   label: string
@@ -42,11 +40,11 @@ const NAV_GROUPS: NavGroup[] = [
     icon: <ShoppingCartOutlined />,
     color: 'var(--ant-color-primary)',
     items: [
-      { key: '/',               label: 'Dashboard',     icon: <DashboardOutlined /> },
-      { key: '/pos',                   label: 'Caja / POS',         icon: <ShoppingCartOutlined /> },
-      { key: '/sales',                 label: 'Ventas',             icon: <FileTextOutlined /> },
-      { key: '/accounts-receivable',   label: 'Cuentas por cobrar', icon: <AccountBookOutlined /> },
-      { key: '/cash-registers',        label: 'Turnos de caja',     icon: <WalletOutlined /> },
+      { key: '/',                    label: 'Dashboard',           icon: <DashboardOutlined />, module: 'dashboard' },
+      { key: '/pos',                 label: 'Caja / POS',          icon: <ShoppingCartOutlined />, module: 'pos' },
+      { key: '/sales',               label: 'Ventas',              icon: <FileTextOutlined />, module: 'ventas' },
+      { key: '/accounts-receivable', label: 'Cuentas por cobrar',  icon: <AccountBookOutlined />, module: 'cxc' },
+      { key: '/cash-registers',      label: 'Turnos de caja',      icon: <WalletOutlined />, module: 'turnos_caja' },
     ],
   },
   {
@@ -55,10 +53,10 @@ const NAV_GROUPS: NavGroup[] = [
     icon: <TeamOutlined />,
     color: '#1677ff',
     items: [
-      { key: '/clients',   label: 'Clientes',   icon: <TeamOutlined /> },
-      { key: '/products',  label: 'Productos',  icon: <AppstoreOutlined /> },
-      { key: '/inventory', label: 'Inventario', icon: <DatabaseOutlined /> },
-      { key: '/services',  label: 'Servicios',  icon: <TagOutlined /> },
+      { key: '/clients',   label: 'Clientes',   icon: <TeamOutlined />, module: 'clientes' },
+      { key: '/products',  label: 'Productos',  icon: <AppstoreOutlined />, module: 'productos' },
+      { key: '/inventory', label: 'Inventario', icon: <DatabaseOutlined />, module: 'inventario' },
+      { key: '/services',  label: 'Servicios',  icon: <TagOutlined />, module: 'servicios' },
     ],
   },
   {
@@ -67,8 +65,8 @@ const NAV_GROUPS: NavGroup[] = [
     icon: <IdcardOutlined />,
     color: 'var(--ant-color-success)',
     items: [
-      { key: '/employees', label: 'Empleados', icon: <IdcardOutlined /> },
-      { key: '/payroll',   label: 'Planilla',  icon: <CalculatorOutlined /> },
+      { key: '/employees', label: 'Empleados', icon: <IdcardOutlined />, module: 'empleados' },
+      { key: '/payroll',   label: 'Planilla',  icon: <CalculatorOutlined />, module: 'planilla' },
     ],
   },
   {
@@ -77,10 +75,10 @@ const NAV_GROUPS: NavGroup[] = [
     icon: <ShoppingOutlined />,
     color: '#722ed1',
     items: [
-      { key: '/suppliers',        label: 'Proveedores',      icon: <BankOutlined /> },
-      { key: '/purchases',        label: 'Órdenes de compra', icon: <ShoppingOutlined /> },
-      { key: '/accounts-payable', label: 'Cuentas por pagar', icon: <WalletOutlined /> },
-      { key: '/expenses',         label: 'Gastos',           icon: <FileTextOutlined /> },
+      { key: '/suppliers',        label: 'Proveedores',       icon: <BankOutlined />, module: 'proveedores' },
+      { key: '/purchases',        label: 'Órdenes de compra', icon: <ShoppingOutlined />, module: 'compras' },
+      { key: '/accounts-payable', label: 'Cuentas por pagar', icon: <WalletOutlined />, module: 'cxp' },
+      { key: '/expenses',         label: 'Gastos',            icon: <FileTextOutlined />, module: 'gastos' },
     ],
   },
   {
@@ -101,8 +99,8 @@ function isActive(itemKey: string, pathname: string) {
   return pathname === itemKey || pathname.startsWith(itemKey + '/')
 }
 
-function getActiveGroup(pathname: string) {
-  for (const group of NAV_GROUPS) {
+function getActiveGroup(pathname: string, groups: NavGroup[] = NAV_GROUPS) {
+  for (const group of groups) {
     if (group.items.some(i => isActive(i.key, pathname))) return group.key
   }
   return 'ventas'
@@ -113,8 +111,6 @@ function getActiveGroup(pathname: string) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['ventas']))
-  // Evaluated after mount to avoid SSR/hydration mismatch
-  const [inElectron, setInElectron] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const { token } = antTheme.useToken()
@@ -125,14 +121,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setOpenGroups(prev => new Set([...prev, activeGroup]))
   }, [pathname])
 
-  useEffect(() => { setInElectron(isElectron) }, [])
-
   const { data: user } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.get('/api/auth/me').then(r => r.data),
     staleTime: 5 * 60_000,
     retry: 1,
   })
+
+  const { data: tenantInfo } = useQuery({
+    queryKey: ['tenant-info'],
+    queryFn: () => api.get('/api/auth/tenant-info').then(r => r.data),
+    staleTime: 5 * 60_000,
+    retry: 1,
+  })
+
+  const tenantModules = tenantInfo?.modules as Record<string, boolean> | undefined
+  const moduleConfigured = !!tenantModules && Object.keys(tenantModules).length > 0
+  const moduleEnabled = (moduleId?: string) =>
+    !moduleId || !moduleConfigured || tenantModules?.[moduleId] === true
+  const visibleNavGroups = NAV_GROUPS
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item => moduleEnabled(item.module)),
+    }))
+    .filter(group => group.items.length > 0)
 
   async function logout() {
     await api.post('/api/auth/logout').catch(() => {})
@@ -163,11 +175,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     onClick: ({ key }: { key: string }) => { if (key === 'logout') logout() },
   }
 
-  const tbOffset = inElectron ? TITLEBAR_HEIGHT : 0
+  const tbOffset = 0
 
   return (
     <Layout style={{ minHeight: '100vh', background: 'transparent', paddingTop: tbOffset }}>
-      <TitleBar sidebarWidth={collapsed ? 64 : 240} />
       <UpdateBanner />
       {/* Sidebar */}
       <Sider
@@ -218,8 +229,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Nav */}
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px 0' }}>
-          {NAV_GROUPS.map(group => {
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px 0', height: 0 }}>
+          {visibleNavGroups.map(group => {
             const isOpen = openGroups.has(group.key)
             const hasActive = group.items.some(i => isActive(i.key, pathname))
 

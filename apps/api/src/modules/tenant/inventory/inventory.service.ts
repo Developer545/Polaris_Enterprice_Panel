@@ -10,8 +10,9 @@ export const AdjustStockSchema = z.object({
   branchId:   z.string().cuid().optional(),
   productId:  z.string().cuid(),
   type:       z.enum(['IN', 'OUT', 'ADJUST']),
-  quantity:   z.number().positive(),
+  quantity:   z.number().int().nonnegative(),
   unitCost:   z.number().nonnegative().optional(),
+  reference:  z.string().max(100).optional(),
   reason:     z.string().min(2).max(500),
 })
 
@@ -35,6 +36,25 @@ export class InventoryService {
   }
 
   // ─── Movimientos / Kardex ──────────────────────────────────────────────────
+
+  private async getInitialBranchStock(db: any, tenantId: string, companyId: string, product: { id: string; stock: number | null }) {
+    const [existingBranchStockCount, activeBranchCount] = await Promise.all([
+      db.branchInventory.count({ where: { tenantId, companyId, productId: product.id } }),
+      db.branch.count({ where: { tenantId, companyId, isActive: true } }),
+    ])
+    return existingBranchStockCount === 0 && activeBranchCount <= 1 ? Number(product.stock ?? 0) : 0
+  }
+
+  private async syncGlobalStock(db: any, tenantId: string, companyId: string, productId: string, fallbackStock: number) {
+    const totals = await db.branchInventory.aggregate({
+      where: { tenantId, companyId, productId },
+      _sum: { stock: true },
+    })
+    await db.service.update({
+      where: { id: productId },
+      data: { stock: totals._sum.stock ?? fallbackStock },
+    })
+  }
 
   async findMovements(
     companyId: string,
@@ -89,10 +109,38 @@ export class InventoryService {
 
   // ─── Stock bajo mínimo ────────────────────────────────────────────────────
 
-  async findLowStock(companyId: string, user: JwtAccessPayload) {
+  async findLowStock(companyId: string, user: JwtAccessPayload, branchId?: string) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     this.assertCompanyAccess(user, companyId)
+    this.assertBranchAccess(user, branchId)
+
+    if (branchId) {
+      const rows = await db.branchInventory.findMany({
+        where: {
+          tenantId,
+          companyId,
+          branchId,
+          product: { trackStock: true, isActive: true },
+        },
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              sku: true,
+              cost: true,
+              price: true,
+              category: { select: { id: true, name: true, color: true } },
+            },
+          },
+        },
+        orderBy: { product: { name: 'asc' } },
+      })
+      return rows
+        .filter((row) => row.stock <= row.minStock)
+        .map((row) => ({ ...row.product, stock: row.stock, minStock: row.minStock }))
+    }
 
     return db.service.findMany({
       where: {
@@ -117,13 +165,46 @@ export class InventoryService {
 
   // ─── KPIs inventario ─────────────────────────────────────────────────────
 
-  async getStats(companyId: string, user: JwtAccessPayload) {
+  async getStats(companyId: string, user: JwtAccessPayload, branchId?: string) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     this.assertCompanyAccess(user, companyId)
+    this.assertBranchAccess(user, branchId)
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
+
+    if (branchId) {
+      const [inventories, movementsToday] = await Promise.all([
+        db.branchInventory.findMany({
+          where: {
+            tenantId,
+            companyId,
+            branchId,
+            product: { trackStock: true, isActive: true },
+          },
+          select: {
+            stock: true,
+            minStock: true,
+            product: { select: { cost: true } },
+          },
+        }),
+        db.inventoryMovement.count({
+          where: { tenantId, companyId, branchId, createdAt: { gte: today } },
+        }),
+      ])
+
+      const valorStock = inventories.reduce((sum, row) => sum + row.stock * Number(row.product.cost ?? 0), 0)
+      const itemsBajoMinimo = inventories.filter((row) => row.stock <= row.minStock).length
+
+      return {
+        totalProductos: inventories.length,
+        valorStock: valorStock.toFixed(2),
+        itemsBajoMinimo,
+        movementsToday,
+        totalConStock: inventories.length,
+      }
+    }
 
     const [stockStats, movementsToday] = await Promise.all([
       db.$queryRawUnsafe<Array<{
@@ -170,6 +251,87 @@ export class InventoryService {
     })
     if (!product) throw new NotFoundException('Producto no encontrado o no maneja inventario')
 
+    if (dto.type !== 'ADJUST' && dto.quantity <= 0) {
+      throw new BadRequestException('La cantidad debe ser mayor a cero')
+    }
+
+    if (dto.branchId) {
+      const branch = await db.branch.findFirst({
+        where: { id: dto.branchId, tenantId, companyId: dto.companyId, isActive: true },
+        select: { id: true },
+      })
+      if (!branch) throw new BadRequestException('Sucursal no pertenece a esta empresa')
+
+      return db.$transaction(async (tx) => {
+        const initialStock = await this.getInitialBranchStock(tx, tenantId, dto.companyId, product)
+        const branchStock = await tx.branchInventory.upsert({
+          where: {
+            tenantId_branchId_productId: {
+              tenantId,
+              branchId: dto.branchId!,
+              productId: dto.productId,
+            },
+          },
+          update: {},
+          create: {
+            tenantId,
+            companyId: dto.companyId,
+            branchId: dto.branchId!,
+            productId: dto.productId,
+            stock: initialStock,
+            minStock: product.minStock,
+          },
+          select: { id: true, stock: true },
+        })
+
+        const currentStock = Number(branchStock.stock ?? 0)
+        let newStock: number
+        if (dto.type === 'IN') {
+          newStock = currentStock + dto.quantity
+        } else if (dto.type === 'OUT') {
+          newStock = currentStock - dto.quantity
+          if (newStock < 0) throw new BadRequestException('Stock insuficiente para la salida')
+        } else {
+          newStock = dto.quantity
+        }
+
+        const quantityForMovement = dto.type === 'ADJUST'
+          ? Math.abs(newStock - currentStock)
+          : dto.quantity
+
+        const updateResult = await tx.branchInventory.updateMany({
+          where: { id: branchStock.id, ...(dto.type === 'OUT' ? { stock: { gte: dto.quantity } } : {}) },
+          data: { stock: newStock },
+        })
+        if (updateResult.count === 0) throw new BadRequestException('Stock insuficiente para la salida')
+
+        const movement = await tx.inventoryMovement.create({
+          data: {
+            tenantId,
+            companyId:      dto.companyId,
+            branchId:       dto.branchId,
+            productId:      dto.productId,
+            userId:         user.sub,
+            type:           dto.type,
+            quantity:       new Decimal(quantityForMovement),
+            quantityBefore: new Decimal(currentStock),
+            quantityAfter:  new Decimal(newStock),
+            unitCost:       dto.unitCost != null ? new Decimal(dto.unitCost) : null,
+            reference:      dto.reference,
+            reason:         dto.reason,
+          },
+          include: {
+            product: { select: { id: true, name: true, sku: true } },
+            user:    { select: { id: true, name: true } },
+            branch:  { select: { id: true, name: true } },
+          },
+        })
+
+        await this.syncGlobalStock(tx, tenantId, dto.companyId, dto.productId, newStock)
+        return movement
+      })
+    }
+
     const currentStock = Number(product.stock)
     let newStock: number
 
@@ -200,6 +362,7 @@ export class InventoryService {
           quantityBefore: new Decimal(currentStock),
           quantityAfter:  new Decimal(newStock),
           unitCost:       dto.unitCost != null ? new Decimal(dto.unitCost) : null,
+          reference:      dto.reference,
           reason:         dto.reason,
         },
         include: {

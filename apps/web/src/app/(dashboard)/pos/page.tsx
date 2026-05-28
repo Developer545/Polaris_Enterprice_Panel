@@ -95,11 +95,11 @@ export default function PosPage() {
   })
 
   const { data: products = [], isFetching: searchingProducts } = useQuery({
-    queryKey: ['products-search', companyId, deferredProductSearch, selectedCategory],
+    queryKey: ['products-search', companyId, branchId, deferredProductSearch, selectedCategory],
     queryFn: () => api.get('/api/products', {
-      params: { companyId, search: deferredProductSearch || undefined, categoryId: selectedCategory || undefined },
+      params: { companyId, branchId, search: deferredProductSearch || undefined, categoryId: selectedCategory || undefined },
     }).then(r => r.data),
-    enabled: !!companyId,
+    enabled: !!companyId && !!branchId,
     staleTime: 30_000,
   })
 
@@ -129,7 +129,7 @@ export default function PosPage() {
     if (!companyId) return
     try {
       const res = await api.get('/api/products', {
-        params: { companyId, search: barcode },
+        params: { companyId, branchId, search: barcode },
       })
       const matches: any[] = res.data ?? []
       const product = matches.find(p => p.sku === barcode || p.barcode === barcode) ?? matches[0]

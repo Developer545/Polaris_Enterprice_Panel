@@ -1,12 +1,13 @@
-import { Injectable, BadRequestException, ForbiddenException, NotFoundException, Logger } from '@nestjs/common'
+import { Injectable, BadRequestException, ForbiddenException, NotFoundException, Logger, Optional } from '@nestjs/common'
 import { InjectQueue } from '@nestjs/bullmq'
 import { Queue } from 'bullmq'
 import { randomUUID } from 'crypto'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
-import { calcLineTotals, calcSaleSummary, buildNumeroControl } from '@pos-dte/dte-core'
+import { calcIvaRetention1, calcLineTotals, calcSaleSummary, buildNumeroControl } from '@pos-dte/dte-core'
 import { Decimal } from '@prisma/client/runtime/library'
-import { PERMISSIONS, type JwtAccessPayload, type TipoDte } from '@pos-dte/shared-types'
+import { type JwtAccessPayload, type TipoDte } from '@pos-dte/shared-types'
+import { useBullDteQueue } from '../../../config/env'
 import { z } from 'zod'
 
 export const SaleLineSchema = z.object({
@@ -41,7 +42,7 @@ export class PosService {
 
   constructor(
     private readonly clientFactory: TenantClientFactory,
-    @InjectQueue('dte') private readonly dteQueue: Queue,
+    @Optional() @InjectQueue('dte') private readonly dteQueue?: Queue,
   ) {}
 
   private getDb() {
@@ -132,13 +133,23 @@ export class PosService {
     })
     if (products.length !== productIds.length) throw new BadRequestException('Uno o más productos no encontrados')
 
+    let clientForSale: { id: string; esGranContribuyente: boolean; retieneIva1: boolean } | null = null
     if (dto.clientId) {
-      const client = await db.client.findFirst({
+      clientForSale = await db.client.findFirst({
         where: { id: dto.clientId, tenantId, companyId: dto.companyId, isActive: true },
-        select: { id: true },
+        select: { id: true, esGranContribuyente: true, retieneIva1: true },
       })
-      if (!client) throw new BadRequestException('Cliente no encontrado para esta empresa')
+      if (!clientForSale) throw new BadRequestException('Cliente no encontrado para esta empresa')
     }
+
+    const companyConfig = await db.company.findFirst({
+      where: { id: dto.companyId, tenantId },
+      select: {
+        dteEnabledTypes: true,
+        esGranContribuyente: true,
+        sujetoRetencionIva1: true,
+      },
+    })
 
     // Build typed line totals
     const lines = dto.items.map(item => {
@@ -154,9 +165,27 @@ export class PosService {
       )
       return { item, product, unitPrice, totals }
     })
+    for (const { item, product } of lines) {
+      if (product.trackStock && !Number.isInteger(item.quantity)) {
+        throw new BadRequestException(`La cantidad de inventario para "${product.name}" debe ser entera`)
+      }
+    }
 
+    const summaryBeforeRetention = calcSaleSummary({
+      lines: lines.map(l => l.totals),
+      tipoDte: dto.tipoDte,
+    })
+    const ivaRete1 = calcIvaRetention1({
+      tipoDte: dto.tipoDte,
+      taxableBase: summaryBeforeRetention.totalGravada,
+      buyerRetainsIva1: !!clientForSale?.retieneIva1,
+      sellerSubjectToRetention: companyConfig?.sujetoRetencionIva1 ?? true,
+      sellerIsGranContribuyente: companyConfig?.esGranContribuyente ?? false,
+    })
     const summary = calcSaleSummary({
       lines: lines.map(l => l.totals),
+      tipoDte: dto.tipoDte,
+      ivaRete1,
     })
 
     // Validate payment total covers sale total
@@ -172,10 +201,6 @@ export class PosService {
         `Tipo de documento '${dto.tipoDte}' no está permitido para este tenant por el administrador de la plataforma.`
       )
     }
-    const companyConfig = await db.company.findFirst({
-      where: { id: dto.companyId, tenantId },
-      select: { dteEnabledTypes: true },
-    })
     const enabledTypes: string[] = (companyConfig?.dteEnabledTypes as string[]) ?? []
     const effectiveEnabled = enabledTypes.length > 0 ? enabledTypes : ['01', '03']
     if (dto.emitDte && !effectiveEnabled.includes(dto.tipoDte)) {
@@ -205,6 +230,7 @@ export class PosService {
           totalExenta: new Decimal(summary.totalExenta),
           totalGravada: new Decimal(summary.totalGravada),
           totalIva: new Decimal(summary.totalIva),
+          ivaRete1: new Decimal(summary.ivaRete1),
           totalDescuento: new Decimal(summary.totalDescu),
           totalPagar: new Decimal(summary.totalPagar),
           // Items
@@ -238,13 +264,68 @@ export class PosService {
       // Si count === 0, otro hilo ya vendió el último stock → rollback.
       for (const { item, product } of lines) {
         if (product.trackStock) {
-          const result = await tx.service.updateMany({
-            where: { id: product.id, stock: { gte: item.quantity } },
-            data: { stock: { decrement: item.quantity } },
+          const activeBranchCount = await tx.branch.count({
+            where: { tenantId, companyId: dto.companyId, isActive: true },
+          })
+          const existingBranchStockCount = await tx.branchInventory.count({
+            where: { tenantId, companyId: dto.companyId, productId: product.id },
+          })
+          const initialStock = existingBranchStockCount === 0 && activeBranchCount <= 1
+            ? Number(product.stock ?? 0)
+            : 0
+          const branchStock = await tx.branchInventory.upsert({
+            where: {
+              tenantId_branchId_productId: {
+                tenantId,
+                branchId: dto.branchId,
+                productId: product.id,
+              },
+            },
+            update: {},
+            create: {
+              tenantId,
+              companyId: dto.companyId,
+              branchId: dto.branchId,
+              productId: product.id,
+              stock: initialStock,
+              minStock: product.minStock,
+            },
+            select: { id: true, stock: true },
+          })
+          const quantity = item.quantity
+          const currentStock = Number(branchStock.stock ?? 0)
+          const newStock = currentStock - quantity
+          const result = await tx.branchInventory.updateMany({
+            where: { id: branchStock.id, stock: { gte: quantity } },
+            data: { stock: { decrement: quantity } },
           })
           if (result.count === 0) {
             throw new BadRequestException(`Stock insuficiente para "${product.name}"`)
           }
+          await tx.inventoryMovement.create({
+            data: {
+              tenantId,
+              companyId: dto.companyId,
+              branchId: dto.branchId,
+              productId: product.id,
+              userId: user.sub,
+              type: 'OUT',
+              quantity: new Decimal(quantity),
+              quantityBefore: new Decimal(currentStock),
+              quantityAfter: new Decimal(newStock),
+              saleId: newSale.id,
+              reference: newSale.id,
+              reason: 'Venta POS',
+            },
+          })
+          const branchTotals = await tx.branchInventory.aggregate({
+            where: { tenantId, companyId: dto.companyId, productId: product.id },
+            _sum: { stock: true },
+          })
+          await tx.service.update({
+            where: { id: product.id },
+            data: { stock: branchTotals._sum.stock ?? newStock },
+          })
         }
       }
 
@@ -304,8 +385,9 @@ export class PosService {
       return { sale: newSale, numeroControl: txNumeroControl }
     })
 
-    // BullMQ best-effort — el outbox en PG ya garantiza que no se pierde el DTE
-    if (dto.emitDte) {
+    // BullMQ best-effort — el outbox en PG ya garantiza que no se pierde el DTE.
+    // En desktop local sin Redis, el DteLocalOutboxService procesa QUEUED desde PostgreSQL.
+    if (dto.emitDte && useBullDteQueue() && this.dteQueue) {
       await this.dteQueue.add('emit', {
         saleId: sale.id,
         tenantId,
@@ -319,6 +401,8 @@ export class PosService {
       }).catch((err: Error) =>
         this.logger.warn(`BullMQ enqueue failed for sale ${sale.id}: ${err.message} — DteDocument QUEUED en PG para reprocesar`)
       )
+    } else if (dto.emitDte) {
+      this.logger.log(`DTE ${numeroControl} quedo QUEUED para procesador local PostgreSQL`)
     }
 
     return this.findOne(sale.id)
@@ -417,11 +501,8 @@ export class PosService {
     if (sale.dteDocument?.status === 'ANNULLED') {
       throw new BadRequestException('Esta venta ya fue anulada')
     }
-    // DTE aceptado por Hacienda requiere permiso adicional DTE_ANULAR
     if (sale.dteDocument?.status === 'ACCEPTED') {
-      if (!user.permissions[PERMISSIONS.DTE_ANULAR]) {
-        throw new ForbiddenException('Se requiere permiso "DTE Anular" para invalidar un documento ya aceptado por Hacienda')
-      }
+      throw new BadRequestException('DTE aceptado por Hacienda: usa el flujo de invalidacion DTE, no anulacion local de POS')
     }
     if (sale.dteDocument) {
       await db.dteDocument.update({

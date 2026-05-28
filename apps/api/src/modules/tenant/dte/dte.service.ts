@@ -6,17 +6,18 @@ import { FirmadorService } from './firmador.service'
 import { HaciendaService } from './hacienda.service'
 import { DteBuilderService } from './dte-builder.service'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
+import { assertValidDteJson } from '@pos-dte/dte-core'
 import { z } from 'zod'
 
 export const AnulacionSchema = z.object({
   saleId: z.string().cuid(),
-  motivo: z.string().min(5),
-  nombreResponsable: z.string(),
+  motivo: z.string().trim().min(5),
+  nombreResponsable: z.string().trim().min(1),
   tipDocResponsable: z.string().length(2),
-  numDocResponsable: z.string(),
-  nombreSolicita: z.string(),
+  numDocResponsable: z.string().trim().min(1),
+  nombreSolicita: z.string().trim().min(1),
   tipDocSolicita: z.string().length(2),
-  numDocSolicita: z.string(),
+  numDocSolicita: z.string().trim().min(1),
 })
 
 export type AnulacionDto = z.infer<typeof AnulacionSchema>
@@ -129,6 +130,8 @@ export class DteService {
         throw new Error(`Unsupported tipoDte: ${payload.tipoDte}`)
       }
 
+      assertValidDteJson(dteJson, payload.tipoDte)
+
       // Get Hacienda credentials
       const haciendaUser = this.crypto.decrypt(company.haciendaUserEnc)
       const haciendaPassword = this.crypto.decrypt(company.haciendaPwdEnc)
@@ -205,10 +208,12 @@ export class DteService {
         company: {
           select: {
             id: true, name: true, nit: true, nrc: true, dteAmbiente: true,
+            phone: true, email: true,
             haciendaUserEnc: true, haciendaPwdEnc: true, certDataEnc: true, certPwdEnc: true,
           },
         },
         branch: true,
+        client: true,
       },
     })
     if (!sale) throw new NotFoundException('Venta no encontrada')
@@ -224,13 +229,15 @@ export class DteService {
     const certData = company.certDataEnc ? this.crypto.decrypt(company.certDataEnc) : null
     const certPassword = company.certPwdEnc ? this.crypto.decrypt(company.certPwdEnc) : null
 
-    // Build invalidacion JSON — usa anulacion-schema-v2.json, endpoint /anulardte
+    // Build invalidacion JSON for anulacion-schema-v2.json and /anulardte.
+    const invalidacionCodigoGeneracion = this.builder.generateCodigoGeneracion()
     const now = new Date()
+    const client = (sale as any).client
     const anulacionJson = {
       identificacion: {
         version: 2,
         ambiente: ambiente === 'PROD' ? '01' : '00',
-        codigoGeneracion: this.builder.generateCodigoGeneracion(),
+        codigoGeneracion: invalidacionCodigoGeneracion,
         fecAnula: now.toISOString().split('T')[0],
         horAnula: now.toISOString().split('T')[1].substring(0, 8),
       },
@@ -252,11 +259,11 @@ export class DteService {
         fecEmi: (sale as any).createdAt.toISOString().split('T')[0],
         montoIva: Number((sale as any).totalIva),
         codigoGeneracionR: null,
-        tipoDocumento: '01',
-        numDocumento: '00000000-0',
-        nombre: (sale as any).client?.name ?? 'Consumidor Final',
-        telefono: '',
-        correo: '',
+        tipoDocumento: client?.tipoDocumento ?? '13',
+        numDocumento: client?.numDocumento ?? '00000000-0',
+        nombre: client?.name ?? 'Consumidor Final',
+        telefono: client?.phone ?? '',
+        correo: client?.email ?? '',
       },
       motivo: {
         tipoAnulacion: 2,
@@ -275,22 +282,33 @@ export class DteService {
     const authToken = await this.hacienda.authenticate(haciendaUser, haciendaPassword, ambiente, cacheKey)
     const result = await this.hacienda.submitInvalidacion(
       jws,
-      (anulacionJson as any).identificacion.codigoGeneracion,
+      invalidacionCodigoGeneracion,
       ambiente,
       authToken,
     )
 
-    // Solo marcar ANNULLED si Hacienda aceptó — nunca cambiar estado sin sello
+    const accepted = !!result.selloRecibido
+
+    // Keep the original DTE reception stamp intact. The invalidation event has its own stamp.
     await db.dteDocument.update({
       where: { id: sale.dteDocument.id },
       data: {
-        status: result.selloRecibido ? 'ANNULLED' : 'REJECTED',
-        selloRecibido: result.selloRecibido ?? undefined,
+        status: accepted ? 'ANNULLED' : sale.dteDocument.status,
         observaciones: result.observaciones,
         processedAt: new Date(),
+        ...(accepted
+          ? {
+              invalidacionCodigoGeneracion,
+              invalidacionJson: anulacionJson as any,
+              invalidacionJsonFirmado: jws,
+              invalidacionSelloRecibido: result.selloRecibido,
+              invalidationReason: dto.motivo,
+              invalidatedAt: new Date(),
+            }
+          : {}),
       },
     })
 
-    return { ok: !!result.selloRecibido, selloRecibido: result.selloRecibido }
+    return { ok: accepted, selloRecibido: result.selloRecibido, observaciones: result.observaciones }
   }
 }

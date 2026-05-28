@@ -18,8 +18,11 @@ export class CsrfMiddleware implements NestMiddleware {
 
     const origin = req.headers['origin'] as string | undefined
 
-    // Sin Origin: petición server-to-server o misma pestaña — permitir
-    if (!origin) return next()
+    // Browser cookie mutations must include Origin; server-to-server calls without cookies may continue.
+    if (!origin) {
+      if (req.headers['cookie']) throw new ForbiddenException('Origen requerido para mutaciones autenticadas')
+      return next()
+    }
 
     if (!this.allowedOrigins.has(origin)) {
       throw new ForbiddenException(`Origen no permitido: ${origin}`)

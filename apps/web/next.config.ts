@@ -2,6 +2,7 @@ import type { NextConfig } from 'next'
 import { resolve } from 'node:path'
 
 const config: NextConfig = {
+  ...(process.env.NEXT_OUTPUT_STANDALONE === 'true' ? { output: 'standalone' as const } : {}),
   transpilePackages: ['@pos-dte/shared-ui', '@pos-dte/shared-api', '@pos-dte/shared-types'],
   turbopack: {
     root: resolve(__dirname, '../..'),

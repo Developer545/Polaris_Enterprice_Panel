@@ -21,6 +21,9 @@ interface ElectronAPI {
     listPorts: () => Promise<unknown>
     onShortcut: (cb: (result: { ok: boolean; error?: string }) => void) => void
   }
+  shortcuts: {
+    status: () => Promise<unknown>
+  }
   dialog: {
     savePdf: (payload: unknown) => Promise<unknown>
     openFile: (opts: { title?: string; extensions?: string[]; multiSelections?: boolean }) => Promise<unknown>

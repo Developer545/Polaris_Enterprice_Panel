@@ -24,7 +24,7 @@ export class TenantModuleGuard implements CanActivate {
     const hasConfig = Object.keys(tenantCtx.modules).length > 0
     if (!hasConfig) return true
 
-    if (tenantCtx.modules[module] === false) {
+    if (tenantCtx.modules[module] !== true) {
       throw new ForbiddenException(
         `El módulo "${module}" no está habilitado para este tenant. Contacta al administrador de la plataforma.`
       )

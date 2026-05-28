@@ -1,6 +1,7 @@
-import { globalShortcut, BrowserWindow } from 'electron'
+import { globalShortcut, BrowserWindow, ipcMain } from 'electron'
 import { openCashDrawer } from './ipc/drawer.ipc'
 import { printLastReceipt } from './ipc/print.ipc'
+import { SimpleStore } from './simple-store'
 
 /**
  * Global keyboard shortcuts — active even when window is not focused.
@@ -26,6 +27,11 @@ export function setupShortcuts(mainWindow: BrowserWindow): void {
     send('shortcut:print', await printLastReceipt())
   })
   if (!printOk) console.warn(`[Shortcuts] Could not register print shortcut: ${printKey}`)
+
+  ipcMain.handle('shortcuts:status', () => ({
+    drawer: { key: drawerKey, registered: drawerOk },
+    print: { key: printKey, registered: printOk },
+  }))
 }
 
 export function teardownShortcuts(): void {
@@ -34,9 +40,7 @@ export function teardownShortcuts(): void {
 
 function getShortcut(key: string, fallback: string): string {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Store = require('electron-store')
-    const store = new Store({ name: 'pos-dte-config' })
+    const store = new SimpleStore({ name: 'pos-dte-config' })
     return (store.get(key) as string | undefined) ?? fallback
   } catch {
     return fallback

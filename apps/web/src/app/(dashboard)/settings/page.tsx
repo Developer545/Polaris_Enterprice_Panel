@@ -7,6 +7,8 @@ import {
   SafetyOutlined, AppstoreOutlined, DatabaseOutlined, ApiOutlined,
 } from '@ant-design/icons'
 import { useAppContext } from '../../../hooks/use-app-context'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '../../../lib/api'
 import EmpresaTab from './tabs/EmpresaTab'
 import SucursalesTab from './tabs/SucursalesTab'
 import UsuariosTab from './tabs/UsuariosTab'
@@ -14,11 +16,17 @@ import RolesTab from './tabs/RolesTab'
 import CategoriasTab from './tabs/CategoriasTab'
 import CatalogosTab from './tabs/CatalogosTab'
 import IntegracionesTab from './tabs/IntegracionesTab'
+import RespaldosTab from './tabs/RespaldosTab'
 
 const { Title, Text } = Typography
 
 function SettingsContent() {
   const { companyId } = useAppContext()
+  const { data: tenantInfo } = useQuery({
+    queryKey: ['tenant-info'],
+    queryFn: () => api.get('/api/auth/tenant-info').then(r => r.data),
+    staleTime: 5 * 60_000,
+  })
 
   const tabItems = [
     {
@@ -56,6 +64,11 @@ function SettingsContent() {
       label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ApiOutlined /> Integraciones DTE</span>,
       children: <IntegracionesTab companyId={companyId} />,
     },
+    ...(tenantInfo?.localBundle ? [{
+      key: 'respaldos',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><DatabaseOutlined /> Respaldos</span>,
+      children: <RespaldosTab />,
+    }] : []),
   ]
 
   return (

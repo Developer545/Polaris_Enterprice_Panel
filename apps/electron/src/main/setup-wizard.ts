@@ -10,6 +10,7 @@ import { generateHwid, loadLicenseInfo } from './module-permissions'
 import wizardHtml from './setup-wizard.html?raw'
 
 const PANEL_URL = process.env.LICENSE_PANEL_URL ?? 'https://polaris-api.speeddan.com'
+const PG_IDENTIFIER_RE = /^[a-zA-Z_][a-zA-Z0-9_-]{0,40}$/
 
 export type SetupResult = {
   licenseKey: string | null
@@ -29,6 +30,14 @@ export type SetupResult = {
 
 function configPath(): string {
   return path.join(app.getPath('userData'), 'local-server.json')
+}
+
+function quotePgIdent(value: string): string {
+  return `"${value.replace(/"/g, '""')}"`
+}
+
+function quotePgLiteral(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`
 }
 
 export function isFirstRun(): boolean {
@@ -123,6 +132,9 @@ export async function showSetupWizard(): Promise<SetupResult> {
           }
           return { ok: false, error: data?.reason ?? 'Contraseña no válida' }
         }
+        if (!data?.signature || !data?.validatedAt) {
+          return { ok: false, error: 'El servidor de activación no devolvió una firma válida.' }
+        }
         return { ok: true, data }
       } catch {
         // Panel no disponible — no permitir bypass en primer arranque
@@ -134,10 +146,15 @@ export async function showSetupWizard(): Promise<SetupResult> {
       host: string; port: number; adminPassword: string; dbName: string
     }) => {
       const { host, port, adminPassword, dbName } = opts
+      if (!PG_IDENTIFIER_RE.test(dbName)) {
+        return { ok: false, error: 'Nombre de base de datos inválido' }
+      }
+
       const appUser     = 'pos_dte'
       const appPassword = crypto.randomBytes(20).toString('hex')
       const controlDb   = `${dbName}_control`
       const tenantDb    = `${dbName}_tenant`
+      const appUserSql  = quotePgIdent(appUser)
 
       const admin = new Client({
         host, port,
@@ -152,38 +169,38 @@ export async function showSetupWizard(): Promise<SetupResult> {
         // Crear usuario (o actualizar contraseña si ya existe)
         const userExists = await admin.query(`SELECT 1 FROM pg_roles WHERE rolname = $1`, [appUser])
         if ((userExists.rowCount ?? 0) > 0) {
-          await admin.query(`ALTER USER "${appUser}" WITH PASSWORD '${appPassword}'`)
+          await admin.query(`ALTER USER ${appUserSql} WITH PASSWORD ${quotePgLiteral(appPassword)}`)
         } else {
-          await admin.query(`CREATE USER "${appUser}" WITH PASSWORD '${appPassword}'`)
+          await admin.query(`CREATE USER ${appUserSql} WITH PASSWORD ${quotePgLiteral(appPassword)}`)
         }
 
         // Crear BD control
         const ctrlExists = await admin.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [controlDb])
         if ((ctrlExists.rowCount ?? 0) === 0) {
-          await admin.query(`CREATE DATABASE "${controlDb}" OWNER "${appUser}"`)
+          await admin.query(`CREATE DATABASE ${quotePgIdent(controlDb)} OWNER ${appUserSql}`)
         } else {
-          await admin.query(`ALTER DATABASE "${controlDb}" OWNER TO "${appUser}"`)
+          await admin.query(`ALTER DATABASE ${quotePgIdent(controlDb)} OWNER TO ${appUserSql}`)
         }
 
         // Crear BD datos
         const tenantExists = await admin.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [tenantDb])
         if ((tenantExists.rowCount ?? 0) === 0) {
-          await admin.query(`CREATE DATABASE "${tenantDb}" OWNER "${appUser}"`)
+          await admin.query(`CREATE DATABASE ${quotePgIdent(tenantDb)} OWNER ${appUserSql}`)
         } else {
-          await admin.query(`ALTER DATABASE "${tenantDb}" OWNER TO "${appUser}"`)
+          await admin.query(`ALTER DATABASE ${quotePgIdent(tenantDb)} OWNER TO ${appUserSql}`)
         }
 
-        await admin.query(`GRANT ALL PRIVILEGES ON DATABASE "${controlDb}" TO "${appUser}"`)
-        await admin.query(`GRANT ALL PRIVILEGES ON DATABASE "${tenantDb}" TO "${appUser}"`)
+        await admin.query(`GRANT ALL PRIVILEGES ON DATABASE ${quotePgIdent(controlDb)} TO ${appUserSql}`)
+        await admin.query(`GRANT ALL PRIVILEGES ON DATABASE ${quotePgIdent(tenantDb)} TO ${appUserSql}`)
 
         // PostgreSQL 15+ requiere GRANT explícito en schema public
         const grantSchema = async (dbName: string) => {
           const c = new Client({ host, port, user: 'postgres', password: adminPassword, database: dbName, connectionTimeoutMillis: 6000 })
           try {
             await c.connect()
-            await c.query(`GRANT ALL ON SCHEMA public TO "${appUser}"`)
-            await c.query(`GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "${appUser}"`)
-            await c.query(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "${appUser}"`)
+            await c.query(`GRANT ALL ON SCHEMA public TO ${appUserSql}`)
+            await c.query(`GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ${appUserSql}`)
+            await c.query(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ${appUserSql}`)
           } finally { await c.end().catch(() => {}) }
         }
         await grantSchema(controlDb)
@@ -232,6 +249,7 @@ export async function showSetupWizard(): Promise<SetupResult> {
           jwtRefreshSecret: crypto.randomBytes(32).toString('hex'),
           jwtAdminSecret: crypto.randomBytes(32).toString('hex'),
           encryptionKey: crypto.randomBytes(32).toString('hex'),
+          localSetupToken: crypto.randomBytes(32).toString('hex'),
         }
         fs.mkdirSync(path.dirname(configPath()), { recursive: true })
         fs.writeFileSync(configPath(), JSON.stringify(serverConfig, null, 2), 'utf8')

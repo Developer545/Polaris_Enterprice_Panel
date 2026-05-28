@@ -1,7 +1,56 @@
 // DTE El Salvador — shared types between API and frontend
 
-export type TipoDte = '01' | '03' | '05' | '06' | '14' | '11'
-// 01=Factura CF, 03=CCF, 05=NC, 06=ND, 14=Exportación, 11=Factura Suj.Excluido
+export const DTE_TYPE_VALUES = [
+  '01',
+  '03',
+  '04',
+  '05',
+  '06',
+  '07',
+  '08',
+  '09',
+  '11',
+  '14',
+  '15',
+] as const
+
+export type TipoDte = (typeof DTE_TYPE_VALUES)[number]
+
+export const DTE_VERSION_BY_TYPE: Record<TipoDte, number> = {
+  '01': 1,
+  '03': 3,
+  '04': 3,
+  '05': 3,
+  '06': 3,
+  '07': 1,
+  '08': 1,
+  '09': 1,
+  '11': 1,
+  '14': 1,
+  '15': 1,
+}
+
+export const DTE_SCHEMA_NAME_BY_TYPE: Record<TipoDte, string> = {
+  '01': 'fe-fc-v1',
+  '03': 'fe-ccf-v3',
+  '04': 'fe-nr-v3',
+  '05': 'fe-nc-v3',
+  '06': 'fe-nd-v3',
+  '07': 'fe-cr-v1',
+  '08': 'fe-cl-v1',
+  '09': 'fe-dcl-v1',
+  '11': 'fe-fex-v1',
+  '14': 'fe-fse-v1',
+  '15': 'fe-cd-v1',
+}
+
+export function isTipoDte(value: string): value is TipoDte {
+  return (DTE_TYPE_VALUES as readonly string[]).includes(value)
+}
+
+export function getDteVersion(tipoDte: TipoDte): number {
+  return DTE_VERSION_BY_TYPE[tipoDte]
+}
 
 export type DteAmbiente = '00' | '01' // 00=pruebas, 01=producción
 
@@ -21,12 +70,17 @@ export type DteEstado =
 // ─── Catálogos Hacienda (valores más usados) ──────────────────────────────────
 
 export const CATALOGO_TIPO_DTE: Record<TipoDte, string> = {
-  '01': 'Factura (Consumidor Final)',
+  '01': 'Factura',
   '03': 'Comprobante de Crédito Fiscal',
+  '04': 'Nota de Remisión',
   '05': 'Nota de Crédito',
   '06': 'Nota de Débito',
+  '07': 'Comprobante de Retención',
+  '08': 'Comprobante de Liquidación',
+  '09': 'Documento Contable de Liquidación',
   '11': 'Factura de Exportación',
-  '14': 'Nota de Remisión / Anulación',
+  '14': 'Factura de Sujeto Excluido',
+  '15': 'Comprobante de Donación',
 }
 
 export const CATALOGO_TIPO_ITEM: Record<number, string> = {

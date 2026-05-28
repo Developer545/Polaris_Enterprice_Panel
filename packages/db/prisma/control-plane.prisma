@@ -34,6 +34,18 @@ enum LicenseStatus {
   EXPIRED    // venció fecha de expiración
 }
 
+enum LicenseCommandType {
+  BACKUP_DATABASE
+}
+
+enum LicenseCommandStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
 enum AdminRole {
   SUPER_ADMIN
   OPERATOR
@@ -128,13 +140,15 @@ model License {
   // HWID binding — null hasta primera activación
   hwid           String?       // hash del machine ID del cliente
   // Módulos habilitados remotamente (todos en el bundle, solo se activan los de aquí)
-  enabledModules String[]      @default(["pos", "ventas", "clientes", "inventario", "servicios"])
+  enabledModules String[]      @default(["dashboard", "pos", "ventas", "dte", "turnos_caja", "clientes", "proveedores", "inventario", "productos", "servicios"])
+  licenseRevision Int          @default(1)
   activatedAt    DateTime?
   lastSeenAt     DateTime?
   notes          String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   dailyStats     DteDailyLog[]
+  commands       LicenseCommand[]
 
   @@index([tenantId])
 }
@@ -150,6 +164,26 @@ model DteDailyLog {
 
   @@unique([licenseId, date])
   @@index([licenseId])
+}
+
+model LicenseCommand {
+  id             String               @id @default(cuid())
+  licenseId      String
+  license        License              @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  type           LicenseCommandType
+  status         LicenseCommandStatus @default(PENDING)
+  payload        Json                 @default("{}")
+  result         Json?
+  attempts       Int                  @default(0)
+  leasedAt       DateTime?
+  leaseExpiresAt DateTime?
+  requestedAt    DateTime             @default(now())
+  startedAt      DateTime?
+  completedAt    DateTime?
+  error          String?
+
+  @@index([licenseId, status])
+  @@index([leaseExpiresAt])
 }
 
 model PlatformAuditLog {

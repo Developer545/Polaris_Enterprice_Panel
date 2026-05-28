@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react'
 import {
   Table, Button, Tag, Input, Typography, Modal, Form, Select, InputNumber,
   App, Row, Col, Switch, Avatar, Divider, Card, Space, Tooltip, Drawer,
-  Statistic, Popconfirm, theme, Empty, Popover,
+  Statistic, Popconfirm, theme, Empty,
 } from 'antd'
 import {
   PlusOutlined, EditOutlined, SearchOutlined, ReloadOutlined,
@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
 import type { ColumnsType } from 'antd/es/table'
+import { IconOrImagePicker, resolveImageUrl } from '../../../components/icon-or-image-picker'
 
 const { Text } = Typography
 
@@ -32,73 +33,6 @@ const UNI_MH_OPTIONS = [
   { value: 52, label: 'Hora'      },
 ]
 
-const EMOJI_LIST = [
-  // Alimentación
-  '🍎','🍌','🥩','🍞','🥛','🥤','🍫','🧃','☕','🍵','🥗','🧂','🫙','🥫','🧁',
-  // Ferretería / construcción
-  '🔧','🔨','🪛','🔩','🪚','🛠️','🔌','💡','🪝','🧱','🪵','🏠','🪣','🎨','🪟',
-  // Salud / belleza
-  '💊','🩺','🩹','💄','💅','🧼','🪥','🌿','🧴','🫧',
-  // Tecnología
-  '📱','💻','🖥️','⌨️','🖱️','📷','🔋','📡',
-  // Ropa / moda
-  '👗','👠','👒','🧣','🧤','👜','👟','🕶️',
-  // Oficina
-  '📝','📋','📊','📁','🗂️','🖨️','📦','📌','✂️',
-  // Servicios / transporte
-  '💼','🚗','🚐','🚚','✈️','🎵','🏋️','📚','🌐','🔑',
-  // Mascotas / animales
-  '🐕','🐈','🐄','🐓','🐖','🐟','🐇','🦜',
-  // Misc
-  '⭐','❤️','✅','🎁','🛍️','🏷️','💎','🌟','🏆','🎯',
-]
-
-function EmojiPicker({ value, onChange }: { value?: string; onChange?: (v: string) => void }) {
-  return (
-    <Popover
-      trigger="click"
-      content={
-        <div style={{ width: 260, maxHeight: 220, overflowY: 'auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 2 }}>
-            <div
-              onClick={() => onChange?.('')}
-              title="Sin emoji"
-              style={{
-                fontSize: 18, cursor: 'pointer', textAlign: 'center', padding: '3px 0',
-                borderRadius: 4, background: !value ? '#f0f0f0' : 'transparent',
-                lineHeight: 1.6,
-              }}
-            >
-              ✕
-            </div>
-            {EMOJI_LIST.map(e => (
-              <div
-                key={e}
-                onClick={() => onChange?.(e)}
-                style={{
-                  fontSize: 18, cursor: 'pointer', textAlign: 'center', padding: '3px 0',
-                  borderRadius: 4, background: value === e ? '#f0f0f0' : 'transparent',
-                  lineHeight: 1.6, transition: 'background .1s',
-                }}
-                onMouseEnter={el => (el.currentTarget.style.background = '#f5f5f5')}
-                onMouseLeave={el => (el.currentTarget.style.background = value === e ? '#f0f0f0' : 'transparent')}
-              >
-                {e}
-              </div>
-            ))}
-          </div>
-        </div>
-      }
-    >
-      <Button
-        style={{ width: '100%', textAlign: 'left', fontSize: value ? 22 : 13 }}
-        title="Seleccionar emoji"
-      >
-        {value || <span style={{ color: '#bbb', fontSize: 13 }}>Sin emoji</span>}
-      </Button>
-    </Popover>
-  )
-}
 
 const COLOR_PRESETS = [
   '#f47920', '#1677ff', '#52c41a', '#ff4d4f',
@@ -264,11 +198,14 @@ export default function ProductsPage() {
   const columns: ColumnsType<any> = [
     {
       key: 'avatar', width: 52, fixed: 'left',
-      render: (r: any) => r.imageUrl
-        ? <Avatar src={r.imageUrl} shape="square" size={40} style={{ borderRadius: 10 }} />
-        : r.emoji
-          ? <Avatar shape="square" size={40} style={{ borderRadius: 10, background: `${avatarBg(r.name)}18`, fontSize: 22 }}>{r.emoji}</Avatar>
-          : <Avatar shape="square" size={40} style={{ borderRadius: 10, background: avatarBg(r.name), fontSize: 17, fontWeight: 700 }}>{getInitials(r.name)}</Avatar>,
+      render: (r: any) => {
+        const imgSrc = resolveImageUrl(r.imageUrl)
+        return imgSrc
+          ? <Avatar src={imgSrc} shape="square" size={40} style={{ borderRadius: 10 }} />
+          : r.emoji
+            ? <Avatar shape="square" size={40} style={{ borderRadius: 10, background: `${avatarBg(r.name)}18`, fontSize: 22 }}>{r.emoji}</Avatar>
+            : <Avatar shape="square" size={40} style={{ borderRadius: 10, background: avatarBg(r.name), fontSize: 17, fontWeight: 700 }}>{getInitials(r.name)}</Avatar>
+      },
     },
     {
       title: 'SKU', dataIndex: 'sku', key: 'sku', width: 100,
@@ -362,6 +299,7 @@ export default function ProductsPage() {
                 conversionFactor: Number(r.conversionFactor ?? 1),
                 fraccionable:     isFrac,
                 emoji:            r.emoji ?? '',
+                imageUrl:         r.imageUrl ?? '',
               })
             }} />
           </Tooltip>
@@ -489,13 +427,29 @@ export default function ProductsPage() {
                 <Select options={TIPO_ITEM.map(t => ({ value: t.value, label: t.label }))} style={{ borderRadius: 8 }} />
               </Form.Item>
             </Col>
-            <Col xs={24} sm={6}>
-              <Form.Item name="emoji" label="Emoji (POS)" style={{ marginBottom: 14 }}
-                tooltip="Icono visual para la pantalla del POS">
-                <EmojiPicker />
+            <Col xs={24} sm={8}>
+              <Form.Item
+                label="Ícono / Imagen (POS)"
+                tooltip="Emoji o foto del producto para el POS y listados"
+                style={{ marginBottom: 14 }}
+              >
+                {/* Campos ocultos — se incluyen en form.submit() */}
+                <Form.Item name="emoji"    noStyle hidden><Input /></Form.Item>
+                <Form.Item name="imageUrl" noStyle hidden><Input /></Form.Item>
+                {/* Picker visual */}
+                <Form.Item noStyle shouldUpdate={(p, c) => p.emoji !== c.emoji || p.imageUrl !== c.imageUrl}>
+                  {({ getFieldValue, setFieldsValue }) => (
+                    <IconOrImagePicker
+                      emoji={getFieldValue('emoji')}
+                      imageUrl={getFieldValue('imageUrl')}
+                      onChange={({ emoji, imageUrl }) => setFieldsValue({ emoji: emoji ?? '', imageUrl: imageUrl ?? '' })}
+                      folder="polaris/productos"
+                    />
+                  )}
+                </Form.Item>
               </Form.Item>
             </Col>
-            <Col xs={24} sm={18}>
+            <Col xs={24} sm={16}>
               <Form.Item name="description" label="Descripción" style={{ marginBottom: 14 }}>
                 <Input.TextArea rows={2} style={{ borderRadius: 8 }} placeholder="Descripción opcional" />
               </Form.Item>

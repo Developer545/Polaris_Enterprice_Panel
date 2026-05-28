@@ -52,7 +52,13 @@ export class AuthController {
   // Returns tenant-level info (dbStrategy, slug) — safe to expose, no secrets
   @Get('tenant-info')
   tenantInfo() {
-    const { slug, dbStrategy } = getCurrentTenant()
-    return { slug, dbStrategy }
+    const { slug, dbStrategy, modules, dteAllowedTypes } = getCurrentTenant()
+    return {
+      slug,
+      dbStrategy,
+      modules,
+      dteAllowedTypes,
+      localBundle: process.env.IS_LOCAL_BUNDLE === '1',
+    }
   }
 }
