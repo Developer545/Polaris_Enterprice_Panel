@@ -4,7 +4,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: npm ci && npm run build --workspace=apps/api
+    buildCommand: npm ci --include=dev && cd packages/db && npx prisma generate --schema prisma/control-plane.prisma && npx prisma generate --schema prisma/tenant.prisma && cd ../../packages/shared-types && npm run build && cd ../dte-core && npm run build && cd ../.. && npm run build --workspace=apps/api
     startCommand: node apps/api/dist/main
     healthCheckPath: /api/health
     envVars:
