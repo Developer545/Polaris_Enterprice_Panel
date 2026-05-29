@@ -1,9 +1,12 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
+import { Inter } from 'next/font/google'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
+
+const inter = Inter({ subsets: ['latin'], weight: ['300','400','500','600','700','800'] })
 
 interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
 
@@ -32,7 +35,7 @@ export default function LoginPage() {
   const [form]                = Form.useForm<LoginForm>()
   const [isLocal, setIsLocal] = useState(false)
 
-  const stars = useMemo(() => buildStars(200, 97), [])
+  const stars = useMemo(() => buildStars(260, 97), [])
 
   useEffect(() => {
     const local = typeof window !== 'undefined' &&
@@ -77,9 +80,8 @@ export default function LoginPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         * { box-sizing: border-box; }
-        body { margin: 0; }
+        html, body { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; }
 
         @keyframes twinkle {
           0%, 100% { opacity: var(--base-o); }
@@ -90,23 +92,14 @@ export default function LoginPage() {
           33%       { transform: translate(-8px, 12px) scale(1.04); }
           66%       { transform: translate(6px, -8px) scale(0.97); }
         }
-        @keyframes starRotate {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
-        }
         @keyframes fadeSlideUp {
           from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes pulseRing {
-          0%   { box-shadow: 0 0 0 0 rgba(99,102,241,0.5); }
-          70%  { box-shadow: 0 0 0 10px rgba(99,102,241,0); }
-          100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
-        }
 
         .login-input .ant-input,
         .login-input .ant-input-affix-wrapper {
-          background: #0d1017 !important;
+          background: rgba(5,8,20,0.7) !important;
           border-color: rgba(255,255,255,0.08) !important;
           color: #e2e8f0 !important;
           border-radius: 10px !important;
@@ -128,50 +121,56 @@ export default function LoginPage() {
         .login-input .ant-input::placeholder { color: rgba(255,255,255,0.2) !important; }
         .login-input .ant-form-item-label > label { color: rgba(255,255,255,0.5) !important; font-size: 12px !important; font-weight: 500 !important; letter-spacing: 0.04em !important; text-transform: uppercase; }
         .login-input .ant-form-item-explain-error { color: #f87171 !important; font-size: 12px !important; }
-        .login-checkbox .ant-checkbox-inner { background: #0d1017 !important; border-color: rgba(255,255,255,0.12) !important; border-radius: 5px !important; }
+        .login-checkbox .ant-checkbox-inner { background: rgba(5,8,20,0.7) !important; border-color: rgba(255,255,255,0.12) !important; border-radius: 5px !important; }
         .login-checkbox .ant-checkbox-checked .ant-checkbox-inner { background: #6366f1 !important; border-color: #6366f1 !important; }
         .login-checkbox span { color: rgba(255,255,255,0.35) !important; font-size: 13px !important; }
         .login-submit:hover { opacity: 0.92 !important; transform: translateY(-1px) !important; box-shadow: 0 8px 24px rgba(99,102,241,0.45) !important; }
         .login-submit:active { transform: translateY(0) !important; }
       `}</style>
 
-      <div style={{
-        width: '100vw', height: '100vh',
-        display: 'flex', overflow: 'hidden',
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      {/* ══ Root — full viewport, no overflow ════════════════════════════ */}
+      <div className={inter.className} style={{
+        position: 'fixed', inset: 0,
+        display: 'flex',
         background: '#060912',
+        overflow: 'hidden',
       }}>
+
+        {/* ── Full-page star canvas (behind both panels) ── */}
+        <svg style={{
+          position: 'absolute', inset: 0, width: '100%', height: '100%',
+          pointerEvents: 'none', zIndex: 0,
+        }}>
+          {stars.map((s, i) => (
+            <circle key={i} cx={`${s.x}%`} cy={`${s.y}%`} r={s.r}
+              fill="white" opacity={s.o}
+              style={s.twinkle ? {
+                animation: `twinkle ${2.5 + (i % 4)}s ease-in-out infinite ${(i * 0.17) % 3.5}s`,
+              } : undefined}
+            />
+          ))}
+        </svg>
+
+        {/* ── Full-page nebula drifting blobs ── */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
+          animation: 'slowDrift 14s ease-in-out infinite',
+          background: [
+            'radial-gradient(ellipse 42% 35% at 20% 45%, rgba(67,56,202,0.22) 0%, transparent 70%)',
+            'radial-gradient(ellipse 38% 28% at 75% 25%, rgba(29,78,216,0.14) 0%, transparent 65%)',
+            'radial-gradient(ellipse 30% 22% at 50% 80%, rgba(124,58,237,0.10) 0%, transparent 60%)',
+            'radial-gradient(ellipse 25% 20% at 85% 70%, rgba(99,102,241,0.08) 0%, transparent 55%)',
+          ].join(', '),
+        }} />
 
         {/* ══ LEFT — Hero panel 48% ══════════════════════════════════════ */}
         <div style={{
-          width: '48%', height: '100%', flexShrink: 0, position: 'relative',
-          overflow: 'hidden', display: 'flex', flexDirection: 'column',
+          width: '48%', height: '100%', flexShrink: 0, position: 'relative', zIndex: 1,
+          display: 'flex', flexDirection: 'column',
           justifyContent: 'space-between', padding: '48px 56px',
-          background: 'radial-gradient(ellipse at 40% 0%, #0c1a4a 0%, #06091a 55%, #030508 100%)',
+          background: 'linear-gradient(135deg, rgba(12,26,74,0.55) 0%, rgba(6,9,26,0.35) 60%, rgba(3,5,8,0.2) 100%)',
+          borderRight: '1px solid rgba(255,255,255,0.04)',
         }}>
-          {/* Nebula blobs */}
-          <div style={{
-            position: 'absolute', inset: 0, pointerEvents: 'none',
-            animation: 'slowDrift 14s ease-in-out infinite',
-            background: [
-              'radial-gradient(ellipse 55% 38% at 25% 55%, rgba(67,56,202,0.22) 0%, transparent 70%)',
-              'radial-gradient(ellipse 45% 30% at 78% 28%, rgba(29,78,216,0.14) 0%, transparent 65%)',
-              'radial-gradient(ellipse 35% 25% at 55% 85%, rgba(124,58,237,0.10) 0%, transparent 60%)',
-            ].join(', '),
-          }} />
-
-          {/* Stars */}
-          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
-            {stars.map((s, i) => (
-              <circle key={i} cx={`${s.x}%`} cy={`${s.y}%`} r={s.r}
-                fill="white" opacity={s.o}
-                style={s.twinkle ? {
-                  animation: `twinkle ${2.5 + (i % 4)}s ease-in-out infinite ${(i * 0.17) % 3.5}s`,
-                } : undefined}
-              />
-            ))}
-          </svg>
-
           {/* Ambient glow top-center */}
           <div style={{
             position: 'absolute', top: -60, left: '50%', transform: 'translateX(-50%)',
@@ -212,7 +211,6 @@ export default function LoginPage() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 0 0 1px rgba(99,102,241,0.3), 0 8px 20px rgba(67,56,202,0.4)',
               }}>
-                {/* Clean 4-pointed star */}
                 <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
                   <path d="M13 1 L14.8 10.5 L24 13 L14.8 15.5 L13 25 L11.2 15.5 L2 13 L11.2 10.5 Z"
                     fill="white" fillOpacity="0.95" />
@@ -258,7 +256,7 @@ export default function LoginPage() {
               diseñado para empresas salvadoreñas.
             </p>
 
-            {/* Feature list — clean, minimal */}
+            {/* Feature list */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {[
                 { label: 'CF, CCF, Notas de Crédito y Débito', sub: 'Emisión directa ante Hacienda' },
@@ -293,28 +291,37 @@ export default function LoginPage() {
 
         {/* ══ RIGHT — Login form 52% ══════════════════════════════════════ */}
         <div style={{
-          flex: 1, height: '100%',
-          background: '#080d1c',
+          flex: 1, height: '100%', position: 'relative', zIndex: 1,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '40px 60px', overflowY: 'auto', position: 'relative',
+          padding: '40px 60px',
+          background: 'rgba(4,7,18,0.45)',
+          overflow: 'hidden',
         }}>
-          {/* Subtle top-right glow */}
+          {/* Top-right ambient glow */}
           <div style={{
             position: 'absolute', top: -80, right: -80, width: 360, height: 360,
             borderRadius: '50%', pointerEvents: 'none',
-            background: 'radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(99,102,241,0.09) 0%, transparent 70%)',
             filter: 'blur(60px)',
           }} />
 
+          {/* ── Login card ── */}
           <div style={{
-            width: '100%', maxWidth: 400,
+            width: '100%', maxWidth: 420,
+            background: 'rgba(8,13,30,0.72)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 20,
+            padding: '40px 44px',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            boxShadow: '0 0 0 1px rgba(99,102,241,0.06), 0 24px 64px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)',
             animation: 'fadeSlideUp 0.5s ease 0.15s both',
           }}>
             {/* Header */}
-            <div style={{ marginBottom: 36 }}>
+            <div style={{ marginBottom: 32 }}>
               <Typography.Title level={2} style={{
                 margin: '0 0 8px', color: '#f1f5f9',
-                fontWeight: 700, fontSize: 28, letterSpacing: '-0.025em',
+                fontWeight: 700, fontSize: 26, letterSpacing: '-0.025em',
               }}>
                 Iniciar sesión
               </Typography.Title>
@@ -413,9 +420,8 @@ export default function LoginPage() {
               </Button>
             </Form>
 
-            {/* Divider + security note */}
             <div style={{
-              marginTop: 32, display: 'flex', alignItems: 'center', gap: 12,
+              marginTop: 28, display: 'flex', alignItems: 'center', gap: 12,
             }}>
               <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.05)' }} />
               <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 11, whiteSpace: 'nowrap', letterSpacing: '0.04em' }}>
