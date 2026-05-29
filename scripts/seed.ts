@@ -82,9 +82,12 @@ async function main() {
       comercialName: 'Demo Company',
       nit: '0614-010101-001-1',
       nrc: '123456-7',
-      actividadEconomica: 'Comercio al por mayor y al por menor',
-      actividadEconomicaCodigo: '4711',
+      actividadEconomica: 'Venta en supermercados',
+      actividadEconomicaCodigo: '47111',
       address: 'Calle Principal #123, San Salvador',
+      departamentoCod: '06',
+      municipioCod: '23',
+      distritoCod: '01',
       phone: '2222-3333',
       email: 'info@demo.com.sv',
       dteAmbiente: 'TEST',
@@ -102,6 +105,9 @@ async function main() {
       companyId: company.id,
       name: 'Sucursal Central',
       address: 'Calle Principal #123, San Salvador',
+      departamentoCod: '06',
+      municipioCod: '23',
+      distritoCod: '01',
       codEstableMH: 'M001',
       codPuntoVentaMH: 'P001',
       isActive: true,
@@ -456,6 +462,41 @@ async function main() {
   }
   console.log(`✓ Municipios: ${totalMunicipios} registros`)
 
+  const municipiosCat013: Record<string, { codigo: string; nombre: string }[]> = {
+    '00': [{ codigo: '00', nombre: 'Otro (Para extranjeros)' }],
+    '01': [{ codigo: '13', nombre: 'AHUACHAPAN NORTE' }, { codigo: '14', nombre: 'AHUACHAPAN CENTRO' }, { codigo: '15', nombre: 'AHUACHAPAN SUR' }],
+    '02': [{ codigo: '14', nombre: 'SANTA ANA NORTE' }, { codigo: '15', nombre: 'SANTA ANA CENTRO' }, { codigo: '16', nombre: 'SANTA ANA ESTE' }, { codigo: '17', nombre: 'SANTA ANA OESTE' }],
+    '03': [{ codigo: '17', nombre: 'SONSONATE NORTE' }, { codigo: '18', nombre: 'SONSONATE CENTRO' }, { codigo: '19', nombre: 'SONSONATE ESTE' }, { codigo: '20', nombre: 'SONSONATE OESTE' }],
+    '04': [{ codigo: '34', nombre: 'CHALATENANGO NORTE' }, { codigo: '35', nombre: 'CHALATENANGO CENTRO' }, { codigo: '36', nombre: 'CHALATENANGO SUR' }],
+    '05': [{ codigo: '23', nombre: 'LA LIBERTAD NORTE' }, { codigo: '24', nombre: 'LA LIBERTAD CENTRO' }, { codigo: '25', nombre: 'LA LIBERTAD OESTE' }, { codigo: '26', nombre: 'LA LIBERTAD ESTE' }, { codigo: '27', nombre: 'LA LIBERTAD COSTA' }, { codigo: '28', nombre: 'LA LIBERTAD SUR' }],
+    '06': [{ codigo: '20', nombre: 'SAN SALVADOR NORTE' }, { codigo: '21', nombre: 'SAN SALVADOR OESTE' }, { codigo: '22', nombre: 'SAN SALVADOR ESTE' }, { codigo: '23', nombre: 'SAN SALVADOR CENTRO' }, { codigo: '24', nombre: 'SAN SALVADOR SUR' }],
+    '07': [{ codigo: '17', nombre: 'CUSCATLAN NORTE' }, { codigo: '18', nombre: 'CUSCATLAN SUR' }],
+    '08': [{ codigo: '23', nombre: 'LA PAZ OESTE' }, { codigo: '24', nombre: 'LA PAZ CENTRO' }, { codigo: '25', nombre: 'LA PAZ ESTE' }],
+    '09': [{ codigo: '10', nombre: 'CABAÑAS OESTE' }, { codigo: '11', nombre: 'CABAÑAS ESTE' }],
+    '10': [{ codigo: '14', nombre: 'SAN VICENTE NORTE' }, { codigo: '15', nombre: 'SAN VICENTE SUR' }],
+    '11': [{ codigo: '24', nombre: 'USULUTAN NORTE' }, { codigo: '25', nombre: 'USULUTAN ESTE' }, { codigo: '26', nombre: 'USULUTAN OESTE' }],
+    '12': [{ codigo: '21', nombre: 'SAN MIGUEL NORTE' }, { codigo: '22', nombre: 'SAN MIGUEL CENTRO' }, { codigo: '23', nombre: 'SAN MIGUEL OESTE' }],
+    '13': [{ codigo: '27', nombre: 'MORAZAN NORTE' }, { codigo: '28', nombre: 'MORAZAN SUR' }],
+    '14': [{ codigo: '19', nombre: 'LA UNION NORTE' }, { codigo: '20', nombre: 'LA UNION SUR' }],
+  }
+
+  await tp.departamento.upsert({
+    where: { codigo: '00' },
+    update: { nombre: 'Otro (Para extranjeros)', isActive: true },
+    create: { codigo: '00', nombre: 'Otro (Para extranjeros)' },
+  })
+  await tp.municipio.updateMany({ data: { isActive: false } })
+  for (const [deptCod, munis] of Object.entries(municipiosCat013)) {
+    for (const muni of munis) {
+      await tp.municipio.upsert({
+        where: { departamentoCod_codigo: { departamentoCod: deptCod, codigo: muni.codigo } },
+        update: { nombre: muni.nombre, isActive: true },
+        create: { ...muni, departamentoCod: deptCod },
+      })
+    }
+  }
+  console.log('✓ Municipios CAT-013 v1.2 activos')
+
   // Seed actividades económicas
   for (const act of actividades) {
     await tp.actividadEconomica.upsert({
@@ -465,6 +506,30 @@ async function main() {
     })
   }
   console.log(`✓ Actividades económicas: ${actividades.length} registros`)
+
+  const actividadesCat019 = [
+    { codigo: '47111', nombre: 'Venta en supermercados' },
+    { codigo: '47112', nombre: 'Venta en tiendas de articulos de primera necesidad' },
+    { codigo: '47119', nombre: 'Almacenes (venta de diversos articulos)' },
+    { codigo: '47190', nombre: 'Venta al por menor de otros productos en comercios no especializados' },
+    { codigo: '47522', nombre: 'Venta al por menor de articulos de ferreteria' },
+    { codigo: '47721', nombre: 'Venta al por menor de medicamentos farmaceuticos y otros materiales de uso medico' },
+    { codigo: '56101', nombre: 'Restaurantes' },
+    { codigo: '62010', nombre: 'Programacion Informatica' },
+    { codigo: '69200', nombre: 'Actividades de contabilidad, teneduria de libros y auditoria' },
+    { codigo: '96020', nombre: 'Peluqueria y otros tratamientos de belleza' },
+    { codigo: '10006', nombre: 'Comerciante' },
+  ]
+
+  await tp.actividadEconomica.updateMany({ data: { isActive: false } })
+  for (const act of actividadesCat019) {
+    await tp.actividadEconomica.upsert({
+      where: { codigo: act.codigo },
+      update: { nombre: act.nombre, isActive: true },
+      create: act,
+    })
+  }
+  console.log('✓ Actividades CAT-019 v1.2 frecuentes activas')
 
   // ─── Summary ──────────────────────────────────────────────────────────────
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')

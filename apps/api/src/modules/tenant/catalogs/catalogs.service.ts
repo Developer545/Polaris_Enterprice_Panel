@@ -36,6 +36,18 @@ export class CatalogsService {
     })
   }
 
+  findDistritosByDepartamento(departamentoCod: string, municipioCod?: string) {
+    return this.getDb().distrito.findMany({
+      where: {
+        departamentoCod,
+        isActive: true,
+        ...(municipioCod ? { OR: [{ municipioCod }, { municipioCod: null }] } : {}),
+      },
+      select: { id: true, codigo: true, nombre: true, departamentoCod: true, municipioCod: true },
+      orderBy: { nombre: 'asc' },
+    })
+  }
+
   // ── Actividades Económicas ────────────────────────────────────────────────
 
   findAllActividades() {

@@ -103,7 +103,7 @@ async function main() {
       categoryId: cats['Servicios de Inst.'],
       name: s.name, sku: s.sku,
       price: new Decimal(s.price), cost: new Decimal(0),
-      tipoItem: '2', uniMedida: 74,
+      tipoItem: '2', uniMedida: 99,
       trackStock: false, stock: 0, minStock: 0,
       isActive: true,
     })

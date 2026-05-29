@@ -19,6 +19,11 @@ export class CatalogsController {
     return this.svc.findMunicipiosByDepartamento(cod)
   }
 
+  @Get('departamentos/:cod/distritos')
+  findDistritos(@Param('cod') cod: string, @Query('municipioCod') municipioCod?: string) {
+    return this.svc.findDistritosByDepartamento(cod, municipioCod)
+  }
+
   @Get('actividades')
   findAllActividades() {
     return this.svc.findAllActividades()
