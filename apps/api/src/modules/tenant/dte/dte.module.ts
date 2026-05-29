@@ -5,6 +5,8 @@ import { DteController } from './dte.controller'
 import { DteService } from './dte.service'
 import { DteProcessor } from './dte.processor'
 import { DteLocalOutboxService } from './dte-local-outbox.service'
+import { ContingencyService } from './contingency.service'
+import { ContingencyOutboxService } from './contingency-outbox.service'
 import { DteBuilderService } from './dte-builder.service'
 import { FirmadorService } from './firmador.service'
 import { HaciendaService } from './hacienda.service'
@@ -22,7 +24,9 @@ import { CompanyModule } from '../company/company.module'
     DteBuilderService,
     FirmadorService,
     HaciendaService,
+    ContingencyService,
+    ContingencyOutboxService,
   ],
-  exports: [DteService, HaciendaService, FirmadorService],
+  exports: [DteService, HaciendaService, FirmadorService, ContingencyService],
 })
 export class DteModule {}

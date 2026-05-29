@@ -11,6 +11,7 @@ export interface JwtAccessPayload {
   roleId: string
   permissions: Record<string, boolean>
   branchIds: string[]   // branches this user can access
+  canViewAllBranches: boolean   // owner: sees every branch + consolidated panel
   type: 'access'
 }
 
@@ -92,6 +93,7 @@ export const PERMISSIONS = {
   BRANCHES_CREATE: 'branches.create',
   BRANCHES_EDIT: 'branches.edit',
   BRANCHES_DELETE: 'branches.delete',
+  BRANCH_VIEW_ALL: 'branches.view_all',   // owner: cross-branch visibility + central panel
   // Cash Register
   CASH_REGISTER_VIEW: 'cash_register.view',
   CASH_REGISTER_OPEN: 'cash_register.open',

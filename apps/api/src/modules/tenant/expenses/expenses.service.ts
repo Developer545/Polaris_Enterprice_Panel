@@ -3,6 +3,7 @@ import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-clien
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import { Decimal } from '@prisma/client/runtime/library'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
+import { buildBranchWhere, resolveWriteBranchId } from '../../../common/branch-scope.util'
 import { z } from 'zod'
 
 export const CreateExpenseCategorySchema = z.object({
@@ -15,6 +16,7 @@ export const UpdateExpenseCategorySchema = CreateExpenseCategorySchema.partial()
 
 export const CreateExpenseSchema = z.object({
   companyId: z.string().cuid(),
+  branchId: z.string().optional().nullable(),
   categoryId: z.string().cuid().optional().nullable(),
   description: z.string().min(2),
   amount: z.number().positive(),
@@ -95,7 +97,7 @@ export class ExpensesService {
 
   // ─── Expenses ─────────────────────────────────────────────────────────────────
 
-  async findAll(companyId: string, user: JwtAccessPayload, categoryId?: string, from?: string, to?: string) {
+  async findAll(companyId: string, user: JwtAccessPayload, categoryId?: string, from?: string, to?: string, branchId?: string) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     this.assertCompanyAccess(user, companyId)
@@ -104,6 +106,7 @@ export class ExpensesService {
       where: {
         tenantId,
         companyId,
+        ...buildBranchWhere(user, branchId),
         ...(categoryId ? { categoryId } : {}),
         ...(from || to ? {
           date: {
@@ -124,7 +127,7 @@ export class ExpensesService {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     const expense = await db.expense.findFirst({
-      where: { id, tenantId, companyId: user.companyId },
+      where: { id, tenantId, companyId: user.companyId, ...buildBranchWhere(user) },
       include: { category: true },
     })
     if (!expense) throw new NotFoundException('Gasto no encontrado')
@@ -140,6 +143,7 @@ export class ExpensesService {
       data: {
         tenantId,
         companyId: dto.companyId,
+        branchId: resolveWriteBranchId(user, dto.branchId ?? undefined),
         categoryId: dto.categoryId ?? null,
         description: dto.description,
         amount: new Decimal(dto.amount),
@@ -154,7 +158,7 @@ export class ExpensesService {
   async update(id: string, dto: UpdateExpenseDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const expense = await db.expense.findFirst({ where: { id, tenantId, companyId: user.companyId } })
+    const expense = await db.expense.findFirst({ where: { id, tenantId, companyId: user.companyId, ...buildBranchWhere(user) } })
     if (!expense) throw new NotFoundException('Gasto no encontrado')
     if (dto.categoryId !== undefined) await this.assertCategoryAccess(db, tenantId, user.companyId, dto.categoryId)
 
@@ -173,7 +177,7 @@ export class ExpensesService {
   async remove(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const expense = await db.expense.findFirst({ where: { id, tenantId, companyId: user.companyId } })
+    const expense = await db.expense.findFirst({ where: { id, tenantId, companyId: user.companyId, ...buildBranchWhere(user) } })
     if (!expense) throw new NotFoundException('Gasto no encontrado')
     await db.expense.delete({ where: { id } })
     return { ok: true }

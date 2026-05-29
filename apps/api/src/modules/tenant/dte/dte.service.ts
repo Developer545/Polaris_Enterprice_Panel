@@ -6,7 +6,7 @@ import { FirmadorService } from './firmador.service'
 import { HaciendaService } from './hacienda.service'
 import { DteBuilderService } from './dte-builder.service'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
-import { assertValidDteJson } from '@pos-dte/dte-core'
+import { assertCanInvalidateDte, assertValidDteJson, INVALIDATION_EVENT_VERSION } from '@pos-dte/dte-core'
 import { z } from 'zod'
 
 export const AnulacionSchema = z.object({
@@ -40,7 +40,8 @@ export class DteService {
   }
 
   private assertSaleAccess(user: JwtAccessPayload, sale: { companyId: string; branchId: string }) {
-    if (sale.companyId !== user.companyId || !user.branchIds.includes(sale.branchId)) {
+    if (sale.companyId !== user.companyId) throw new ForbiddenException('Venta no autorizada')
+    if (!user.canViewAllBranches && !user.branchIds.includes(sale.branchId)) {
       throw new ForbiddenException('Venta no autorizada')
     }
   }
@@ -77,7 +78,8 @@ export class DteService {
           select: {
             id: true, name: true, comercialName: true, nit: true, nrc: true,
             actividadEconomica: true, actividadEconomicaCodigo: true,
-            address: true, phone: true, email: true, dteAmbiente: true,
+            address: true, departamentoCod: true, municipioCod: true, distritoCod: true,
+            phone: true, email: true, dteAmbiente: true,
             haciendaUserEnc: true, haciendaPwdEnc: true, certDataEnc: true, certPwdEnc: true,
           },
         },
@@ -175,11 +177,16 @@ export class DteService {
       this.logger.log(`DTE emitido: ${payload.numeroControl} | sello: ${result.selloRecibido}`)
     } catch (err: any) {
       this.logger.error(`DTE emission failed for sale ${payload.saleId}: ${err.message}`)
+      const shouldContingency = this.hacienda.isConnectivityError(err)
       await db.dteDocument.update({
         where: { id: dteDoc.id },
         data: {
-          status: 'ERROR',
-          observaciones: [err.message],
+          status: shouldContingency ? 'CONTINGENCY' : 'ERROR',
+          observaciones: [
+            shouldContingency
+              ? 'Falla de comunicacion con MH. Emitir en contingencia: tipoModelo=2, tipoOperacion=2 y luego transmitir evento de contingencia.'
+              : err.message,
+          ],
           processedAt: new Date(),
         },
       })
@@ -229,27 +236,33 @@ export class DteService {
     const certData = company.certDataEnc ? this.crypto.decrypt(company.certDataEnc) : null
     const certPassword = company.certPwdEnc ? this.crypto.decrypt(company.certPwdEnc) : null
 
-    // Build invalidacion JSON for anulacion-schema-v2.json and /anulardte.
+    assertCanInvalidateDte({
+      tipoDte: sale.dteDocument.tipoDte,
+      selloReceivedAt: sale.dteDocument.processedAt ?? sale.dteDocument.createdAt,
+    })
+
+    // Build invalidacion JSON for invalidacion-schema-v3.json and /anulardte.
     const invalidacionCodigoGeneracion = this.builder.generateCodigoGeneracion()
-    const now = new Date()
+    const now = this.svDateTime()
     const client = (sale as any).client
     const anulacionJson = {
       identificacion: {
-        version: 2,
+        version: INVALIDATION_EVENT_VERSION,
         ambiente: ambiente === 'PROD' ? '01' : '00',
         codigoGeneracion: invalidacionCodigoGeneracion,
-        fecAnula: now.toISOString().split('T')[0],
-        horAnula: now.toISOString().split('T')[1].substring(0, 8),
+        fecEmi: now.date,
+        horEmi: now.time,
+        fusion: null,
       },
       emisor: {
         nit: company.nit,
         nombre: company.name,
-        tipoEstablecimiento: '02',
+        codEstableMH: (sale.branch as any).codEstableMH,
+        codEstable: (sale.branch as any).codEstableMH,
+        codPuntoVentaMH: (sale.branch as any).codPuntoVentaMH,
+        codPuntoVenta: (sale.branch as any).codPuntoVentaMH,
         telefono: company.phone ?? '',
         correo: company.email ?? '',
-        codEstableMH: (sale.branch as any).codEstableMH,
-        codPuntoVentaMH: (sale.branch as any).codPuntoVentaMH,
-        nomEstablecimiento: (sale.branch as any).name,
       },
       documento: {
         tipoDte: sale.dteDocument.tipoDte,
@@ -257,13 +270,12 @@ export class DteService {
         selloRecibido: sale.dteDocument.selloRecibido,
         numeroControl: sale.dteDocument.numeroControl,
         fecEmi: (sale as any).createdAt.toISOString().split('T')[0],
-        montoIva: Number((sale as any).totalIva),
         codigoGeneracionR: null,
-        tipoDocumento: client?.tipoDocumento ?? '13',
-        numDocumento: client?.numDocumento ?? '00000000-0',
-        nombre: client?.name ?? 'Consumidor Final',
-        telefono: client?.phone ?? '',
-        correo: client?.email ?? '',
+        tipoDocumento: client?.tipoDocumento ?? null,
+        numDocumento: client?.numDocumento ?? null,
+        nombre: client?.name ?? null,
+        telefono: client?.phone ?? null,
+        correo: client?.email ?? null,
       },
       motivo: {
         tipoAnulacion: 2,
@@ -310,5 +322,30 @@ export class DteService {
     })
 
     return { ok: accepted, selloRecibido: result.selloRecibido, observaciones: result.observaciones }
+  }
+
+  private svDateTime(value = new Date()) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/El_Salvador',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      hourCycle: 'h23',
+    }).formatToParts(value)
+
+    const get = (type: string) => {
+      const part = parts.find((item) => item.type === type)?.value
+      if (!part) throw new Error(`No se pudo formatear fecha/hora ${type}`)
+      return part
+    }
+
+    return {
+      date: `${get('year')}-${get('month')}-${get('day')}`,
+      time: `${get('hour')}:${get('minute')}:${get('second')}`,
+    }
   }
 }

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException, ForbiddenException } 
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
+import { buildBranchWhere, assertBranchAccess } from '../../../common/branch-scope.util'
 import { z } from 'zod'
 
 export const CreateEmployeeSchema = z.object({
@@ -46,19 +47,18 @@ export class EmployeesService {
   }
 
   private assertBranchAccess(user: JwtAccessPayload, branchId?: string | null) {
-    if (branchId && !user.branchIds.includes(branchId)) throw new ForbiddenException('Sucursal no autorizada')
+    if (branchId) assertBranchAccess(user, branchId)
   }
 
   async findAll(companyId: string, user: JwtAccessPayload, branchId?: string, search?: string) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     this.assertCompanyAccess(user, companyId)
-    this.assertBranchAccess(user, branchId)
     return db.employee.findMany({
       where: {
         tenantId,
         companyId,
-        ...(branchId ? { branchId } : { OR: [{ branchId: null }, { branchId: { in: user.branchIds } }] }),
+        ...buildBranchWhere(user, branchId),
         ...(search
           ? {
               OR: [
@@ -94,9 +94,8 @@ export class EmployeesService {
   async findOne(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const employee = await db.employee.findFirst({ where: { id, tenantId, companyId: user.companyId } })
+    const employee = await db.employee.findFirst({ where: { id, tenantId, companyId: user.companyId, ...buildBranchWhere(user) } })
     if (!employee) throw new NotFoundException('Empleado no encontrado')
-    this.assertBranchAccess(user, employee.branchId)
     return employee
   }
 
@@ -119,9 +118,8 @@ export class EmployeesService {
   async update(id: string, dto: UpdateEmployeeDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const employee = await db.employee.findFirst({ where: { id, tenantId, companyId: user.companyId } })
+    const employee = await db.employee.findFirst({ where: { id, tenantId, companyId: user.companyId, ...buildBranchWhere(user) } })
     if (!employee) throw new NotFoundException('Empleado no encontrado')
-    this.assertBranchAccess(user, employee.branchId)
     if (dto.branchId !== undefined) this.assertBranchAccess(user, dto.branchId)
     return db.employee.update({ where: { id }, data: dto })
   }
@@ -129,9 +127,8 @@ export class EmployeesService {
   async deactivate(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const employee = await db.employee.findFirst({ where: { id, tenantId, companyId: user.companyId } })
+    const employee = await db.employee.findFirst({ where: { id, tenantId, companyId: user.companyId, ...buildBranchWhere(user) } })
     if (!employee) throw new NotFoundException('Empleado no encontrado')
-    this.assertBranchAccess(user, employee.branchId)
     return db.employee.update({
       where: { id },
       data: { status: 'INACTIVE', terminationDate: new Date() },

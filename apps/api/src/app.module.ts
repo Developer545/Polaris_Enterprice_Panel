@@ -42,6 +42,7 @@ import { CashRegisterModule } from './modules/tenant/cash-register/cash-register
 // Tenant — Phase 2: POS + DTE
 import { PosModule } from './modules/tenant/pos/pos.module'
 import { DteModule } from './modules/tenant/dte/dte.module'
+import { DashboardModule } from './modules/tenant/dashboard/dashboard.module'
 
 // Tenant — Phase 3: Compras
 import { SuppliersModule } from './modules/tenant/suppliers/suppliers.module'
@@ -116,6 +117,7 @@ import { UploadModule } from './modules/tenant/upload/upload.module'
     // Tenant — Phase 2
     PosModule,
     DteModule,
+    DashboardModule,
 
     // Tenant — Phase 3
     SuppliersModule,

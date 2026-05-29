@@ -50,6 +50,11 @@ interface ElectronAPI {
     onUpdateAvailable: (cb: (info: { version: string }) => void) => void
     onUpdateProgress: (cb: (p: { percent: number; transferred: number; total: number }) => void) => void
     onUpdateDownloaded: (cb: (info: { version: string }) => void) => void
+    onUpdateNotAvailable: (cb: () => void) => void
+    onUpdateError: (cb: (info: { message: string }) => void) => void
+    getVersion: () => Promise<string>
+    checkUpdate: () => Promise<{ ok: boolean; version?: string | null; error?: string }>
+    downloadUpdate: () => Promise<{ ok: boolean; error?: string }>
     installUpdate: () => Promise<void>
     removeAllListeners: (channel: string) => void
   }

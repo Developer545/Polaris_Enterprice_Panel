@@ -1,4 +1,4 @@
-// DTE El Salvador — shared types between API and frontend
+// DTE El Salvador shared types between API and frontend.
 
 export const DTE_TYPE_VALUES = [
   '01',
@@ -16,32 +16,35 @@ export const DTE_TYPE_VALUES = [
 
 export type TipoDte = (typeof DTE_TYPE_VALUES)[number]
 
+export const DTE_EVENT_TYPE_VALUES = ['17', '18'] as const
+export type TipoEventoDte = (typeof DTE_EVENT_TYPE_VALUES)[number]
+
 export const DTE_VERSION_BY_TYPE: Record<TipoDte, number> = {
-  '01': 1,
-  '03': 3,
-  '04': 3,
-  '05': 3,
-  '06': 3,
-  '07': 1,
-  '08': 1,
-  '09': 1,
-  '11': 1,
-  '14': 1,
-  '15': 1,
+  '01': 2,
+  '03': 4,
+  '04': 4,
+  '05': 4,
+  '06': 4,
+  '07': 2,
+  '08': 2,
+  '09': 2,
+  '11': 3,
+  '14': 2,
+  '15': 2,
 }
 
 export const DTE_SCHEMA_NAME_BY_TYPE: Record<TipoDte, string> = {
-  '01': 'fe-fc-v1',
-  '03': 'fe-ccf-v3',
-  '04': 'fe-nr-v3',
-  '05': 'fe-nc-v3',
-  '06': 'fe-nd-v3',
-  '07': 'fe-cr-v1',
-  '08': 'fe-cl-v1',
-  '09': 'fe-dcl-v1',
-  '11': 'fe-fex-v1',
-  '14': 'fe-fse-v1',
-  '15': 'fe-cd-v1',
+  '01': 'fe-f-v2',
+  '03': 'fe-ccf-v4',
+  '04': 'fe-nr-v4',
+  '05': 'fe-nc-v4',
+  '06': 'fe-nd-v4',
+  '07': 'fe-cr-v2',
+  '08': 'fe-cl-v2',
+  '09': 'fe-dcl-v2',
+  '11': 'fe-fex-v3',
+  '14': 'fe-fse-v2',
+  '15': 'fe-cd-v2',
 }
 
 export function isTipoDte(value: string): value is TipoDte {
@@ -52,7 +55,7 @@ export function getDteVersion(tipoDte: TipoDte): number {
   return DTE_VERSION_BY_TYPE[tipoDte]
 }
 
-export type DteAmbiente = '00' | '01' // 00=pruebas, 01=producción
+export type DteAmbiente = '00' | '01'
 
 export type DteEstado =
   | 'DRAFT'
@@ -67,54 +70,57 @@ export type DteEstado =
   | 'CONTINGENCY'
   | 'ANNULLED'
 
-// ─── Catálogos Hacienda (valores más usados) ──────────────────────────────────
-
 export const CATALOGO_TIPO_DTE: Record<TipoDte, string> = {
   '01': 'Factura',
-  '03': 'Comprobante de Crédito Fiscal',
-  '04': 'Nota de Remisión',
-  '05': 'Nota de Crédito',
-  '06': 'Nota de Débito',
-  '07': 'Comprobante de Retención',
-  '08': 'Comprobante de Liquidación',
-  '09': 'Documento Contable de Liquidación',
-  '11': 'Factura de Exportación',
+  '03': 'Comprobante de Credito Fiscal',
+  '04': 'Nota de Remision',
+  '05': 'Nota de Credito',
+  '06': 'Nota de Debito',
+  '07': 'Comprobante de Retencion',
+  '08': 'Comprobante de Liquidacion',
+  '09': 'Documento Contable de Liquidacion',
+  '11': 'Factura de Exportacion',
   '14': 'Factura de Sujeto Excluido',
-  '15': 'Comprobante de Donación',
+  '15': 'Comprobante de Donacion',
+}
+
+export const CATALOGO_TIPO_EVENTO_DTE: Record<TipoEventoDte, string> = {
+  '17': 'Evento de Operaciones Especiales',
+  '18': 'Evento de Retorno',
 }
 
 export const CATALOGO_TIPO_ITEM: Record<number, string> = {
   1: 'Bien',
   2: 'Servicio',
   3: 'Ambos',
-  4: 'Otros cargos',
+  4: 'Otros tributos por item',
 }
 
 export const CATALOGO_FORMA_PAGO: Record<string, string> = {
   '01': 'Billetes y monedas',
-  '02': 'Tarjeta débito',
-  '03': 'Tarjeta crédito',
+  '02': 'Tarjeta Debito',
+  '03': 'Tarjeta Credito',
   '04': 'Cheque',
-  '05': 'Transferencia-Depósito bancario',
-  '06': 'Dinero electrónico',
-  '07': 'Vales / Bonos',
-  '08': 'Giro postal',
-  '09': 'Pago a cuenta / Anticipo',
+  '05': 'Transferencia-Deposito bancario',
+  '08': 'Dinero electronico',
+  '09': 'Monedero electronico',
+  '11': 'Bitcoin',
+  '12': 'Otras criptomonedas',
+  '13': 'Cuentas por pagar del receptor',
+  '14': 'Giro bancario',
   '99': 'Otros',
 }
 
 export const CATALOGO_CONDICION_OPERACION: Record<number, string> = {
   1: 'Contado',
-  2: 'A Crédito',
+  2: 'A Credito',
   3: 'Otro',
 }
 
 export const CATALOGO_AMBIENTE: Record<DteAmbiente, string> = {
   '00': 'Pruebas',
-  '01': 'Producción',
+  '01': 'Produccion',
 }
-
-// ─── DTE JSON structure (simplified for frontend display) ────────────────────
 
 export interface DteIdentificacion {
   version: number
@@ -126,9 +132,16 @@ export interface DteIdentificacion {
   tipoOperacion: number
   tipoContingencia: number | null
   motivoContin: string | null
-  fecEmi: string   // YYYY-MM-DD
-  horEmi: string   // HH:mm:ss
+  fecEmi: string
+  horEmi: string
   tipoMoneda: string
+}
+
+export interface DteDireccion {
+  departamento: string
+  municipio: string
+  distrito: string
+  complemento: string
 }
 
 export interface DteEmisor {
@@ -137,25 +150,24 @@ export interface DteEmisor {
   nombre: string
   codActividad: string
   descActividad: string
-  nombreComercial?: string
-  tipoEstablecimiento: string
-  direccion: { departamento: string; municipio: string; complemento: string }
-  telefono?: string
+  nombreComercial: string | null
+  direccion: DteDireccion
+  telefono: string
   correo: string
-  codEstableMH?: string
-  codEstable?: string
-  codPuntoVentaMH?: string
-  codPuntoVenta?: string
+  codEstable: string
+  codPuntoVenta: string
 }
 
 export interface DteReceptor {
-  tipoDocumento: string | null
-  numDocumento: string | null
+  tipoDocumento?: string | null
+  numDocumento?: string | null
+  nit?: string | null
   nrc: string | null
-  nombre: string
+  nombre: string | null
   codActividad: string | null
   descActividad: string | null
-  direccion: { departamento: string; municipio: string; complemento: string } | null
+  nombreComercial?: string | null
+  direccion: DteDireccion | null
   telefono: string | null
   correo: string | null
 }
@@ -177,7 +189,7 @@ export interface DteCuerpoItem {
   tributos: string[] | null
   psv: number
   noGravado: number
-  ivaItem: number
+  ivaItem?: number
 }
 
 export interface DteResumen {
@@ -190,14 +202,16 @@ export interface DteResumen {
   descuGravada: number
   porcentajeDescuento: number
   totalDescu: number
+  tributos: unknown[] | null
   subTotal: number
-  ivaRete1: number
-  reteRenta: number
+  ivaRete: number
+  ivaPerci?: number
+  reteRenta?: number
   montoTotalOperacion: number
   totalNoGravado: number
   totalPagar: number
   totalLetras: string
-  totalIva: number
+  totalIva?: number
   saldoFavor: number
   condicionOperacion: number
   pagos: Array<{
@@ -208,22 +222,20 @@ export interface DteResumen {
     periodo: number | null
   }>
   numPagoElectronico: string | null
+  observaciones: string | null
 }
 
 export interface DteJson {
   identificacion: DteIdentificacion
-  documentoRelacionado: unknown | null
+  documentoRelacionado: unknown[] | null
   emisor: DteEmisor
-  receptor: DteReceptor
-  otrosDocumentos: unknown | null
+  receptor: DteReceptor | null
+  otrosDocumentos: unknown[] | null
   ventaTercero: unknown | null
   cuerpoDocumento: DteCuerpoItem[]
   resumen: DteResumen
-  extension: unknown | null
   apendice: unknown[] | null
 }
-
-// ─── Hacienda API responses ───────────────────────────────────────────────────
 
 export interface HaciendaAuthResponse {
   status: 'OK' | 'ERROR'

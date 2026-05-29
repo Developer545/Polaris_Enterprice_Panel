@@ -59,6 +59,7 @@ export default function ClientsPage() {
   const [departamentoCod, setDepartamentoCod] = useState<string | undefined>()
   const [municipioCod, setMunicipioCod] = useState<string | undefined>()
   const [municipios, setMunicipios] = useState<{ value: string; label: string }[]>([])
+  const [distritos, setDistritos] = useState<{ value: string; label: string }[]>([])
   const [zona, setZona] = useState<string | undefined>()
 
   const { companyId } = useAppContext()
@@ -103,14 +104,20 @@ export default function ClientsPage() {
   // ── Municipios según departamento ────────────────────────────────────────────
 
   useEffect(() => {
-    if (!departamentoCod) { setMunicipios([]); setZona(undefined); return }
-    form.setFieldValue('municipioCod', undefined)
-    setMunicipioCod(undefined)
-    setZona(undefined)
+    if (!departamentoCod) { setMunicipios([]); setDistritos([]); setZona(undefined); return }
     api.get('/api/catalogs/departamentos/' + departamentoCod + '/municipios')
       .then(r => setMunicipios((r.data as any[]).map((m: any) => ({ value: m.codigo, label: m.nombre }))))
       .catch(() => setMunicipios([]))
-  }, [departamentoCod, form])
+  }, [departamentoCod])
+
+  useEffect(() => {
+    if (!departamentoCod) { setDistritos([]); return }
+    api.get('/api/catalogs/departamentos/' + departamentoCod + '/distritos', {
+      params: municipioCod ? { municipioCod } : undefined,
+    })
+      .then(r => setDistritos((r.data as any[]).map((d: any) => ({ value: d.codigo, label: d.nombre }))))
+      .catch(() => setDistritos([]))
+  }, [departamentoCod, municipioCod])
 
   // Zona auto-derivada del municipio seleccionado (consulta la API de catálogos)
   useEffect(() => {
@@ -153,6 +160,7 @@ export default function ClientsPage() {
     setDepartamentoCod(undefined)
     setMunicipioCod(undefined)
     setMunicipios([])
+    setDistritos([])
     setZona(undefined)
     form.setFieldsValue({
       esCreditoFiscal: false,
@@ -191,6 +199,7 @@ export default function ClientsPage() {
     setDepartamentoCod(undefined)
     setMunicipioCod(undefined)
     setMunicipios([])
+    setDistritos([])
     setZona(undefined)
     form.resetFields()
   }
@@ -210,11 +219,13 @@ export default function ClientsPage() {
     setDepartamentoCod(cod)
     setMunicipioCod(undefined)
     form.setFieldValue('departamentoCod', cod)
+    form.setFieldValue('distritoCod', undefined)
   }
 
   function onMunicipioChange(cod: string) {
     setMunicipioCod(cod)
     form.setFieldValue('municipioCod', cod)
+    form.setFieldValue('distritoCod', undefined)
   }
 
   function onFinish(values: any) {
@@ -664,6 +675,21 @@ export default function ClientsPage() {
                   disabled={!departamentoCod}
                   options={municipios}
                   onChange={onMunicipioChange}
+                  filterOption={(input, opt) =>
+                    (opt?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  allowClear
+                  style={{ borderRadius: 8 }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="distritoCod" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Distrito</span>} style={{ marginBottom: 16 }}>
+                <Select
+                  showSearch
+                  placeholder={departamentoCod ? 'Seleccionar distrito' : 'Primero elige departamento'}
+                  disabled={!departamentoCod}
+                  options={distritos}
                   filterOption={(input, opt) =>
                     (opt?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
                   }

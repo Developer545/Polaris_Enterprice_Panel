@@ -7,6 +7,7 @@ import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import { calcIvaRetention1, calcLineTotals, calcSaleSummary, buildNumeroControl } from '@pos-dte/dte-core'
 import { Decimal } from '@prisma/client/runtime/library'
 import { type JwtAccessPayload, type TipoDte } from '@pos-dte/shared-types'
+import { buildBranchWhere, assertBranchAccess } from '../../../common/branch-scope.util'
 import { useBullDteQueue } from '../../../config/env'
 import { z } from 'zod'
 
@@ -55,20 +56,19 @@ export class PosService {
   }
 
   private assertBranchAccess(user: JwtAccessPayload, branchId: string) {
-    if (!user.branchIds.includes(branchId)) throw new ForbiddenException('Sucursal no autorizada')
+    assertBranchAccess(user, branchId)
   }
 
   async findSales(companyId: string, user: JwtAccessPayload, branchId?: string, from?: string, to?: string, page = 1, limit = 50) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     this.assertCompanyAccess(user, companyId)
-    if (branchId) this.assertBranchAccess(user, branchId)
     const skip = (page - 1) * limit
 
     const where = {
       tenantId,
       companyId,
-      ...(branchId ? { branchId } : { branchId: { in: user.branchIds } }),
+      ...buildBranchWhere(user, branchId),
       ...(from || to ? {
         createdAt: {
           ...(from ? { gte: new Date(from) } : {}),
@@ -96,11 +96,15 @@ export class PosService {
     return { sales, total, page, limit }
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     const sale = await db.sale.findFirst({
-      where: { id, tenantId },
+      where: {
+        id,
+        tenantId,
+        ...(user ? { companyId: user.companyId, ...buildBranchWhere(user) } : {}),
+      },
       include: {
         client: true,
         branch: { select: { id: true, name: true } },
@@ -340,6 +344,9 @@ export class PosService {
           where: { id: dto.branchId, tenantId, companyId: dto.companyId },
           select: { codEstableMH: true, codPuntoVentaMH: true },
         })
+        if (!branch?.codEstableMH || !branch?.codPuntoVentaMH) {
+          throw new Error('Sucursal sin codigos MH de establecimiento y punto de venta; no se puede generar numero de control DTE')
+        }
         control = await tx.dteNumberControl.create({
           data: {
             tenantId,
@@ -348,8 +355,8 @@ export class PosService {
             tipoDte: dto.tipoDte,
             year,
             lastSequence: 0,
-            codEstable: branch?.codEstableMH ?? 'M001',
-            codPuntoVenta: branch?.codPuntoVentaMH ?? 'P001',
+            codEstable: branch.codEstableMH,
+            codPuntoVenta: branch.codPuntoVentaMH,
           },
         })
       }
@@ -425,10 +432,11 @@ export class PosService {
       to   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
     }
 
+    const branchScope = buildBranchWhere(user)
     const saleWhere = {
       tenantId,
       companyId,
-      branchId: { in: user.branchIds },
+      ...branchScope,
       createdAt: { gte: from, lte: to },
       dteDocument: { isNot: { status: 'ANNULLED' } as any },
     }
@@ -445,7 +453,7 @@ export class PosService {
         _count: { clientId: true },
       }),
       db.expense.aggregate({
-        where: { tenantId, companyId, date: { gte: from, lte: to } },
+        where: { tenantId, companyId, ...branchScope, date: { gte: from, lte: to } },
         _sum: { amount: true },
       }),
     ])
@@ -466,6 +474,7 @@ export class PosService {
         where: {
           tenantId,
           companyId,
+          ...branchScope,
           createdAt: { gte: days7from, lte: new Date() },
           dteDocument: { isNot: { status: 'ANNULLED' } as any },
         },
@@ -494,7 +503,7 @@ export class PosService {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     const sale = await db.sale.findFirst({
-      where: { id, tenantId, companyId: user.companyId },
+      where: { id, tenantId, companyId: user.companyId, ...buildBranchWhere(user) },
       include: { dteDocument: true },
     })
     if (!sale) throw new NotFoundException('Venta no encontrada')

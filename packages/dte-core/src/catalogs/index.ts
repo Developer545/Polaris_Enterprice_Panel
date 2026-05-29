@@ -10,6 +10,15 @@ import {
   isTipoDte,
   type TipoDte,
 } from '@pos-dte/shared-types'
+export {
+  CAT_005_TIPO_CONTINGENCIA,
+  CONTINGENCY_DTE_BATCH_DEADLINE_HOURS,
+  CONTINGENCY_EVENT_DEADLINE_HOURS,
+  CONTINGENCY_MAX_DOCUMENTS,
+  CONTINGENCY_EVENT_VERSION,
+  DTE_NORMATIVE_EFFECTIVE_DATE,
+  INVALIDATION_EVENT_VERSION,
+} from '../regulatory'
 
 export {
   CATALOGO_TIPO_DTE,
@@ -38,24 +47,59 @@ export const CAT_002_TIPO_DTE = {
   FACTURA_EXPORTACION: '11',
   FACTURA_SUJETO_EXCLUIDO: '14',
   COMPROBANTE_DONACION: '15',
-} as const satisfies Record<string, TipoDte>
+  EVENTO_OPERACIONES_ESPECIALES: '17',
+  EVENTO_RETORNO: '18',
+} as const satisfies Record<string, string>
 
-export const CAT_005_TIPO_ITEM = {
+export const CAT_011_TIPO_ITEM = {
   BIEN: 1,
   SERVICIO: 2,
   AMBOS: 3,
   OTROS_CARGOS: 4,
 } as const
 
+export const CAT_005_TIPO_ITEM = CAT_011_TIPO_ITEM
+
 export const CAT_014_UNIDAD_MEDIDA = {
-  // Most common values
-  UNIDAD: 59,
   METRO: 1,
-  KILOGRAMO: 5,
-  LITRO: 6,
-  CAJA: 26,
-  PAQUETE: 99,
-  SERVICIO: 99,
+  YARDA: 2,
+  MILIMETRO: 6,
+  KILOMETRO_CUADRADO: 9,
+  HECTAREA: 10,
+  METRO_CUADRADO: 13,
+  VARA_CUADRADA: 15,
+  METRO_CUBICO: 18,
+  BARRIL: 20,
+  GALON: 22,
+  LITRO: 23,
+  BOTELLA: 24,
+  MILILITRO: 26,
+  TONELADA: 30,
+  QUINTAL: 32,
+  ARROBA: 33,
+  KILOGRAMO: 34,
+  LIBRA: 36,
+  ONZA_TROY: 37,
+  ONZA: 38,
+  GRAMO: 39,
+  MILIGRAMO: 40,
+  MEGAWATT: 42,
+  KILOWATT: 43,
+  WATT: 44,
+  MEGAVOLTIO_AMPERIO: 45,
+  KILOVOLTIO_AMPERIO: 46,
+  VOLTIO_AMPERIO: 47,
+  GIGAWATT_HORA: 49,
+  MEGAWATT_HORA: 50,
+  KILOWATT_HORA: 51,
+  WATT_HORA: 52,
+  KILOVOLTIO: 53,
+  VOLTIO: 54,
+  MILLAR: 55,
+  MEDIO_MILLAR: 56,
+  CIENTO: 57,
+  DOCENA: 58,
+  UNIDAD: 59,
   OTRO: 99,
 } as const
 
@@ -65,10 +109,12 @@ export const CAT_017_FORMA_PAGO = {
   TARJETA_CREDITO: '03',
   CHEQUE: '04',
   TRANSFERENCIA: '05',
-  DINERO_ELECTRONICO: '06',
-  VALES_BONOS: '07',
-  GIRO_POSTAL: '08',
-  ANTICIPO: '09',
+  DINERO_ELECTRONICO: '08',
+  MONEDERO_ELECTRONICO: '09',
+  BITCOIN: '11',
+  OTRAS_CRIPTOMONEDAS: '12',
+  CUENTAS_POR_PAGAR_RECEPTOR: '13',
+  GIRO_BANCARIO: '14',
   OTROS: '99',
 } as const
 
@@ -76,6 +122,41 @@ export const CAT_019_CONDICION_OPERACION = {
   CONTADO: 1,
   CREDITO: 2,
   OTRO: 3,
+} as const
+
+export const CAT_030_TRANSPORTE = {
+  TERRESTRE: 1,
+  AEREO: 2,
+  MARITIMO: 3,
+  FERREO: 4,
+  MULTIMODAL: 5,
+  CORREO: 6,
+} as const
+
+export const CAT_031_INCOTERMS = {
+  EXW: '01',
+  FCA: '02',
+  CPT: '03',
+  CIP: '04',
+  DAP: '05',
+  DPU: '06',
+  DDP: '07',
+  FAS: '08',
+  FOB: '09',
+  CFR: '10',
+  CIF: '11',
+} as const
+
+export const CAT_032_DOMICILIO_FISCAL = {
+  DOMICILIADO: 1,
+  NO_DOMICILIADO: 2,
+} as const
+
+export const CAT_033_TIPO_REGIMEN = {
+  EXPORTACION_DEFINITIVA: 'EX-1',
+  EXPORTACION_TEMPORAL: 'EX-2',
+  REEXPORTACION: 'EX-3',
+  TRANSITO_ADUANERO: 'TA-1',
 } as const
 
 export const CAT_022_TIPO_DOCUMENTO_RECEPTOR = {
@@ -103,6 +184,42 @@ export const DEPARTAMENTOS: Record<string, string> = {
   '12': 'San Miguel',
   '13': 'Morazán',
   '14': 'La Unión',
+}
+
+export const CAT_012_DEPARTAMENTOS = {
+  '00': 'Otro (Para extranjeros)',
+  '01': 'Ahuachapan',
+  '02': 'Santa Ana',
+  '03': 'Sonsonate',
+  '04': 'Chalatenango',
+  '05': 'La Libertad',
+  '06': 'San Salvador',
+  '07': 'Cuscatlan',
+  '08': 'La Paz',
+  '09': 'Cabanas',
+  '10': 'San Vicente',
+  '11': 'Usulutan',
+  '12': 'San Miguel',
+  '13': 'Morazan',
+  '14': 'La Union',
+} as const
+
+export const CAT_013_MUNICIPIOS: Record<string, Record<string, string>> = {
+  '00': { '00': 'Otro (Para extranjeros)' },
+  '01': { '13': 'AHUACHAPAN NORTE', '14': 'AHUACHAPAN CENTRO', '15': 'AHUACHAPAN SUR' },
+  '02': { '14': 'SANTA ANA NORTE', '15': 'SANTA ANA CENTRO', '16': 'SANTA ANA ESTE', '17': 'SANTA ANA OESTE' },
+  '03': { '17': 'SONSONATE NORTE', '18': 'SONSONATE CENTRO', '19': 'SONSONATE ESTE', '20': 'SONSONATE OESTE' },
+  '04': { '34': 'CHALATENANGO NORTE', '35': 'CHALATENANGO CENTRO', '36': 'CHALATENANGO SUR' },
+  '05': { '23': 'LA LIBERTAD NORTE', '24': 'LA LIBERTAD CENTRO', '25': 'LA LIBERTAD OESTE', '26': 'LA LIBERTAD ESTE', '27': 'LA LIBERTAD COSTA', '28': 'LA LIBERTAD SUR' },
+  '06': { '20': 'SAN SALVADOR NORTE', '21': 'SAN SALVADOR OESTE', '22': 'SAN SALVADOR ESTE', '23': 'SAN SALVADOR CENTRO', '24': 'SAN SALVADOR SUR' },
+  '07': { '17': 'CUSCATLAN NORTE', '18': 'CUSCATLAN SUR' },
+  '08': { '23': 'LA PAZ OESTE', '24': 'LA PAZ CENTRO', '25': 'LA PAZ ESTE' },
+  '09': { '10': 'CABANAS OESTE', '11': 'CABANAS ESTE' },
+  '10': { '14': 'SAN VICENTE NORTE', '15': 'SAN VICENTE SUR' },
+  '11': { '24': 'USULUTAN NORTE', '25': 'USULUTAN ESTE', '26': 'USULUTAN OESTE' },
+  '12': { '21': 'SAN MIGUEL NORTE', '22': 'SAN MIGUEL CENTRO', '23': 'SAN MIGUEL OESTE' },
+  '13': { '27': 'MORAZAN NORTE', '28': 'MORAZAN SUR' },
+  '14': { '19': 'LA UNION NORTE', '20': 'LA UNION SUR' },
 }
 
 /**
@@ -235,7 +352,7 @@ export const MUNICIPIOS: Record<string, Record<string, string>> = {
 
 /** Helper: retorna municipios de un departamento como array { codigo, nombre } */
 export function getMunicipios(departamentoCod: string): { codigo: string; nombre: string }[] {
-  const munis = MUNICIPIOS[departamentoCod]
+  const munis = CAT_013_MUNICIPIOS[departamentoCod]
   if (!munis) return []
   return Object.entries(munis).map(([codigo, nombre]) => ({ codigo, nombre }))
 }

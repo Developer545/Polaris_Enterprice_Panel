@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import {
-  Table, Button, Tag, Modal, Form, Input, App,
+  Table, Button, Tag, Modal, Form, Input, Select, App,
   Space, Popconfirm, Typography, Row, Col, Card, Divider, Tooltip, theme, Switch,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
@@ -28,11 +28,33 @@ export default function SucursalesTab({ companyId }: Props) {
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<any>(null)
   const [form] = Form.useForm()
+  const departamentoCod = Form.useWatch('departamentoCod', form)
+  const municipioCod = Form.useWatch('municipioCod', form)
 
   const { data: branches = [], isLoading } = useQuery({
     queryKey: ['branches', companyId],
     queryFn: () => api.get(`/api/branches?companyId=${companyId}`).then(r => r.data),
     enabled: !!companyId,
+  })
+
+  const { data: departamentos = [] } = useQuery({
+    queryKey: ['catalogs-departamentos'],
+    queryFn: () => api.get('/api/catalogs/departamentos').then(r => r.data),
+    staleTime: 60 * 60_000,
+  })
+
+  const { data: municipios = [] } = useQuery({
+    queryKey: ['catalogs-municipios', departamentoCod],
+    queryFn: () => api.get(`/api/catalogs/departamentos/${departamentoCod}/municipios`).then(r => r.data),
+    enabled: !!departamentoCod,
+    staleTime: 60 * 60_000,
+  })
+
+  const { data: distritos = [] } = useQuery({
+    queryKey: ['catalogs-distritos', departamentoCod, municipioCod],
+    queryFn: () => api.get(`/api/catalogs/departamentos/${departamentoCod}/distritos`, { params: { municipioCod } }).then(r => r.data),
+    enabled: !!departamentoCod,
+    staleTime: 60 * 60_000,
   })
 
   const createMut = useMutation({
@@ -58,6 +80,9 @@ export default function SucursalesTab({ companyId }: Props) {
     setEditing(record)
     form.setFieldsValue({
       name: record.name, address: record.address, phone: record.phone,
+      departamentoCod: record.departamentoCod,
+      municipioCod: record.municipioCod,
+      distritoCod: record.distritoCod,
       codEstableMH: record.codEstableMH, codPuntoVentaMH: record.codPuntoVentaMH,
       isActive: record.isActive,
     })
@@ -181,6 +206,24 @@ export default function SucursalesTab({ companyId }: Props) {
           <Form.Item label={LBL('Nombre')} name="name" rules={[{ required: true, min: 2, message: 'Mínimo 2 caracteres' }]} style={MB}>
             <Input prefix={<ShopOutlined style={{ color: '#ccc' }} />} placeholder="Sucursal Central" style={INP} />
           </Form.Item>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item label={LBL('Departamento DTE')} name="departamentoCod" style={MB}>
+                <Select showSearch optionFilterProp="label" options={(departamentos as any[]).map((d: any) => ({ value: d.codigo, label: d.codigo + ' - ' + d.nombre }))} onChange={() => form.setFieldsValue({ municipioCod: undefined, distritoCod: undefined })} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item label={LBL('Municipio DTE')} name="municipioCod" style={MB}>
+                <Select showSearch disabled={!departamentoCod} optionFilterProp="label" options={(municipios as any[]).map((m: any) => ({ value: m.codigo, label: m.codigo + ' - ' + m.nombre }))} onChange={() => form.setFieldValue('distritoCod', undefined)} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item label={LBL('Distrito DTE')} name="distritoCod" style={MB}>
+                <Select showSearch disabled={!departamentoCod} optionFilterProp="label" options={(distritos as any[]).map((d: any) => ({ value: d.codigo, label: d.codigo + ' - ' + d.nombre }))} />
+              </Form.Item>
+            </Col>
+          </Row>
+
           <Form.Item label={LBL('Dirección')} name="address" style={MB}>
             <Input placeholder="Dirección de la sucursal" style={INP} />
           </Form.Item>

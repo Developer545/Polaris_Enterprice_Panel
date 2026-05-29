@@ -27,10 +27,11 @@ const TIPO_ITEM = [
 
 const UNI_MH_OPTIONS = [
   { value: 59, label: 'Unidad'    },
-  { value: 10, label: 'Kilogramo' },
-  { value: 8,  label: 'Litro'     },
-  { value: 74, label: 'Servicio'  },
-  { value: 52, label: 'Hora'      },
+  { value: 34, label: 'Kilogramo' },
+  { value: 23, label: 'Litro'     },
+  { value: 36, label: 'Libra'     },
+  { value: 58, label: 'Docena'    },
+  { value: 99, label: 'Otra'      },
 ]
 
 

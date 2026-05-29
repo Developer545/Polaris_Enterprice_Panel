@@ -24,6 +24,8 @@ export default function EmpresaTab({ companyId }: Props) {
   const { message } = App.useApp()
   const qc = useQueryClient()
   const [form] = Form.useForm()
+  const departamentoCod = Form.useWatch('departamentoCod', form)
+  const municipioCod = Form.useWatch('municipioCod', form)
 
   const { data: company, isLoading } = useQuery({
     queryKey: ['company', companyId],
@@ -37,6 +39,26 @@ export default function EmpresaTab({ companyId }: Props) {
     staleTime: 60 * 60_000,
   })
 
+  const { data: departamentos = [] } = useQuery({
+    queryKey: ['catalogs-departamentos'],
+    queryFn: () => api.get('/api/catalogs/departamentos').then(r => r.data),
+    staleTime: 60 * 60_000,
+  })
+
+  const { data: municipios = [] } = useQuery({
+    queryKey: ['catalogs-municipios', departamentoCod],
+    queryFn: () => api.get(`/api/catalogs/departamentos/${departamentoCod}/municipios`).then(r => r.data),
+    enabled: !!departamentoCod,
+    staleTime: 60 * 60_000,
+  })
+
+  const { data: distritos = [] } = useQuery({
+    queryKey: ['catalogs-distritos', departamentoCod, municipioCod],
+    queryFn: () => api.get(`/api/catalogs/departamentos/${departamentoCod}/distritos`, { params: { municipioCod } }).then(r => r.data),
+    enabled: !!departamentoCod,
+    staleTime: 60 * 60_000,
+  })
+
   useEffect(() => {
     if (company) {
       form.setFieldsValue({
@@ -45,6 +67,9 @@ export default function EmpresaTab({ companyId }: Props) {
         nit: company.nit,
         nrc: company.nrc,
         actividadEconomicaCodigo: company.actividadEconomicaCodigo,
+        departamentoCod: company.departamentoCod,
+        municipioCod: company.municipioCod,
+        distritoCod: company.distritoCod,
         address: company.address,
         phone: company.phone,
         email: company.email,
@@ -118,6 +143,40 @@ export default function EmpresaTab({ companyId }: Props) {
             </Form.Item>
           </Col>
           <Col xs={24}>
+            <Row gutter={16}>
+              <Col xs={24} md={8}>
+                <Form.Item label={LBL('Departamento DTE')} name="departamentoCod" style={MB}>
+                  <Select
+                    showSearch
+                    optionFilterProp="label"
+                    options={(departamentos as any[]).map((d: any) => ({ value: d.codigo, label: d.codigo + ' - ' + d.nombre }))}
+                    onChange={() => form.setFieldsValue({ municipioCod: undefined, distritoCod: undefined })}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={8}>
+                <Form.Item label={LBL('Municipio DTE')} name="municipioCod" style={MB}>
+                  <Select
+                    showSearch
+                    disabled={!departamentoCod}
+                    optionFilterProp="label"
+                    options={(municipios as any[]).map((m: any) => ({ value: m.codigo, label: m.codigo + ' - ' + m.nombre }))}
+                    onChange={() => form.setFieldValue('distritoCod', undefined)}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={8}>
+                <Form.Item label={LBL('Distrito DTE')} name="distritoCod" style={MB}>
+                  <Select
+                    showSearch
+                    disabled={!departamentoCod}
+                    optionFilterProp="label"
+                    options={(distritos as any[]).map((d: any) => ({ value: d.codigo, label: d.codigo + ' - ' + d.nombre }))}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+
             <Form.Item label={LBL('Dirección fiscal')} name="address" style={MB}>
               <Input.TextArea rows={2} placeholder="Dirección fiscal de la empresa" style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
             </Form.Item>

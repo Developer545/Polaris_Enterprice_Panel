@@ -6,7 +6,7 @@
  * Consult: POST /fe/consultadte
  */
 import { Injectable, Logger } from '@nestjs/common'
-import Axios from 'axios'
+import Axios, { AxiosError } from 'axios'
 import { getDteVersion, isTipoDte } from '@pos-dte/dte-core'
 
 const ENDPOINTS = {
@@ -17,6 +17,13 @@ const ENDPOINTS = {
 export interface HaciendaToken {
   token: string
   expiresAt: Date
+}
+
+export interface HaciendaSubmitResult {
+  selloRecibido: string | null
+  observaciones: string[]
+  estado?: string
+  raw?: unknown
 }
 
 @Injectable()
@@ -53,7 +60,7 @@ export class HaciendaService {
     codigoGeneracion: string,
     ambiente: 'TEST' | 'PROD',
     authToken: string,
-  ): Promise<{ selloRecibido: string | null; observaciones: string[] }> {
+  ): Promise<HaciendaSubmitResult> {
     const base = ENDPOINTS[ambiente]
 
     const body = {
@@ -77,6 +84,8 @@ export class HaciendaService {
     return {
       selloRecibido: selloRecibido ?? null,
       observaciones: observaciones ?? [],
+      estado,
+      raw: res.data,
     }
   }
 
@@ -85,13 +94,13 @@ export class HaciendaService {
     codigoGeneracion: string,
     ambiente: 'TEST' | 'PROD',
     authToken: string,
-  ): Promise<{ selloRecibido: string | null; observaciones: string[] }> {
+  ): Promise<HaciendaSubmitResult> {
     const base = ENDPOINTS[ambiente]
 
     const body = {
       ambiente: ambiente === 'PROD' ? '01' : '00',
       idEnvio: 1,
-      version: 2,
+      version: 3,
       documento: jwsToken,
       codigoGeneracion,
     }
@@ -108,6 +117,40 @@ export class HaciendaService {
     return {
       selloRecibido: selloRecibido ?? null,
       observaciones: observaciones ?? [],
+      raw: res.data,
+    }
+  }
+
+  async submitContingencia(
+    jwsToken: string,
+    codigoGeneracion: string,
+    ambiente: 'TEST' | 'PROD',
+    authToken: string,
+  ): Promise<HaciendaSubmitResult> {
+    const base = ENDPOINTS[ambiente]
+
+    const body = {
+      ambiente: ambiente === 'PROD' ? '01' : '00',
+      idEnvio: 1,
+      version: 4,
+      documento: jwsToken,
+      codigoGeneracion,
+    }
+
+    const res = await Axios.post(`${base}/contingencia`, body, {
+      headers: {
+        Authorization: authToken,
+        'Content-Type': 'application/json',
+      },
+      timeout: 30_000,
+    })
+
+    const { estado, selloRecibido, observaciones } = res.data ?? {}
+    return {
+      selloRecibido: selloRecibido ?? null,
+      observaciones: observaciones ?? [],
+      estado,
+      raw: res.data,
     }
   }
 
@@ -131,5 +174,13 @@ export class HaciendaService {
 
   invalidateToken(cacheKey: string) {
     this.tokenCache.delete(cacheKey)
+  }
+
+  isConnectivityError(error: unknown): boolean {
+    const err = error as AxiosError
+    if (!Axios.isAxiosError(err)) return false
+
+    if (!err.response) return true
+    return (err.response.status ?? 0) >= 500
   }
 }

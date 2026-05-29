@@ -37,8 +37,9 @@ export class AccountsReceivableController {
     @Query('clientId') clientId?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('branchId') branchId?: string,
   ) {
-    return this.svc.findAll(companyId ?? user.companyId, user, status, clientId, from, to)
+    return this.svc.findAll(companyId ?? user.companyId, user, status, clientId, from, to, branchId)
   }
 
   @Post()

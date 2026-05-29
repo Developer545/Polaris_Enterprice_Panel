@@ -499,7 +499,7 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
               render: (r: BranchData) => r.codEstableMH
                 ? <Tag color="blue" style={{ fontFamily: 'monospace', fontSize: 12 }}>{r.codEstableMH}</Tag>
                 : (
-                  <Tooltip title="Sin código — DTE usará 'M001' por defecto. Configura en pestaña Sucursales.">
+                  <Tooltip title="Sin codigo: configure este valor en Sucursales antes de emitir DTE.">
                     <Tag icon={<WarningOutlined />} color="warning" style={{ fontSize: 12 }}>Sin configurar</Tag>
                   </Tooltip>
                 ),
@@ -510,7 +510,7 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
               render: (r: BranchData) => r.codPuntoVentaMH
                 ? <Tag color="blue" style={{ fontFamily: 'monospace', fontSize: 12 }}>{r.codPuntoVentaMH}</Tag>
                 : (
-                  <Tooltip title="Sin código — DTE usará 'P001' por defecto. Configura en pestaña Sucursales.">
+                  <Tooltip title="Sin codigo: configure este valor en Sucursales antes de emitir DTE.">
                     <Tag icon={<WarningOutlined />} color="warning" style={{ fontSize: 12 }}>Sin configurar</Tag>
                   </Tooltip>
                 ),

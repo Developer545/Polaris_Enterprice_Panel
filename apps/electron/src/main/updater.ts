@@ -1,5 +1,5 @@
 import { autoUpdater } from 'electron-updater'
-import { BrowserWindow, dialog, ipcMain } from 'electron'
+import { BrowserWindow, app, ipcMain } from 'electron'
 import log from 'electron-log'
 import { isLocalBundle } from './local-services'
 
@@ -10,18 +10,50 @@ export function setupUpdater(mainWindow: BrowserWindow): void {
 
   autoUpdater.logger = log
   autoUpdater.channel = process.env.POS_DTE_UPDATE_CHANNEL ?? 'latest'
-  autoUpdater.autoDownload = true
-  autoUpdater.autoInstallOnAppQuit = true
+  // Flujo manual: el usuario decide cuándo descargar e instalar.
+  autoUpdater.autoDownload = false
+  autoUpdater.autoInstallOnAppQuit = false
 
-  // Called by web app "Reiniciar ahora" button
+  const send = (channel: string, payload?: unknown) => {
+    if (!mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload)
+  }
+
+  // ── IPC expuesto al renderer ────────────────────────────────────────────────
+  ipcMain.handle('app:get-version', () => app.getVersion())
+
+  ipcMain.handle('app:check-update', async () => {
+    try {
+      const result = await autoUpdater.checkForUpdates()
+      return { ok: true, version: result?.updateInfo?.version ?? null }
+    } catch (err: any) {
+      log.error('check-update error:', err)
+      return { ok: false, error: err?.message ?? String(err) }
+    }
+  })
+
+  ipcMain.handle('app:download-update', async () => {
+    try {
+      await autoUpdater.downloadUpdate()
+      return { ok: true }
+    } catch (err: any) {
+      log.error('download-update error:', err)
+      return { ok: false, error: err?.message ?? String(err) }
+    }
+  })
+
   ipcMain.handle('app:install-update', () => autoUpdater.quitAndInstall())
 
+  // ── Eventos → renderer (UpdateBanner) ─────────────────────────────────────────
   autoUpdater.on('update-available', (info) => {
-    mainWindow.webContents.send('update-available', { version: info.version })
+    send('update-available', { version: info.version })
+  })
+
+  autoUpdater.on('update-not-available', () => {
+    send('update-not-available')
   })
 
   autoUpdater.on('download-progress', (progress) => {
-    mainWindow.webContents.send('update-progress', {
+    send('update-progress', {
       percent: Math.round(progress.percent),
       transferred: progress.transferred,
       total: progress.total,
@@ -29,22 +61,16 @@ export function setupUpdater(mainWindow: BrowserWindow): void {
   })
 
   autoUpdater.on('update-downloaded', (info) => {
-    mainWindow.webContents.send('update-downloaded', { version: info.version })
-    dialog
-      .showMessageBox(mainWindow, {
-        type: 'info',
-        title: 'Actualización lista',
-        message: `Versión ${info.version} descargada. ¿Instalar y reiniciar ahora?`,
-        buttons: ['Instalar ahora', 'Más tarde'],
-        defaultId: 0,
-      })
-      .then(({ response }) => {
-        if (response === 0) autoUpdater.quitAndInstall()
-      })
+    // Sin diálogo forzado: el renderer muestra el botón "Reiniciar para instalar".
+    send('update-downloaded', { version: info.version })
   })
 
-  autoUpdater.on('error', (err) => log.error('Updater error:', err))
+  autoUpdater.on('error', (err) => {
+    log.error('Updater error:', err)
+    send('update-error', { message: err?.message ?? String(err) })
+  })
 
-  // Check on startup (5s delay to not block initial load)
-  setTimeout(() => autoUpdater.checkForUpdatesAndNotify().catch(() => {}), 5000)
+  // Chequeo silencioso al inicio (sin descargar). Si hay versión, el renderer
+  // muestra el botón "Actualizar".
+  setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 5000)
 }

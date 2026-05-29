@@ -3,10 +3,12 @@ import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-clien
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import { Decimal } from '@prisma/client/runtime/library'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
+import { buildBranchWhere, resolveWriteBranchId } from '../../../common/branch-scope.util'
 import { z } from 'zod'
 
 export const CreateAccountPayableSchema = z.object({
   companyId: z.string().cuid(),
+  branchId: z.string().optional().nullable(),
   supplierId: z.string().cuid(),
   purchaseOrderId: z.string().cuid().optional().nullable(),
   description: z.string().min(2),
@@ -39,7 +41,7 @@ export class AccountsPayableService {
     if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
   }
 
-  async findAll(companyId: string, user: JwtAccessPayload, status?: string, supplierId?: string) {
+  async findAll(companyId: string, user: JwtAccessPayload, status?: string, supplierId?: string, branchId?: string) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     this.assertCompanyAccess(user, companyId)
@@ -47,6 +49,7 @@ export class AccountsPayableService {
       where: {
         tenantId,
         companyId,
+        ...buildBranchWhere(user, branchId),
         ...(status ? { status: status as never } : {}),
         ...(supplierId ? { supplierId } : {}),
       },
@@ -63,7 +66,7 @@ export class AccountsPayableService {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     const ap = await db.accountPayable.findFirst({
-      where: { id, tenantId, companyId: user.companyId },
+      where: { id, tenantId, companyId: user.companyId, ...buildBranchWhere(user) },
       include: {
         supplier: true,
         purchaseOrder: { include: { items: true } },
@@ -93,6 +96,7 @@ export class AccountsPayableService {
       data: {
         tenantId,
         companyId: dto.companyId,
+        branchId: resolveWriteBranchId(user, dto.branchId ?? undefined),
         supplierId: dto.supplierId,
         purchaseOrderId: dto.purchaseOrderId ?? null,
         description: dto.description,
@@ -108,7 +112,7 @@ export class AccountsPayableService {
   async update(id: string, dto: UpdateAccountPayableDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const ap = await db.accountPayable.findFirst({ where: { id, tenantId, companyId: user.companyId } })
+    const ap = await db.accountPayable.findFirst({ where: { id, tenantId, companyId: user.companyId, ...buildBranchWhere(user) } })
     if (!ap) throw new NotFoundException('Cuenta por pagar no encontrada')
     if (ap.status === 'PAID') throw new BadRequestException('No se puede modificar una cuenta ya pagada')
     if (dto.supplierId) {
@@ -140,7 +144,7 @@ export class AccountsPayableService {
   async registerPayment(id: string, dto: RegisterPaymentDto, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const ap = await db.accountPayable.findFirst({ where: { id, tenantId, companyId: user.companyId } })
+    const ap = await db.accountPayable.findFirst({ where: { id, tenantId, companyId: user.companyId, ...buildBranchWhere(user) } })
     if (!ap) throw new NotFoundException('Cuenta por pagar no encontrada')
     if (ap.status === 'PAID') throw new BadRequestException('Esta cuenta ya está completamente pagada')
 
@@ -173,6 +177,7 @@ export class AccountsPayableService {
       where: {
         tenantId,
         companyId,
+        ...buildBranchWhere(user),
         status: 'PENDING',
         dueDate: { lt: now },
       },

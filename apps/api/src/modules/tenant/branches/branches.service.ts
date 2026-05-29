@@ -8,6 +8,9 @@ export const CreateBranchSchema = z.object({
   companyId: z.string().cuid(),
   name: z.string().min(2),
   address: z.string().optional(),
+  departamentoCod: z.string().optional().nullable(),
+  municipioCod: z.string().optional().nullable(),
+  distritoCod: z.string().optional().nullable(),
   phone: z.string().optional(),
   codEstableMH: z.string().length(4, 'Código MH debe tener 4 caracteres').optional(),
   codPuntoVentaMH: z.string().length(4, 'Código punto venta debe tener 4 caracteres').optional(),
@@ -40,7 +43,9 @@ export class BranchesService {
     return db.branch.findMany({
       where: { tenantId, companyId: companyId ?? user.companyId },
       select: {
-        id: true, name: true, address: true, phone: true,
+        id: true, name: true, address: true,
+        departamentoCod: true, municipioCod: true, distritoCod: true,
+        phone: true,
         codEstableMH: true, codPuntoVentaMH: true, isActive: true, createdAt: true,
         company: { select: { id: true, name: true } },
         _count: { select: { users: true, cashRegisters: true } },

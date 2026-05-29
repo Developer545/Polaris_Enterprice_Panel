@@ -5,6 +5,8 @@ import {
   Tooltip,
 } from 'antd'
 import UpdateBanner from '@/components/electron/UpdateBanner'
+import WebUpdateWatcher from '@/components/WebUpdateWatcher'
+import ContingencyBanner from '@/components/dte/ContingencyBanner'
 import {
   DashboardOutlined, ShoppingCartOutlined, TeamOutlined, AppstoreOutlined,
   FileTextOutlined, UserOutlined, SettingOutlined, LogoutOutlined,
@@ -24,7 +26,7 @@ const { Text } = Typography
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-type NavItem = { key: string; label: string; icon: React.ReactNode; module?: string }
+type NavItem = { key: string; label: string; icon: React.ReactNode; module?: string; ownerOnly?: boolean }
 type NavGroup = {
   key: string
   label: string
@@ -43,6 +45,7 @@ const NAV_GROUPS: NavGroup[] = [
     color: 'var(--brand-primary)',
     items: [
       { key: '/',                    label: 'Dashboard',           icon: <DashboardOutlined />, module: 'dashboard' },
+      { key: '/panel-central',       label: 'Panel central',       icon: <BankOutlined />, module: 'dashboard', ownerOnly: true },
       { key: '/pos',                 label: 'Caja / POS',          icon: <ShoppingCartOutlined />, module: 'pos' },
       { key: '/sales',               label: 'Ventas',              icon: <FileTextOutlined />, module: 'ventas' },
       { key: '/accounts-receivable', label: 'Cuentas por cobrar',  icon: <AccountBookOutlined />, module: 'cxc' },
@@ -142,10 +145,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const moduleConfigured = !!tenantModules && Object.keys(tenantModules).length > 0
   const moduleEnabled = (moduleId?: string) =>
     !moduleId || !moduleConfigured || tenantModules?.[moduleId] === true
+  const canViewAllBranches = user?.role?.permissions?.['branches.view_all'] === true
   const visibleNavGroups = NAV_GROUPS
     .map(group => ({
       ...group,
-      items: group.items.filter(item => moduleEnabled(item.module)),
+      items: group.items.filter(item =>
+        moduleEnabled(item.module) && (!item.ownerOnly || canViewAllBranches)
+      ),
     }))
     .filter(group => group.items.length > 0)
 
@@ -183,6 +189,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <Layout style={{ minHeight: '100vh', background: 'transparent', paddingTop: tbOffset }}>
       <UpdateBanner />
+      <WebUpdateWatcher />
+      <ContingencyBanner />
       {/* Sidebar */}
       <Sider
         collapsed={collapsed}

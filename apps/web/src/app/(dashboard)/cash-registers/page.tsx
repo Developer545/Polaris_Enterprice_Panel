@@ -89,7 +89,7 @@ export default function CashRegistersPage() {
     [activeSummary],
   )
   const totalTransf = useMemo(
-    () => sumByFormaPago(activeSummary?.paymentsByMethod, ['04', '05']),
+    () => sumByFormaPago(activeSummary?.paymentsByMethod, ['05', '14']),
     [activeSummary],
   )
   const montoEsperado = useMemo(
@@ -407,7 +407,7 @@ export default function CashRegistersPage() {
                 </Col>
                 <Col xs={8}>
                   <Statistic title={<span style={{ fontSize: 11, color: '#888' }}>QR / Dinero elec.</span>}
-                    value={sumByFormaPago(activeSummary?.paymentsByMethod, ['06'])}
+                    value={sumByFormaPago(activeSummary?.paymentsByMethod, ['08', '09', '11', '12'])}
                     prefix="$" precision={2}
                     valueStyle={{ fontSize: 14 }} />
                 </Col>
@@ -576,8 +576,8 @@ export default function CashRegistersPage() {
           const pm   = detailSummary?.paymentsByMethod ?? []
           const efec = Number(detailRecord.totalEfectivo ?? sumByFormaPago(pm, ['01']))
           const tarj = Number(detailRecord.totalTarjeta ?? sumByFormaPago(pm, ['02', '03']))
-          const tran = Number(detailRecord.totalTransferencia ?? sumByFormaPago(pm, ['04', '05']))
-          const qr   = Number(detailRecord.totalQR ?? sumByFormaPago(pm, ['06']))
+          const tran = Number(detailRecord.totalTransferencia ?? sumByFormaPago(pm, ['05', '14']))
+          const qr   = Number(detailRecord.totalQR ?? sumByFormaPago(pm, ['08', '09', '11', '12']))
           const tVentas = Number(detailRecord.totalVentas ?? detailSummary?.totalSales ?? 0)
           const diff = detailRecord.difference != null ? Number(detailRecord.difference) : null
 

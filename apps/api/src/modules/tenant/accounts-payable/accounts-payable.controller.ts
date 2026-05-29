@@ -27,8 +27,9 @@ export class AccountsPayableController {
     @Query('companyId') companyId?: string,
     @Query('status') status?: string,
     @Query('supplierId') supplierId?: string,
+    @Query('branchId') branchId?: string,
   ) {
-    return this.svc.findAll(companyId ?? user.companyId, user, status, supplierId)
+    return this.svc.findAll(companyId ?? user.companyId, user, status, supplierId, branchId)
   }
 
   @Get(':id')

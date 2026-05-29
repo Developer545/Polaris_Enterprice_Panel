@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect, useDeferredValue } from 'react'
 import {
   Row, Col, Input, Button, Table, Select, Typography, Divider, Tag, Card,
@@ -29,18 +29,18 @@ interface CartItem {
 
 const FORMA_PAGO = [
   { value: '01', label: 'Efectivo' },
-  { value: '02', label: 'Tarjeta débito' },
-  { value: '03', label: 'Tarjeta crédito' },
+  { value: '02', label: 'Tarjeta debito' },
+  { value: '03', label: 'Tarjeta credito' },
   { value: '04', label: 'Cheque' },
   { value: '05', label: 'Transferencia bancaria' },
-  { value: '06', label: 'Vales de canje' },
-  { value: '07', label: 'Vale de regalo' },
-  { value: '08', label: 'Crédito' },
-  { value: '09', label: 'Nota de débito' },
-  { value: '10', label: 'Depósito' },
-  { value: '11', label: 'Dinero electrónico' },
+  { value: '08', label: 'Dinero electronico' },
+  { value: '09', label: 'Monedero electronico' },
+  { value: '11', label: 'Bitcoin' },
+  { value: '12', label: 'Otras criptomonedas' },
+  { value: '13', label: 'Cuentas por pagar' },
+  { value: '14', label: 'Giro bancario' },
+  { value: '99', label: 'Otros' },
 ]
-
 const TILE_COLORS = [
   '#f5222d', '#fa541c', '#fa8c16', '#faad14', '#52c41a',
   '#13c2c2', '#1677ff', '#722ed1', '#eb2f96', '#08979c',
@@ -124,7 +124,7 @@ export default function PosPage() {
     }
   }, [tipoDte])
 
-  // Barcode scanner — auto-search and add product to cart
+  // Barcode scanner â€” auto-search and add product to cart
   useBarcodeScanner(async (barcode) => {
     if (!companyId) return
     try {
@@ -137,10 +137,10 @@ export default function PosPage() {
         addToCart(product)
         message.success({ content: `Escaneado: ${product.name}`, duration: 1.5 })
       } else {
-        message.warning({ content: `Código no encontrado: ${barcode}`, duration: 3 })
+        message.warning({ content: `CÃ³digo no encontrado: ${barcode}`, duration: 3 })
       }
     } catch {
-      message.error({ content: 'Error al buscar por código de barras', duration: 3 })
+      message.error({ content: 'Error al buscar por cÃ³digo de barras', duration: 3 })
     }
   }, { enabled: !payModal })
 
@@ -149,16 +149,16 @@ export default function PosPage() {
     if (!isElectron) return
     window.electron!.drawer.onShortcut((result) => {
       if (result.ok) {
-        message.success({ content: 'Cajón abierto (F12)', duration: 2 })
+        message.success({ content: 'CajÃ³n abierto (F12)', duration: 2 })
       } else {
-        message.error({ content: `Error cajón: ${result.error}`, duration: 4 })
+        message.error({ content: `Error cajÃ³n: ${result.error}`, duration: 4 })
       }
     })
     window.electron!.printer.onPrintShortcut((result) => {
       if (result.ok) {
         message.success({ content: 'Ticket reimpreso (F11)', duration: 2 })
       } else {
-        message.error({ content: `Error impresión: ${result.error}`, duration: 4 })
+        message.error({ content: `Error impresiÃ³n: ${result.error}`, duration: 4 })
       }
     })
   }, [])
@@ -174,7 +174,7 @@ export default function PosPage() {
 
       if (isElectron) {
         const paymentLabel = FORMA_PAGO.find(f => f.value === variables.payments?.[0]?.formaPago)?.label ?? 'Efectivo'
-        const saleNumber = response.data?.saleNumber ?? response.data?.id ?? '—'
+        const saleNumber = response.data?.saleNumber ?? response.data?.id ?? 'â€”'
 
         const receiptPayload = {
           businessName: (window as any).user?.company?.name ?? (window as any).user?.tenant?.name ?? 'POS DTE',
@@ -263,7 +263,7 @@ export default function PosPage() {
     if (!cart.length) { message.warning('Agrega productos al carrito'); return }
     if (!openRegister) { message.error('No hay caja abierta en esta sucursal'); return }
     if (tipoDte === '03' && !selectedClient) {
-      message.error('Crédito Fiscal requiere seleccionar un cliente registrado con NIT/NRC'); return
+      message.error('CrÃ©dito Fiscal requiere seleccionar un cliente registrado con NIT/NRC'); return
     }
     payForm.setFieldsValue({ payments: [{ formaPago: '01', amount: totalPagar.toFixed(2) }] })
     setRecibidoEfectivo(0)
@@ -349,7 +349,7 @@ export default function PosPage() {
     },
   ]
 
-  // ── Client panel ──────────────────────────────────────────────────────────────
+  // â”€â”€ Client panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const modeOptions = [
     { label: <span style={{ fontSize: 12 }}><IdcardOutlined style={{ marginRight: 4 }} />CF</span>, value: 'cf', disabled: tipoDte === '03' },
     { label: <span style={{ fontSize: 12 }}><UserAddOutlined style={{ marginRight: 4 }} />Nuevo</span>, value: 'nuevo' },
@@ -363,7 +363,7 @@ export default function PosPage() {
           <Avatar style={{ background: '#8c8c8c', flexShrink: 0 }} size={32} icon={<UserOutlined />} />
           <div>
             <div style={{ fontWeight: 600, fontSize: 12 }}>Consumidor Final</div>
-            <div style={{ fontSize: 11, color: '#999' }}>Sin cliente específico</div>
+            <div style={{ fontSize: 11, color: '#999' }}>Sin cliente especÃ­fico</div>
           </div>
           <Tag color="default" style={{ marginLeft: 'auto', fontSize: 10 }}>CF</Tag>
         </div>
@@ -414,7 +414,7 @@ export default function PosPage() {
               {selectedClient.name}
             </div>
             <div style={{ fontSize: 11, color: '#999' }}>
-              {selectedClient.numDocumento ?? selectedClient.email ?? '—'}
+              {selectedClient.numDocumento ?? selectedClient.email ?? 'â€”'}
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end', flexShrink: 0 }}>
@@ -473,7 +473,7 @@ export default function PosPage() {
   return (
     <div style={{ height: 'calc(100vh - 112px)', display: 'flex', gap: 16 }}>
 
-      {/* ── Left: product browser ── */}
+      {/* â”€â”€ Left: product browser â”€â”€ */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, gap: 8 }}>
 
         {/* Top bar */}
@@ -484,11 +484,11 @@ export default function PosPage() {
             style={{ width: 168 }}
             options={[
               { value: '01', label: <><Tag color="default" style={{ fontSize: 11 }}>01</Tag> Consumidor Final</> },
-              { value: '03', label: <><Tag color="blue" style={{ fontSize: 11 }}>03</Tag> Crédito Fiscal</> },
+              { value: '03', label: <><Tag color="blue" style={{ fontSize: 11 }}>03</Tag> CrÃ©dito Fiscal</> },
             ]}
           />
           <Input
-            placeholder="Buscar producto por nombre, SKU o código de barras..."
+            placeholder="Buscar producto por nombre, SKU o cÃ³digo de barras..."
             prefix={<SearchOutlined />}
             value={productSearch}
             onChange={e => setProductSearch(e.target.value)}
@@ -529,7 +529,7 @@ export default function PosPage() {
             </div>
           ) : (products as any[]).length === 0 ? (
             <Empty
-              description={<span style={{ color: '#ccc' }}>Sin productos. Busca o filtra por categoría.</span>}
+              description={<span style={{ color: '#ccc' }}>Sin productos. Busca o filtra por categorÃ­a.</span>}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               style={{ padding: 48 }}
             />
@@ -583,7 +583,7 @@ export default function PosPage() {
                         padding: '1px 7px', lineHeight: '16px',
                         pointerEvents: 'none',
                       }}>
-                        ×{inCart.quantity}
+                        Ã—{inCart.quantity}
                       </div>
                     )}
 
@@ -640,7 +640,7 @@ export default function PosPage() {
         </div>
       </div>
 
-      {/* ── Right: cart + client + totals ── */}
+      {/* â”€â”€ Right: cart + client + totals â”€â”€ */}
       <div style={{ width: 340, display: 'flex', flexDirection: 'column', gap: 10 }}>
 
         {/* Cart */}
@@ -652,7 +652,7 @@ export default function PosPage() {
               Carrito
               {cart.length > 0 && (
                 <Tag color="orange" style={{ marginLeft: 8, fontSize: 11 }}>
-                  {cart.length} ítem{cart.length !== 1 ? 's' : ''}
+                  {cart.length} Ã­tem{cart.length !== 1 ? 's' : ''}
                 </Tag>
               )}
             </span>
@@ -712,7 +712,7 @@ export default function PosPage() {
         {/* Register status */}
         <Card size="small" style={{ borderRadius: 10 }} styles={{ body: { padding: '8px 12px' } }}>
           {openRegister
-            ? <Badge status="success" text={<span style={{ fontSize: 12 }}>Caja abierta — {openRegister.openedBy?.name ?? '—'}</span>} />
+            ? <Badge status="success" text={<span style={{ fontSize: 12 }}>Caja abierta â€” {openRegister.openedBy?.name ?? 'â€”'}</span>} />
             : <Badge status="error" text={<span style={{ fontSize: 12 }}>Sin caja abierta en esta sucursal</span>} />
           }
         </Card>
@@ -763,12 +763,12 @@ export default function PosPage() {
         )}
       </div>
 
-      {/* ── Payment modal ── */}
+      {/* â”€â”€ Payment modal â”€â”€ */}
       <Modal destroyOnClose
         open={payModal}
         title={
           <span>
-            Registrar pago —{' '}
+            Registrar pago â€”{' '}
             {clientMode === 'cf' && 'Consumidor Final'}
             {clientMode === 'nuevo' && newClientName}
             {clientMode === 'registrado' && selectedClient?.name}
@@ -794,7 +794,7 @@ export default function PosPage() {
               <div style={{ fontSize: 24, fontWeight: 700, color: token.colorPrimary }}>${totalPagar.toFixed(2)}</div>
             </div>
             <Tag color={tipoDte === '03' ? 'blue' : 'default'} style={{ fontSize: 13 }}>
-              {tipoDte === '03' ? 'Crédito Fiscal' : 'Consumidor Final'}
+              {tipoDte === '03' ? 'CrÃ©dito Fiscal' : 'Consumidor Final'}
             </Tag>
           </div>
 

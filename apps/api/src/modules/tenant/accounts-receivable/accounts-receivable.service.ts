@@ -3,10 +3,12 @@ import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-clien
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import { Decimal } from '@prisma/client/runtime/library'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
+import { buildBranchWhere, assertBranchAccess, resolveWriteBranchId } from '../../../common/branch-scope.util'
 import { z } from 'zod'
 
 export const CreateArSchema = z.object({
   companyId:   z.string().cuid(),
+  branchId:    z.string().optional().nullable(),
   clientId:    z.string().cuid(),
   saleId:      z.string().cuid().optional(),
   description: z.string().min(2),
@@ -40,7 +42,7 @@ export class AccountsReceivableService {
   }
 
   private assertBranchAccess(user: JwtAccessPayload, branchId?: string | null) {
-    if (branchId && !user.branchIds.includes(branchId)) throw new ForbiddenException('Sucursal no autorizada')
+    if (branchId) assertBranchAccess(user, branchId)
   }
 
   private async assertClientAccess(
@@ -66,10 +68,17 @@ export class AccountsReceivableService {
 
     const now = new Date()
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const branchPlaceholders = user.branchIds.map((_, index) => `$${index + 3}`).join(', ')
-    const branchFilter = user.branchIds.length > 0
-      ? `(ar."saleId" IS NULL OR s."branchId" IN (${branchPlaceholders}))`
-      : 'ar."saleId" IS NULL'
+
+    // Owner sees every branch; branch users are confined to their branchIds.
+    let branchFilter: string
+    if (user.canViewAllBranches) {
+      branchFilter = 'TRUE'
+    } else if (user.branchIds.length > 0) {
+      const placeholders = user.branchIds.map((_, index) => `$${index + 3}`).join(', ')
+      branchFilter = `ar."branchId" IN (${placeholders})`
+    } else {
+      branchFilter = 'FALSE'
+    }
     const nowParam = user.branchIds.length + 3
 
     const [stats, cobradoMes] = await Promise.all([
@@ -87,7 +96,6 @@ export class AccountsReceivableService {
           COUNT(*) FILTER (WHERE ar."status" = 'PENDING')::int AS "countPendiente",
           COUNT(*) FILTER (WHERE ar."status" = 'OVERDUE')::int AS "countVencido"
         FROM "AccountReceivable" ar
-        LEFT JOIN "Sale" s ON s."id" = ar."saleId"
         WHERE ar."tenantId" = $1
           AND ar."companyId" = $2
           AND ar."status" IN ('PENDING', 'PARTIAL', 'OVERDUE')
@@ -99,7 +107,7 @@ export class AccountsReceivableService {
           accountReceivable: {
             companyId,
             tenantId,
-            OR: [{ saleId: null }, { sale: { branchId: { in: user.branchIds } } }],
+            ...buildBranchWhere(user),
           },
           createdAt: { gte: firstOfMonth },
         },
@@ -126,6 +134,7 @@ export class AccountsReceivableService {
     clientId?: string,
     from?: string,
     to?: string,
+    branchId?: string,
   ) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
@@ -137,7 +146,7 @@ export class AccountsReceivableService {
       where: {
         tenantId,
         companyId,
-        OR: [{ saleId: null }, { sale: { branchId: { in: user.branchIds } } }],
+        ...buildBranchWhere(user, branchId),
         status: { in: ['PENDING', 'PARTIAL'] },
         dueDate: { lt: new Date() },
       },
@@ -148,7 +157,7 @@ export class AccountsReceivableService {
       where: {
         tenantId,
         companyId,
-        OR: [{ saleId: null }, { sale: { branchId: { in: user.branchIds } } }],
+        ...buildBranchWhere(user, branchId),
         ...(status   ? { status: status as any } : {}),
         ...(clientId ? { clientId }              : {}),
         ...(from || to ? {
@@ -180,6 +189,7 @@ export class AccountsReceivableService {
     })
     if (!client) throw new NotFoundException('Cliente no encontrado')
 
+    let branchId: string
     if (dto.saleId) {
       const sale = await db.sale.findFirst({
         where: { id: dto.saleId, tenantId, companyId: dto.companyId, clientId: dto.clientId },
@@ -187,17 +197,21 @@ export class AccountsReceivableService {
       })
       if (!sale) throw new BadRequestException('Venta no pertenece al cliente o empresa indicada')
       this.assertBranchAccess(user, sale.branchId)
+      branchId = sale.branchId
 
       const existing = await db.accountReceivable.findFirst({
         where: { saleId: dto.saleId, tenantId, companyId: dto.companyId },
       })
       if (existing) throw new ConflictException('Ya existe una CxC para esta venta')
+    } else {
+      branchId = resolveWriteBranchId(user, dto.branchId ?? undefined)
     }
 
     return db.accountReceivable.create({
       data: {
         tenantId,
         companyId:   dto.companyId,
+        branchId,
         clientId:    dto.clientId,
         saleId:      dto.saleId ?? null,
         description: dto.description,
@@ -219,11 +233,9 @@ export class AccountsReceivableService {
     const db = this.getDb()
 
     const ar = await db.accountReceivable.findFirst({
-      where: { id, tenantId, companyId: user.companyId },
-      include: { sale: { select: { branchId: true } } },
+      where: { id, tenantId, companyId: user.companyId, ...buildBranchWhere(user) },
     })
     if (!ar) throw new NotFoundException('CxC no encontrada')
-    this.assertBranchAccess(user, ar.sale?.branchId)
     if (ar.status === 'PAID') throw new BadRequestException('CxC ya está pagada')
     if (ar.status === 'CANCELLED') throw new BadRequestException('CxC está cancelada')
 
@@ -267,11 +279,9 @@ export class AccountsReceivableService {
     const db = this.getDb()
 
     const ar = await db.accountReceivable.findFirst({
-      where: { id, tenantId, companyId: user.companyId },
-      include: { sale: { select: { branchId: true } } },
+      where: { id, tenantId, companyId: user.companyId, ...buildBranchWhere(user) },
     })
     if (!ar) throw new NotFoundException('CxC no encontrada')
-    this.assertBranchAccess(user, ar.sale?.branchId)
     if (ar.status === 'PAID') throw new BadRequestException('No se puede cancelar una CxC ya pagada')
 
     return db.accountReceivable.update({

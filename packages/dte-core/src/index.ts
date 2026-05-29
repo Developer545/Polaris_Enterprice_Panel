@@ -1,4 +1,5 @@
 export * from './catalogs'
 export * from './number-control'
+export * from './regulatory'
 export * from './totals'
 export * from './validation'

@@ -64,8 +64,9 @@ export class ExpensesController {
     @Query('categoryId') categoryId?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('branchId') branchId?: string,
   ) {
-    return this.svc.findAll(companyId ?? user.companyId, user, categoryId, from, to)
+    return this.svc.findAll(companyId ?? user.companyId, user, categoryId, from, to, branchId)
   }
 
   @Get(':id')

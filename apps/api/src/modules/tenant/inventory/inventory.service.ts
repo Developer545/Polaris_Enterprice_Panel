@@ -3,6 +3,7 @@ import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-clien
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import { Decimal } from '@prisma/client/runtime/library'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
+import { buildBranchWhere, assertBranchAccess } from '../../../common/branch-scope.util'
 import { z } from 'zod'
 
 export const AdjustStockSchema = z.object({
@@ -32,7 +33,7 @@ export class InventoryService {
   }
 
   private assertBranchAccess(user: JwtAccessPayload, branchId?: string | null) {
-    if (branchId && !user.branchIds.includes(branchId)) throw new ForbiddenException('Sucursal no autorizada')
+    if (branchId) assertBranchAccess(user, branchId)
   }
 
   // ─── Movimientos / Kardex ──────────────────────────────────────────────────
@@ -80,7 +81,7 @@ export class InventoryService {
       companyId,
       ...(productId ? { productId } : {}),
       ...(type ? { type: type as any } : {}),
-      ...(branchId ? { branchId } : { OR: [{ branchId: null }, { branchId: { in: user.branchIds } }] }),
+      ...buildBranchWhere(user, branchId),
       ...(from || to ? {
         createdAt: {
           ...(from ? { gte: new Date(from) } : {}),
@@ -115,12 +116,15 @@ export class InventoryService {
     this.assertCompanyAccess(user, companyId)
     this.assertBranchAccess(user, branchId)
 
-    if (branchId) {
+    const branchScope = buildBranchWhere(user, branchId)
+    const consolidated = user.canViewAllBranches && !branchId
+
+    if (!consolidated) {
       const rows = await db.branchInventory.findMany({
         where: {
           tenantId,
           companyId,
-          branchId,
+          ...branchScope,
           product: { trackStock: true, isActive: true },
         },
         include: {
@@ -174,13 +178,19 @@ export class InventoryService {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    if (branchId) {
+    // Owner with no branchId selected → company-wide consolidated view (Service.stock).
+    // Otherwise (a branch user, or an owner drilling into one branch) → per-branch
+    // aggregation over BranchInventory scoped to the branches the user may see.
+    const branchScope = buildBranchWhere(user, branchId)
+    const consolidated = user.canViewAllBranches && !branchId
+
+    if (!consolidated) {
       const [inventories, movementsToday] = await Promise.all([
         db.branchInventory.findMany({
           where: {
             tenantId,
             companyId,
-            branchId,
+            ...branchScope,
             product: { trackStock: true, isActive: true },
           },
           select: {
@@ -190,7 +200,7 @@ export class InventoryService {
           },
         }),
         db.inventoryMovement.count({
-          where: { tenantId, companyId, branchId, createdAt: { gte: today } },
+          where: { tenantId, companyId, ...branchScope, createdAt: { gte: today } },
         }),
       ])
 
@@ -236,6 +246,65 @@ export class InventoryService {
       movementsToday,
       totalConStock: stats?.totalProductos ?? 0,
     }
+  }
+
+  // ─── Búsqueda cruzada de stock (excepción) ─────────────────────────────────
+
+  async stockSearch(companyId: string, user: JwtAccessPayload, productId?: string, q?: string) {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
+
+    const search = q?.trim()
+    if (!productId && !search) {
+      throw new BadRequestException('Indique un producto o un término de búsqueda')
+    }
+
+    const products = await db.service.findMany({
+      where: {
+        tenantId,
+        companyId,
+        trackStock: true,
+        isActive: true,
+        ...(productId ? { id: productId } : {}),
+        ...(search
+          ? {
+              OR: [
+                { name: { contains: search, mode: 'insensitive' } },
+                { sku: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      select: { id: true, name: true, sku: true },
+      orderBy: { name: 'asc' },
+      take: 20,
+    })
+    if (products.length === 0) return []
+
+    const productIds = products.map((p) => p.id)
+    const inventories = await db.branchInventory.findMany({
+      where: { tenantId, companyId, productId: { in: productIds } },
+      select: {
+        productId: true,
+        stock: true,
+        branch: { select: { id: true, name: true } },
+      },
+    })
+
+    return products.map((p) => ({
+      productId: p.id,
+      productName: p.name,
+      sku: p.sku,
+      branches: inventories
+        .filter((inv) => inv.productId === p.id)
+        .map((inv) => ({
+          branchId: inv.branch.id,
+          branchName: inv.branch.name,
+          stock: inv.stock,
+        }))
+        .sort((a, b) => b.stock - a.stock),
+    }))
   }
 
   // ─── Ajuste manual ────────────────────────────────────────────────────────

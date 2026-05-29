@@ -96,6 +96,17 @@ const electronAPI = {
     onUpdateDownloaded: (cb: (info: { version: string }) => void) => {
       ipcRenderer.on('update-downloaded', (_e, info) => cb(info))
     },
+    onUpdateNotAvailable: (cb: () => void) => {
+      ipcRenderer.on('update-not-available', () => cb())
+    },
+    onUpdateError: (cb: (info: { message: string }) => void) => {
+      ipcRenderer.on('update-error', (_e, info) => cb(info))
+    },
+    getVersion: (): Promise<string> => ipcRenderer.invoke('app:get-version'),
+    checkUpdate: (): Promise<{ ok: boolean; version?: string | null; error?: string }> =>
+      ipcRenderer.invoke('app:check-update'),
+    downloadUpdate: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('app:download-update'),
     installUpdate: () => ipcRenderer.invoke('app:install-update'),
     removeAllListeners: (channel: string) => {
       ipcRenderer.removeAllListeners(channel)

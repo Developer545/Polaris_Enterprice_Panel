@@ -16,8 +16,13 @@ export class ClientsController {
 
   @Get()
   @RequirePermissions(PERMISSIONS.CLIENTS_VIEW)
-  findAll(@CurrentUser() user: JwtAccessPayload, @Query('companyId') companyId: string, @Query('search') search?: string) {
-    return this.svc.findAll(companyId, user, search)
+  findAll(
+    @CurrentUser() user: JwtAccessPayload,
+    @Query('companyId') companyId: string,
+    @Query('search') search?: string,
+    @Query('branchId') branchId?: string,
+  ) {
+    return this.svc.findAll(companyId, user, search, branchId)
   }
 
   @Get('consumidor-final')

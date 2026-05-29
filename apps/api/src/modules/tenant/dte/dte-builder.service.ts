@@ -1,19 +1,26 @@
-/**
- * Builds the DTE JSON structure (identificacion, emisor, receptor, cuerpoDocumento, resumen)
- * from a Sale + Company + Branch data, ready for signing.
- */
 import { Injectable } from '@nestjs/common'
 import { randomUUID } from 'crypto'
-import { Decimal } from '@prisma/client/runtime/library'
-import { CATALOGO_FORMA_PAGO, CATALOGO_CONDICION_OPERACION } from '@pos-dte/shared-types'
+import {
+  assertContingencyBatchSize,
+  CONTINGENCY_EVENT_VERSION,
+  getDteVersion,
+} from '@pos-dte/dte-core'
+
+type GeoAddress = {
+  departamento: string
+  municipio: string
+  distrito: string
+  complemento: string
+}
 
 @Injectable()
 export class DteBuilderService {
   buildCF(sale: any, company: any, branch: any, client: any, numeroControl: string, codigoGeneracion: string): object {
-    const now = new Date()
+    const now = this.svDateTime()
+
     return {
       identificacion: {
-        version: 1,
+        version: getDteVersion('01'),
         ambiente: company.dteAmbiente === 'PROD' ? '01' : '00',
         tipoDte: '01',
         numeroControl,
@@ -22,8 +29,8 @@ export class DteBuilderService {
         tipoOperacion: 1,
         tipoContingencia: null,
         motivoContin: null,
-        fecEmi: now.toISOString().split('T')[0],
-        horEmi: now.toISOString().split('T')[1].substring(0, 8),
+        fecEmi: now.date,
+        horEmi: now.time,
         tipoMoneda: 'USD',
       },
       documentoRelacionado: null,
@@ -33,12 +40,12 @@ export class DteBuilderService {
       ventaTercero: null,
       cuerpoDocumento: sale.items.map((item: any, i: number) => ({
         numItem: i + 1,
-        tipoItem: parseInt(item.tipoItem),
+        tipoItem: Number.parseInt(item.tipoItem, 10),
         numeroDocumento: null,
         cantidad: Number(item.quantity),
         codigo: item.product?.sku ?? null,
         codTributo: null,
-        uniMedida: item.uniMedida,
+        uniMedida: Number(item.uniMedida),
         descripcion: item.productName,
         precioUni: Number(item.unitPrice),
         montoDescu: Number(item.discount),
@@ -51,16 +58,16 @@ export class DteBuilderService {
         ivaItem: Number(item.ivaItem),
       })),
       resumen: this.buildResumenCF(sale),
-      extension: null,
       apendice: null,
     }
   }
 
   buildCCF(sale: any, company: any, branch: any, client: any, numeroControl: string, codigoGeneracion: string): object {
-    const now = new Date()
+    const now = this.svDateTime()
+
     return {
       identificacion: {
-        version: 3,
+        version: getDteVersion('03'),
         ambiente: company.dteAmbiente === 'PROD' ? '01' : '00',
         tipoDte: '03',
         numeroControl,
@@ -69,8 +76,8 @@ export class DteBuilderService {
         tipoOperacion: 1,
         tipoContingencia: null,
         motivoContin: null,
-        fecEmi: now.toISOString().split('T')[0],
-        horEmi: now.toISOString().split('T')[1].substring(0, 8),
+        fecEmi: now.date,
+        horEmi: now.time,
         tipoMoneda: 'USD',
       },
       documentoRelacionado: null,
@@ -80,155 +87,140 @@ export class DteBuilderService {
       ventaTercero: null,
       cuerpoDocumento: sale.items.map((item: any, i: number) => ({
         numItem: i + 1,
-        tipoItem: parseInt(item.tipoItem),
+        tipoItem: Number.parseInt(item.tipoItem, 10),
         numeroDocumento: null,
         cantidad: Number(item.quantity),
         codigo: item.product?.sku ?? null,
         codTributo: null,
-        uniMedida: item.uniMedida,
+        uniMedida: Number(item.uniMedida),
         descripcion: item.productName,
         precioUni: Number(item.unitPrice),
         montoDescu: Number(item.discount),
         ventaNoSuj: Number(item.ventaNoSuj),
         ventaExenta: Number(item.ventaExenta),
         ventaGravada: Number(item.ventaGravada),
-        tributos: [{ codigo: '20', descripcion: 'IVA 13%', valor: Number(item.ivaItem) }],
+        tributos: Number(item.ventaGravada) > 0 ? ['20'] : null,
         psv: 0,
         noGravado: 0,
       })),
       resumen: this.buildResumenCCF(sale),
-      extension: null,
       apendice: null,
     }
   }
 
-  buildNC(
-    sale: any,
-    company: any,
-    branch: any,
-    client: any,
-    originalDte: any,
-    numeroControl: string,
-    codigoGeneracion: string,
-  ): object {
-    const now = new Date()
-    const tipoDteOriginal = originalDte.tipoDte
+  buildContingenciaEvent(params: {
+    company: any
+    branch: any
+    codigoGeneracion: string
+    startedAt: Date
+    endedAt: Date
+    tipoContingencia: number
+    motivoContingencia: string | null
+    nombreResponsable: string
+    tipoDocResponsable: string
+    numeroDocResponsable: string
+    documentos: Array<{ tipoDoc: string; codigoGeneracion: string }>
+  }): object {
+    assertContingencyBatchSize(params.documentos.length)
+    const now = this.svDateTime()
+    const start = this.svDateTime(params.startedAt)
+    const end = this.svDateTime(params.endedAt)
+
     return {
       identificacion: {
-        version: 1,
-        ambiente: company.dteAmbiente === 'PROD' ? '01' : '00',
-        tipoDte: '05',
-        numeroControl,
-        codigoGeneracion,
-        tipoModelo: 1,
-        tipoOperacion: 1,
-        tipoContingencia: null,
-        motivoContin: null,
-        fecEmi: now.toISOString().split('T')[0],
-        horEmi: now.toISOString().split('T')[1].substring(0, 8),
-        tipoMoneda: 'USD',
+        version: CONTINGENCY_EVENT_VERSION,
+        ambiente: params.company.dteAmbiente === 'PROD' ? '01' : '00',
+        codigoGeneracion: params.codigoGeneracion,
+        fTransmision: now.date,
+        hTransmision: now.time,
       },
-      documentoRelacionado: [{
-        tipoDocumento: tipoDteOriginal,
-        tipoGeneracion: 1,
-        numeroDocumento: originalDte.codigoGeneracion,
-        fechaEmision: originalDte.createdAt?.toISOString().split('T')[0],
-      }],
-      emisor: this.buildEmisor(company, branch),
-      receptor: tipoDteOriginal === '03' ? this.buildReceptorCCF(client) : this.buildReceptorCF(client),
-      cuerpoDocumento: sale.items.map((item: any, i: number) => ({
-        numItem: i + 1,
-        tipoItem: parseInt(item.tipoItem),
-        numeroDocumento: null,
-        cantidad: Number(item.quantity),
-        codigo: item.product?.sku ?? null,
-        uniMedida: item.uniMedida,
-        descripcion: item.productName,
-        precioUni: Number(item.unitPrice),
-        montoDescu: Number(item.discount),
-        ventaNoSuj: Number(item.ventaNoSuj),
-        ventaExenta: Number(item.ventaExenta),
-        ventaGravada: Number(item.ventaGravada),
-        ivaItem: Number(item.ivaItem),
+      emisor: {
+        nit: this.required(params.company.nit, 'NIT del emisor'),
+        nombre: this.required(params.company.name, 'nombre del emisor'),
+        nombreResponsable: params.nombreResponsable,
+        tipoDocResponsable: params.tipoDocResponsable,
+        numeroDocResponsable: params.numeroDocResponsable,
+        tipoEstablecimiento: params.branch.tipoEstablecimiento ?? '02',
+        codEstableMH: this.required(params.branch.codEstableMH, 'codigo de establecimiento MH'),
+        codPuntoVentaMH: this.required(params.branch.codPuntoVentaMH, 'codigo de punto de venta MH'),
+        telefono: params.company.phone ?? '',
+        correo: this.required(params.company.email, 'correo del emisor'),
+      },
+      detalleDTE: params.documentos.map((doc, index) => ({
+        noItem: index + 1,
+        tipoDoc: doc.tipoDoc,
+        codigoGeneracion: doc.codigoGeneracion,
       })),
-      resumen: this.buildResumenCF(sale), // NC uses same structure as CF
-      extension: null,
-      apendice: null,
+      motivo: {
+        fInicio: start.date,
+        fFin: end.date,
+        hInicio: start.time,
+        hFin: end.time,
+        tipoContingencia: params.tipoContingencia,
+        motivoContingencia: params.motivoContingencia,
+      },
     }
+  }
+
+  generateCodigoGeneracion(): string {
+    return randomUUID().toUpperCase()
   }
 
   private buildEmisor(company: any, branch: any) {
     return {
-      nit: company.nit,
-      nrc: company.nrc,
-      nombre: company.name,
-      codActividad: company.actividadEconomicaCodigo,
-      descActividad: company.actividadEconomica,
+      nit: this.required(company.nit, 'NIT del emisor'),
+      nrc: this.required(company.nrc, 'NRC del emisor'),
+      nombre: this.required(company.name, 'nombre del emisor'),
+      codActividad: this.required(company.actividadEconomicaCodigo, 'actividad economica del emisor'),
+      descActividad: this.required(company.actividadEconomica, 'descripcion de actividad economica del emisor'),
       nombreComercial: company.comercialName ?? null,
-      tipoEstablecimiento: '02',
-      direccion: {
-        departamento: '06',
-        municipio: '14',
-        complemento: company.address ?? '',
-      },
+      direccion: this.buildEmisorAddress(company, branch),
       telefono: company.phone ?? '',
-      correo: company.email ?? '',
-      codEstableMH: branch.codEstableMH,
-      codEstable: branch.codEstableMH,
-      codPuntoVentaMH: branch.codPuntoVentaMH,
-      codPuntoVenta: branch.codPuntoVentaMH,
+      correo: this.required(company.email, 'correo del emisor'),
+      codEstable: this.required(branch.codEstableMH, 'codigo de establecimiento'),
+      codPuntoVenta: this.required(branch.codPuntoVentaMH, 'codigo de punto de venta'),
     }
   }
 
   private buildReceptorCF(client: any) {
-    // Consumidor final anónimo: receptor null (fe-fc-v1.json lo permite)
     if (!client) return null
+
     return {
-      tipoDocumento: client.tipoDocumento ?? '13',
+      tipoDocumento: client.tipoDocumento ?? null,
       numDocumento: client.numDocumento ?? null,
       nrc: client.nrc ?? null,
       nombre: client.name ?? null,
       codActividad: client.actividadEconomicaCodigo ?? null,
       descActividad: client.actividadEconomica ?? null,
-      direccion: client.address
-        ? { departamento: client.departamento ?? null, municipio: client.municipio ?? null, complemento: client.address }
-        : null,
+      direccion: this.tryBuildAddress(client),
       telefono: client.phone ?? null,
       correo: client.email ?? null,
     }
   }
 
   private buildReceptorCCF(client: any) {
+    if (!client) throw new Error('El CCF requiere un receptor contribuyente')
+
     return {
-      nit: client.tipoDocumento === '36' ? client.numDocumento : null,
-      nrc: client.nrc ?? null,
-      nombre: client.name,
-      codActividad: client.actividadEconomicaCodigo ?? null,
-      descActividad: client.actividadEconomica ?? null,
-      direccion: {
-        departamento: '06',
-        municipio: '14',
-        complemento: client.address ?? '',
-      },
+      nit: this.required(client.numDocumento, 'NIT del receptor'),
+      nrc: this.required(client.nrc, 'NRC del receptor'),
+      nombre: this.required(client.name, 'nombre del receptor'),
+      codActividad: this.required(client.actividadEconomicaCodigo, 'actividad economica del receptor'),
+      descActividad: this.required(client.actividadEconomica, 'descripcion de actividad economica del receptor'),
+      nombreComercial: client.comercialName ?? client.name,
+      direccion: this.requiredAddress(client, 'direccion del receptor'),
       telefono: client.phone ?? '',
       correo: client.email ?? '',
     }
   }
 
   private buildResumenCF(sale: any) {
-    const payments = (sale.payments ?? []).map((p: any) => ({
-      codigo: p.formaPago,
-      montoPago: Number(p.amount),
-      referencia: p.reference ?? null,
-      plazo: null,
-      periodo: null,
-    }))
     const totalNoSuj = Number(sale.totalNoSuj)
     const totalExenta = Number(sale.totalExenta)
     const totalGravada = Number(sale.totalGravada)
     const totalIva = Number(sale.totalIva)
     const totalDescuento = Number(sale.totalDescuento)
-    const ivaRete1 = Number(sale.ivaRete1 ?? 0)
+    const ivaRete = Number(sale.ivaRete1 ?? 0)
     const subTotalVentas = totalGravada + totalExenta + totalNoSuj
 
     return {
@@ -241,44 +233,128 @@ export class DteBuilderService {
       descuGravada: totalDescuento,
       porcentajeDescuento: 0,
       totalDescu: totalDescuento,
-      // Factura CF: IVA va en totalIva, no en tributos (fe-fc-v1.json)
       tributos: null,
       subTotal: subTotalVentas,
-      ivaRete1,
-      reteRenta: 0,
-      montoTotalOperacion: Number(sale.totalPagar) + ivaRete1,
+      ivaRete,
+      montoTotalOperacion: Number(sale.totalPagar) + ivaRete,
       totalNoGravado: 0,
       totalPagar: Number(sale.totalPagar),
       totalLetras: this.numberToWords(Number(sale.totalPagar)),
       totalIva,
       saldoFavor: 0,
-      condicionOperacion: parseInt(sale.condicionOperacion),
-      pagos: payments,
+      condicionOperacion: Number.parseInt(sale.condicionOperacion, 10),
+      pagos: this.buildPayments(sale),
       numPagoElectronico: null,
+      observaciones: sale.notes ?? null,
     }
   }
 
   private buildResumenCCF(sale: any) {
-    const base = this.buildResumenCF(sale)
+    const totalNoSuj = Number(sale.totalNoSuj)
+    const totalExenta = Number(sale.totalExenta)
+    const totalGravada = Number(sale.totalGravada)
+    const totalIva = Number(sale.totalIva)
+    const totalDescuento = Number(sale.totalDescuento)
+    const ivaRete = Number(sale.ivaRete1 ?? 0)
+    const subTotalVentas = totalGravada + totalExenta + totalNoSuj
+
     return {
-      ...base,
-      subTotal: Number(sale.totalGravada) + Number(sale.totalExenta) + Number(sale.totalNoSuj),
-      montoTotalOperacion:
-        Number(sale.totalGravada) +
-        Number(sale.totalExenta) +
-        Number(sale.totalNoSuj) +
-        Number(sale.totalIva),
-      ivaPerci1: 0,
-      ivaRete1: Number(sale.ivaRete1 ?? 0),
+      totalNoSuj,
+      totalExenta,
+      totalGravada,
+      subTotalVentas,
+      descuNoSuj: 0,
+      descuExenta: 0,
+      descuGravada: totalDescuento,
+      porcentajeDescuento: 0,
+      totalDescu: totalDescuento,
+      tributos: totalGravada > 0 ? [{ codigo: '20', descripcion: 'Impuesto al Valor Agregado 13%', valor: totalIva }] : null,
+      subTotal: subTotalVentas,
+      ivaPerci: 0,
+      ivaRete,
+      montoTotalOperacion: subTotalVentas + totalIva,
+      totalNoGravado: 0,
+      totalPagar: Number(sale.totalPagar),
+      totalLetras: this.numberToWords(Number(sale.totalPagar)),
+      saldoFavor: 0,
+      condicionOperacion: Number.parseInt(sale.condicionOperacion, 10),
+      pagos: this.buildPayments(sale),
+      numPagoElectronico: null,
+      observaciones: sale.notes ?? null,
     }
   }
 
-  generateCodigoGeneracion(): string {
-    return randomUUID().toUpperCase()
+  private buildPayments(sale: any) {
+    const payments = sale.payments ?? []
+    if (payments.length === 0) {
+      return [{
+        codigo: '01',
+        montoPago: Number(sale.totalPagar),
+        referencia: null,
+        plazo: null,
+        periodo: null,
+      }]
+    }
+
+    return payments.map((p: any) => ({
+      codigo: p.formaPago,
+      montoPago: Number(p.amount),
+      referencia: p.reference ?? null,
+      plazo: null,
+      periodo: null,
+    }))
+  }
+
+  private buildEmisorAddress(company: any, branch: any): GeoAddress {
+    return this.requiredAddress({
+      departamentoCod: branch.departamentoCod ?? company.departamentoCod,
+      municipioCod: branch.municipioCod ?? company.municipioCod,
+      distritoCod: branch.distritoCod ?? company.distritoCod,
+      address: branch.address ?? company.address,
+    }, 'direccion del emisor')
+  }
+
+  private tryBuildAddress(entity: any): GeoAddress | null {
+    if (!entity?.address) return null
+    if (!entity.departamentoCod || !entity.municipioCod || !entity.distritoCod) return null
+    return this.requiredAddress(entity, 'direccion')
+  }
+
+  private requiredAddress(entity: any, label: string): GeoAddress {
+    return {
+      departamento: this.required(entity.departamentoCod, `${label}: departamento`),
+      municipio: this.required(entity.municipioCod, `${label}: municipio`),
+      distrito: this.required(entity.distritoCod, `${label}: distrito`),
+      complemento: this.required(entity.address, `${label}: complemento`),
+    }
+  }
+
+  private required(value: unknown, label: string): string {
+    if (typeof value === 'string' && value.trim().length > 0) return value.trim()
+    throw new Error(`Falta configurar ${label} para emitir DTE`)
+  }
+
+  private svDateTime(value = new Date()) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/El_Salvador',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      hourCycle: 'h23',
+    }).formatToParts(value)
+
+    const get = (type: string) => this.required(parts.find((part) => part.type === type)?.value, `fecha/hora ${type}`)
+    return {
+      date: `${get('year')}-${get('month')}-${get('day')}`,
+      time: `${get('hour')}:${get('minute')}:${get('second')}`,
+    }
   }
 
   private numberToWords(n: number): string {
-    // Simplified — production should use a full conversion library
     const whole = Math.floor(n)
     const cents = Math.round((n - whole) * 100)
     return `${whole} DOLARES CON ${cents.toString().padStart(2, '0')}/100`

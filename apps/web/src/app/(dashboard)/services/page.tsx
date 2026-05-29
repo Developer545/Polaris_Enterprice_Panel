@@ -19,9 +19,8 @@ import { IconOrImagePicker, resolveImageUrl } from '../../../components/icon-or-
 const { Text } = Typography
 
 const UNI_MEDIDA_OPTIONS = [
-  { value: 74, label: 'Servicio' },
-  { value: 52, label: 'Hora'     },
   { value: 59, label: 'Unidad'   },
+  { value: 99, label: 'Otra'     },
 ]
 
 const COLOR_PRESETS = [
@@ -165,7 +164,7 @@ export default function ServicesPage() {
   const openNew = () => {
     setEditing(null)
     form.resetFields()
-    form.setFieldsValue({ uniMedida: 74, cost: 0 })
+    form.setFieldsValue({ uniMedida: 99, cost: 0 })
     setDrawerOpen(true)
   }
 
@@ -178,7 +177,7 @@ export default function ServicesPage() {
       price:       Number(record.price),
       cost:        Number(record.cost ?? 0),
       categoryId:  record.categoryId ?? undefined,
-      uniMedida:   Number(record.uniMedida ?? 74),
+      uniMedida:   Number(record.uniMedida ?? 99),
       emoji:       record.emoji ?? '',
       imageUrl:    record.imageUrl ?? '',
     })

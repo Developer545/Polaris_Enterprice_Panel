@@ -35,6 +35,11 @@ export default function UpdateBanner() {
 
   if (!isElectron || state.phase === 'idle' || dismissed) return null
 
+  const startDownload = () => {
+    setState({ phase: 'downloading', percent: 0, transferred: 0, total: 0 })
+    window.electron!.app.downloadUpdate()
+  }
+
   return (
     <div style={{
       position: 'fixed',
@@ -61,7 +66,7 @@ export default function UpdateBanner() {
       <div style={{ flex: 1, minWidth: 0 }}>
         {state.phase === 'available' && (
           <span style={{ color: '#c9d1d9', fontSize: 13 }}>
-            Actualización <strong style={{ color: '#fff' }}>v{state.version}</strong> disponible — descargando en segundo plano...
+            Actualización <strong style={{ color: '#fff' }}>v{state.version}</strong> disponible — presiona <strong style={{ color: '#fff' }}>Actualizar</strong> para descargarla.
           </span>
         )}
 
@@ -90,6 +95,16 @@ export default function UpdateBanner() {
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+        {state.phase === 'available' && (
+          <Button
+            size="small"
+            type="primary"
+            icon={<CloudDownloadOutlined />}
+            onClick={startDownload}
+          >
+            Actualizar
+          </Button>
+        )}
         {state.phase === 'ready' && (
           <Button
             size="small"

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useMemo } from 'react'
 import {
   Table, Button, Tag, Typography, DatePicker, Select, Modal, Descriptions, Form,
@@ -28,20 +28,24 @@ const DTE_STATUS: Record<string, { badge: 'processing' | 'success' | 'error' | '
   PENDING:  { badge: 'processing', label: 'Pendiente', color: '#fa8c16' },
   ACCEPTED: { badge: 'success',    label: 'Aceptado',  color: '#52c41a' },
   REJECTED: { badge: 'error',      label: 'Rechazado', color: '#ff4d4f' },
+  CONTINGENCY: { badge: 'warning', label: 'Contingencia', color: '#faad14' },
   ANNULLED: { badge: 'warning',    label: 'Anulado',   color: '#d48806' },
   ERROR:    { badge: 'error',      label: 'Error',     color: '#ff4d4f' },
 }
 
 const FORMA_PAGO_LABEL: Record<string, string> = {
-  '01': 'Efectivo', '02': 'T. Débito', '03': 'T. Crédito',
-  '04': 'Cheque',   '05': 'Transferencia', '06': 'D. Electrónico',
+  '01': 'Efectivo', '02': 'T. Debito', '03': 'T. Credito',
+  '04': 'Cheque', '05': 'Transferencia', '08': 'D. Electronico',
+  '09': 'Monedero', '11': 'Bitcoin', '12': 'Cripto',
+  '13': 'CxP receptor', '14': 'Giro bancario', '99': 'Otros',
 }
 
 const FORMA_PAGO_COLOR: Record<string, string> = {
   '01': 'green', '02': 'blue', '03': 'purple',
-  '04': 'gold',  '05': 'cyan', '06': 'geekblue',
+  '04': 'gold', '05': 'cyan', '08': 'geekblue',
+  '09': 'blue', '11': 'orange', '12': 'volcano',
+  '13': 'default', '14': 'cyan', '99': 'default',
 }
-
 const DOC_OPTIONS = [
   { value: '13', label: 'DUI (13)' },
   { value: '36', label: 'NIT (36)' },
@@ -123,11 +127,11 @@ export default function SalesPage() {
     if (win.electron?.printer?.printReceipt) {
       win.electron.printer.printReceipt({
         businessName: sale.company?.name ?? sale.branch?.name ?? 'Empresa',
-        branchName:   sale.branch?.name ?? '—',
+        branchName:   sale.branch?.name ?? 'â€”',
         address:      sale.company?.address,
         nit:          sale.company?.nit,
         nrc:          sale.company?.nrc,
-        cashierName:  sale.user?.name ?? '—',
+        cashierName:  sale.user?.name ?? 'â€”',
         saleNumber:   sale.dteDocument?.numeroControl ?? sale.id?.substring(0, 8),
         date:         dayjs(sale.createdAt).format('DD/MM/YYYY HH:mm'),
         tipoDte:      TIPO_DTE_LABEL[sale.tipoDte]?.label ?? sale.tipoDte,
@@ -144,7 +148,7 @@ export default function SalesPage() {
         total:         Number(sale.totalPagar ?? 0),
         paymentMethod: sale.payments?.length
           ? (FORMA_PAGO_LABEL[sale.payments[0].formaPago] ?? sale.payments[0].formaPago)
-          : '—',
+          : 'â€”',
         amountPaid: sale.payments?.[0]?.amount ? Number(sale.payments[0].amount) : undefined,
       })
     } else {
@@ -152,7 +156,7 @@ export default function SalesPage() {
     }
   }
 
-  // ── Computed ───────────────────────────────────────────────────────────────
+  // â”€â”€ Computed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const salesList: any[] = data?.sales ?? []
 
   const filtered = useMemo(() => {
@@ -179,7 +183,7 @@ export default function SalesPage() {
 
   const hasFilters = !!(search || filterStatus)
 
-  // ── Columns ────────────────────────────────────────────────────────────────
+  // â”€â”€ Columns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const columns: ColumnsType<any> = [
     {
       title: 'Fecha', dataIndex: 'createdAt', width: 125,
@@ -208,10 +212,10 @@ export default function SalesPage() {
       },
     },
     {
-      title: 'N° Control', key: 'control', width: 200,
+      title: 'NÂ° Control', key: 'control', width: 200,
       render: (_: any, r: any) => r.dteDocument?.numeroControl
         ? <code style={{ fontSize: 10, color: token.colorText }}>{r.dteDocument.numeroControl}</code>
-        : <Text type="secondary" style={{ fontSize: 12 }}>—</Text>,
+        : <Text type="secondary" style={{ fontSize: 12 }}>â€”</Text>,
     },
     {
       title: 'Pago', key: 'pago', width: 130,
@@ -285,7 +289,7 @@ export default function SalesPage() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
         <div>
           <Title level={4} style={{ margin: '0 0 2px', fontWeight: 700 }}>Historial de Ventas</Title>
-          <Text type="secondary" style={{ fontSize: 13 }}>Consulta, detalle e impresión de comprobantes DTE</Text>
+          <Text type="secondary" style={{ fontSize: 13 }}>Consulta, detalle e impresiÃ³n de comprobantes DTE</Text>
         </div>
         <Tooltip title="Recargar">
           <Button icon={<ReloadOutlined />} onClick={() => qc.invalidateQueries({ queryKey: ['sales'] })} />
@@ -331,7 +335,7 @@ export default function SalesPage() {
           <Space wrap size={8}>
             <Input
               prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
-              placeholder="Buscar cliente, N° control..."
+              placeholder="Buscar cliente, NÂ° control..."
               allowClear
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -399,7 +403,7 @@ export default function SalesPage() {
               <div style={{ padding: '8px 16px' }}>
                 <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }}>
                   {r.dteDocument?.codigoGeneracion && (
-                    <Descriptions.Item label="Código generación" span={3}>
+                    <Descriptions.Item label="CÃ³digo generaciÃ³n" span={3}>
                       <code style={{ fontSize: 10, wordBreak: 'break-all', color: token.colorText }}>
                         {r.dteDocument.codigoGeneracion}
                       </code>
@@ -412,8 +416,8 @@ export default function SalesPage() {
                       </code>
                     </Descriptions.Item>
                   )}
-                  <Descriptions.Item label="Sucursal">{r.branch?.name ?? '—'}</Descriptions.Item>
-                  <Descriptions.Item label="Cajero">{r.user?.name ?? '—'}</Descriptions.Item>
+                  <Descriptions.Item label="Sucursal">{r.branch?.name ?? 'â€”'}</Descriptions.Item>
+                  <Descriptions.Item label="Cajero">{r.user?.name ?? 'â€”'}</Descriptions.Item>
                   <Descriptions.Item label="IVA 13%">${Number(r.totalIva ?? 0).toFixed(2)}</Descriptions.Item>
                 </Descriptions>
               </div>
@@ -427,13 +431,13 @@ export default function SalesPage() {
             showSizeChanger: true,
             pageSizeOptions: ['20', '50', '100'],
             onChange: p => { if (!hasFilters) setPage(p) },
-            showTotal: (t, range) => `${range[0]}–${range[1]} de ${t} ${hasFilters ? '(filtrado)' : 'ventas'}`,
+            showTotal: (t, range) => `${range[0]}â€“${range[1]} de ${t} ${hasFilters ? '(filtrado)' : 'ventas'}`,
             style: { padding: '8px 16px' },
           }}
         />
       </Card>
 
-      {/* ── Modal detalle ─────────────────────────────────────────────────── */}
+      {/* â”€â”€ Modal detalle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <Modal
         open={!!detail}
         title={<Space><FileDoneOutlined />Detalle de venta</Space>}
@@ -458,7 +462,7 @@ export default function SalesPage() {
         {saleDetail && (
           <div>
             <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Información general
+              InformaciÃ³n general
             </Text>
             <Divider style={{ margin: '4px 0 14px' }} />
 
@@ -480,7 +484,7 @@ export default function SalesPage() {
                 {saleDetail.client?.name ?? <Text type="secondary">Consumidor Final</Text>}
               </Descriptions.Item>
               <Descriptions.Item label="Sucursal">{saleDetail.branch?.name}</Descriptions.Item>
-              <Descriptions.Item label="Cajero">{saleDetail.user?.name ?? '—'}</Descriptions.Item>
+              <Descriptions.Item label="Cajero">{saleDetail.user?.name ?? 'â€”'}</Descriptions.Item>
               <Descriptions.Item label="Estado DTE">
                 {(() => {
                   const s = saleDetail.dteDocument?.status
@@ -490,12 +494,12 @@ export default function SalesPage() {
                 })()}
               </Descriptions.Item>
               {saleDetail.dteDocument?.numeroControl && (
-                <Descriptions.Item label="N° Control" span={2}>
+                <Descriptions.Item label="NÂ° Control" span={2}>
                   <code style={{ fontSize: 11 }}>{saleDetail.dteDocument.numeroControl}</code>
                 </Descriptions.Item>
               )}
               {saleDetail.dteDocument?.codigoGeneracion && (
-                <Descriptions.Item label="Código generación" span={2}>
+                <Descriptions.Item label="CÃ³digo generaciÃ³n" span={2}>
                   <code style={{ fontSize: 10, wordBreak: 'break-all' }}>
                     {saleDetail.dteDocument.codigoGeneracion}
                   </code>
@@ -511,7 +515,7 @@ export default function SalesPage() {
             </Descriptions>
 
             <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Líneas de venta
+              LÃ­neas de venta
             </Text>
             <Divider style={{ margin: '4px 0 12px' }} />
 
@@ -595,14 +599,14 @@ export default function SalesPage() {
         )}
       </Modal>
 
-      {/* ── Modal anular ──────────────────────────────────────────────────── */}
+      {/* â”€â”€ Modal anular â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <Modal
         open={!!anularModal}
         title={<Space style={{ color: token.colorError }}><StopOutlined />Anular venta</Space>}
         onCancel={() => { setAnularModal(null); setAnularReason('') }}
         onOk={() => anularMutation.mutate({ id: anularModal.id, reason: anularReason })}
         confirmLoading={anularMutation.isPending}
-        okText="Confirmar anulación"
+        okText="Confirmar anulaciÃ³n"
         okButtonProps={{ danger: true, disabled: !anularReason.trim(), style: { borderRadius: 8, fontWeight: 600 } }}
         cancelButtonProps={{ style: { borderRadius: 8 } }}
         width={480}
@@ -610,17 +614,17 @@ export default function SalesPage() {
         style={{ top: 40 }}
       >
         <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 14 }}>
-          Se anulará la venta{' '}
+          Se anularÃ¡ la venta{' '}
           <Text strong>{anularModal?.dteDocument?.numeroControl ?? anularModal?.id?.substring(0, 8)}</Text>
           {' '}por un total de{' '}
           <Text strong style={{ color: token.colorError }}>
             ${Number(anularModal?.totalPagar ?? 0).toFixed(2)}
           </Text>.
-          Esta operación no se puede deshacer.
+          Esta operaciÃ³n no se puede deshacer.
         </Text>
         <Input.TextArea
           rows={3}
-          placeholder="Motivo de anulación (requerido)"
+          placeholder="Motivo de anulaciÃ³n (requerido)"
           value={anularReason}
           onChange={e => setAnularReason(e.target.value)}
           style={{ borderRadius: 8 }}

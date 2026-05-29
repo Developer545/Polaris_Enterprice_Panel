@@ -169,6 +169,7 @@ export class AuthService {
 
     const permissions = user.role.permissions as Record<string, boolean>
     const branchIds = user.branches.map((b) => b.branchId)
+    const canViewAllBranches = permissions['branches.view_all'] === true
 
     const accessPayload: JwtAccessPayload = {
       sub: user.id,
@@ -179,6 +180,7 @@ export class AuthService {
       roleId: user.roleId,
       permissions,
       branchIds,
+      canViewAllBranches,
       type: 'access',
     }
 
@@ -259,6 +261,7 @@ export class AuthService {
 
     const permissions = session.user.role.permissions as Record<string, boolean>
     const branchIds = session.user.branches.map((b) => b.branchId)
+    const canViewAllBranches = permissions['branches.view_all'] === true
 
     const accessPayload: JwtAccessPayload = {
       sub: session.userId,
@@ -269,6 +272,7 @@ export class AuthService {
       roleId: session.user.roleId,
       permissions,
       branchIds,
+      canViewAllBranches,
       type: 'access',
     }
 

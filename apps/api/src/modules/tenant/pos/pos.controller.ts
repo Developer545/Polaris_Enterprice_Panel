@@ -39,8 +39,8 @@ export class PosController {
 
   @Get('sales/:id')
   @RequirePermissions(PERMISSIONS.SALES_VIEW)
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id)
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtAccessPayload) {
+    return this.svc.findOne(id, user)
   }
 
   @Post('sale')

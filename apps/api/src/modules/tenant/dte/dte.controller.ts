@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Param } from '@nestjs/common'
 import { DteService, AnulacionSchema } from './dte.service'
+import { ContingencyService, ContingenciaSchema } from './contingency.service'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
 import { CurrentUser } from '../../../common/decorators/current-user.decorator'
@@ -14,7 +15,10 @@ import { z } from 'zod'
 @RequireLocalModule('dte')
 @Controller('dte')
 export class DteController {
-  constructor(private readonly svc: DteService) {}
+  constructor(
+    private readonly svc: DteService,
+    private readonly contingency: ContingencyService,
+  ) {}
 
   @Get('sale/:saleId')
   @RequirePermissions(PERMISSIONS.DTE_VIEW)
@@ -31,5 +35,29 @@ export class DteController {
   ) {
     const { tenantId, dbUrl } = getCurrentTenant()
     return this.svc.anular(dto, user, tenantId, dbUrl)
+  }
+
+  @Get('contingencia/status')
+  @RequirePermissions(PERMISSIONS.DTE_VIEW)
+  contingenciaStatus(@CurrentUser() user: JwtAccessPayload) {
+    const { tenantId, dbUrl } = getCurrentTenant()
+    return this.contingency.getStatus({
+      tenantId,
+      dbUrl,
+      ...ContingencyService.scopeFromUser(user),
+    })
+  }
+
+  @Post('contingencia')
+  @RequirePermissions(PERMISSIONS.DTE_EMIT)
+  contingencia(
+    @Body(new ZodValidationPipe(ContingenciaSchema)) dto: z.infer<typeof ContingenciaSchema>,
+    @CurrentUser() user: JwtAccessPayload,
+  ) {
+    const { tenantId, dbUrl } = getCurrentTenant()
+    return this.contingency.transmit(
+      { tenantId, dbUrl, ...ContingencyService.scopeFromUser(user) },
+      dto,
+    )
   }
 }
