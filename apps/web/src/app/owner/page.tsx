@@ -1,7 +1,5 @@
 'use client'
-export const dynamic = 'force-dynamic'
-
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Row, Col, Card, Statistic, Table, Typography, Tag, Empty, Spin,
@@ -134,6 +132,14 @@ const REPORTS = [
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function OwnerDashboard() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}><Spin size="large" /></div>}>
+      <OwnerDashboardInner />
+    </Suspense>
+  )
+}
+
+function OwnerDashboardInner() {
   const { token } = theme.useToken()
   const router = useRouter()
   const sp = useSearchParams()
@@ -798,3 +804,4 @@ export default function OwnerDashboard() {
     </Spin>
   )
 }
+
