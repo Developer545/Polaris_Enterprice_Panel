@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Param } from '@nestjs/common'
-import { DteService, AnulacionSchema } from './dte.service'
+import { DteService, AnulacionSchema, RetornoSchema } from './dte.service'
 import { ContingencyService, ContingenciaSchema } from './contingency.service'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
@@ -35,6 +35,16 @@ export class DteController {
   ) {
     const { tenantId, dbUrl } = getCurrentTenant()
     return this.svc.anular(dto, user, tenantId, dbUrl)
+  }
+
+  @Post('retorno')
+  @RequirePermissions(PERMISSIONS.DTE_EMIT)
+  retorno(
+    @Body(new ZodValidationPipe(RetornoSchema)) dto: z.infer<typeof RetornoSchema>,
+    @CurrentUser() user: JwtAccessPayload,
+  ) {
+    const { tenantId, dbUrl } = getCurrentTenant()
+    return this.svc.emitirRetorno(dto, user, tenantId, dbUrl)
   }
 
   @Get('contingencia/status')

@@ -482,6 +482,13 @@ model DteDocument {
   invalidacionSelloRecibido    String?
   invalidationReason           String?
   invalidatedAt                DateTime?
+  // Evento Retorno (Tipo 18) — DTE 2.0 — vigencia dic 2026
+  retornoCodigoGeneracion      String?
+  retornoJson                  Json?
+  retornoJsonFirmado           String?
+  retornoSelloRecibido         String?
+  retornoMotivo                String?
+  retornoAt                    DateTime?
   processedAt      DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt

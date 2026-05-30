@@ -24,6 +24,19 @@ export const AnulacionSchema = z.object({
 
 export type AnulacionDto = z.infer<typeof AnulacionSchema>
 
+export const RetornoSchema = z.object({
+  saleId: z.string().cuid(),
+  motivo: z.string().trim().min(5),
+  nombreResponsable: z.string().trim().min(1),
+  tipDocResponsable: z.string().length(2),
+  numDocResponsable: z.string().trim().min(1),
+  nombreSolicita: z.string().trim().min(1),
+  tipDocSolicita: z.string().length(2),
+  numDocSolicita: z.string().trim().min(1),
+})
+
+export type RetornoDto = z.infer<typeof RetornoSchema>
+
 @Injectable()
 export class DteService {
   private readonly logger = new Logger(DteService.name)
@@ -345,6 +358,107 @@ export class DteService {
               invalidatedAt: new Date(),
             }
           : {}),
+      },
+    })
+
+    return { ok: accepted, selloRecibido: result.selloRecibido, observaciones: result.observaciones }
+  }
+
+  async emitirRetorno(dto: RetornoDto, user: JwtAccessPayload, tenantId: string, dbUrl?: string) {
+    const db = this.getDb(dbUrl)
+
+    const sale = await db.sale.findFirst({
+      where: { id: dto.saleId, tenantId, companyId: user.companyId },
+      include: {
+        dteDocument: true,
+        items: true,
+        company: {
+          select: {
+            id: true, name: true, nit: true, nrc: true, dteAmbiente: true,
+            phone: true, email: true,
+            haciendaUserEnc: true, haciendaPwdEnc: true, certDataEnc: true, certPwdEnc: true,
+          },
+        },
+        branch: true,
+      },
+    })
+    if (!sale) throw new NotFoundException('Venta no encontrada')
+    this.assertSaleAccess(user, sale)
+
+    const dte = (sale as any).dteDocument
+    if (!dte || dte.status !== 'ACCEPTED') throw new NotFoundException('El DTE debe estar aceptado para emitir retorno')
+    if (dte.tipoDte !== '03') throw new Error('Evento de Retorno aplica solo a CCF (tipo 03)')
+    if (dte.retornoCodigoGeneracion) throw new Error('Ya existe un evento de retorno para este DTE')
+
+    const company = (sale as any).company as any
+    const branch = (sale as any).branch as any
+    const ambiente = company.dteAmbiente ?? 'TEST'
+    const haciendaUser = this.crypto.decrypt(company.haciendaUserEnc)
+    const haciendaPassword = this.crypto.decrypt(company.haciendaPwdEnc)
+    const certData = company.certDataEnc ? this.crypto.decrypt(company.certDataEnc) : null
+    const certPassword = company.certPwdEnc ? this.crypto.decrypt(company.certPwdEnc) : null
+
+    // Build detalle from sale items
+    const items = (sale as any).items.map((item: any) => ({
+      tipoItem: Number.parseInt(item.tipoItem, 10),
+      descripcion: item.productName,
+      cantidad: Number(item.quantity),
+      uniMedida: Number(item.uniMedida),
+      precioUni: Number(item.unitPrice),
+      montoDescu: Number(item.discount),
+      ventaNoSuj: Number(item.ventaNoSuj),
+      ventaExenta: Number(item.ventaExenta),
+      ventaGravada: Number(item.ventaGravada),
+    }))
+
+    const retornoCodigoGeneracion = this.builder.generateCodigoGeneracion()
+    const fecEmi = (sale as any).createdAt.toISOString().split('T')[0]
+
+    const retornoJson = this.builder.buildRetornoEvent({
+      company,
+      branch,
+      codigoGeneracion: retornoCodigoGeneracion,
+      dteDocument: {
+        tipoDte: dte.tipoDte,
+        codigoGeneracion: dte.codigoGeneracion,
+        selloRecibido: dte.selloRecibido,
+        numeroControl: dte.numeroControl,
+        fecEmi,
+      },
+      motivo: dto.motivo,
+      nombreResponsable: dto.nombreResponsable,
+      tipoDocResponsable: dto.tipDocResponsable,
+      numDocResponsable: dto.numDocResponsable,
+      nombreSolicita: dto.nombreSolicita,
+      tipoDocSolicita: dto.tipDocSolicita,
+      numDocSolicita: dto.numDocSolicita,
+      items,
+      resumen: {
+        totalNoSuj: Number((sale as any).totalNoSuj),
+        totalExenta: Number((sale as any).totalExenta),
+        totalGravada: Number((sale as any).totalGravada),
+        totalIva: Number((sale as any).totalIva),
+        totalDescuento: Number((sale as any).totalDescuento),
+        totalPagar: Number((sale as any).totalPagar),
+      },
+    })
+
+    const jws = await this.firmador.firmarDocumento(retornoJson, certData ?? '', certPassword ?? '')
+    const cacheKey = `${tenantId}:${company.id}`
+    const authToken = await this.hacienda.authenticate(haciendaUser, haciendaPassword, ambiente, cacheKey)
+    const result = await this.hacienda.submitRetorno(jws, retornoCodigoGeneracion, ambiente, authToken)
+
+    const accepted = !!result.selloRecibido
+
+    await db.dteDocument.update({
+      where: { id: dte.id },
+      data: {
+        retornoCodigoGeneracion,
+        retornoJson: retornoJson as any,
+        retornoJsonFirmado: jws,
+        retornoSelloRecibido: result.selloRecibido,
+        retornoMotivo: dto.motivo,
+        retornoAt: new Date(),
       },
     })
 

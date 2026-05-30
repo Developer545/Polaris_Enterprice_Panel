@@ -8,7 +8,7 @@ import {
   EyeOutlined, PrinterOutlined, StopOutlined, FileTextOutlined,
   CheckCircleOutlined, ClockCircleOutlined, ReloadOutlined, SearchOutlined,
   DollarOutlined, CalculatorOutlined, FileDoneOutlined, WarningOutlined,
-  FileExcelOutlined,
+  FileExcelOutlined, RollbackOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
@@ -70,6 +70,8 @@ export default function SalesPage() {
   const [anularReason, setAnularReason] = useState('')
   const [invalidarModal, setInvalidarModal] = useState<any>(null)
   const [invalidarForm] = Form.useForm()
+  const [retornoModal, setRetornoModal] = useState<any>(null)
+  const [retornoForm] = Form.useForm()
 
   const params: Record<string, any> = { companyId, page }
   if (dateRange?.[0]) params.from = dateRange[0].startOf('day').toISOString()
@@ -98,6 +100,19 @@ export default function SalesPage() {
       setAnularReason('')
     },
     onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error al anular'),
+  })
+
+  const retornoMutation = useMutation({
+    mutationFn: (values: any) => api.post('/api/dte/retorno', { ...values, saleId: retornoModal.id }),
+    onSuccess: (res) => {
+      if (res.data?.ok) message.success('Evento de Retorno enviado a Hacienda')
+      else message.warning('Hacienda no acepto el evento de retorno')
+      qc.invalidateQueries({ queryKey: ['sales'] })
+      qc.invalidateQueries({ queryKey: ['sale-detail'] })
+      setRetornoModal(null)
+      retornoForm.resetFields()
+    },
+    onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error al emitir retorno'),
   })
 
   const invalidarMutation = useMutation({
@@ -263,6 +278,14 @@ export default function SalesPage() {
           <Tooltip title="Imprimir ticket">
             <Button type="text" size="small" icon={<PrinterOutlined />} onClick={() => handlePrint(r)} />
           </Tooltip>
+          {r.tipoDte === '03' && r.dteDocument?.status === 'ACCEPTED' && !r.dteDocument?.retornoCodigoGeneracion && (
+            <Tooltip title="Emitir Evento de Retorno (Tipo 18)">
+              <Button
+                type="text" size="small" icon={<RollbackOutlined style={{ color: '#722ed1' }} />}
+                onClick={() => { setRetornoModal(r); retornoForm.resetFields() }}
+              />
+            </Tooltip>
+          )}
           {r.dteDocument?.status !== 'ANNULLED' && (
             r.dteDocument?.status === 'ACCEPTED' ? (
               <Tooltip title="Invalidar DTE ante Hacienda">
@@ -737,6 +760,79 @@ export default function SalesPage() {
                 label="Documento"
                 rules={[{ required: true, message: 'Requerido' }]}
               >
+                <Input style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
+      {/* ── Modal Evento Retorno (Tipo 18) ────────────────────────────────── */}
+      <Modal
+        open={!!retornoModal}
+        title={<Space style={{ color: '#722ed1' }}><RollbackOutlined />Evento de Retorno (Tipo 18)</Space>}
+        onCancel={() => { setRetornoModal(null); retornoForm.resetFields() }}
+        onOk={() => retornoForm.submit()}
+        confirmLoading={retornoMutation.isPending}
+        okText="Enviar evento a Hacienda"
+        okButtonProps={{ style: { background: '#722ed1', borderColor: '#722ed1', borderRadius: 8, fontWeight: 600 } }}
+        cancelButtonProps={{ style: { borderRadius: 8 } }}
+        width={640}
+        destroyOnClose
+        style={{ top: 40 }}
+      >
+        <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 14 }}>
+          Evento de retorno de bienes para el CCF{' '}
+          <Text strong>{retornoModal?.dteDocument?.numeroControl ?? retornoModal?.id?.substring(0, 8)}</Text>
+          {' '}por un total de{' '}
+          <Text strong style={{ color: '#722ed1' }}>
+            ${Number(retornoModal?.totalPagar ?? 0).toFixed(2)}
+          </Text>.
+        </Text>
+        <Form
+          form={retornoForm}
+          layout="vertical"
+          requiredMark={false}
+          onFinish={(values) => retornoMutation.mutate(values)}
+        >
+          <Form.Item
+            name="motivo"
+            label="Motivo del retorno"
+            rules={[{ required: true, min: 5, message: 'Describe el motivo del retorno' }]}
+          >
+            <Input.TextArea rows={3} placeholder="Ej. Producto defectuoso, error en pedido..." style={{ borderRadius: 8 }} />
+          </Form.Item>
+
+          <Row gutter={12}>
+            <Col xs={24} md={12}>
+              <Form.Item name="nombreResponsable" label="Responsable" rules={[{ required: true, message: 'Requerido' }]}>
+                <Input style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col xs={10} md={6}>
+              <Form.Item name="tipDocResponsable" label="Tipo doc." rules={[{ required: true, message: 'Requerido' }]}>
+                <Select options={DOC_OPTIONS} />
+              </Form.Item>
+            </Col>
+            <Col xs={14} md={6}>
+              <Form.Item name="numDocResponsable" label="Documento" rules={[{ required: true, message: 'Requerido' }]}>
+                <Input style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={12}>
+            <Col xs={24} md={12}>
+              <Form.Item name="nombreSolicita" label="Solicita" rules={[{ required: true, message: 'Requerido' }]}>
+                <Input style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col xs={10} md={6}>
+              <Form.Item name="tipDocSolicita" label="Tipo doc." rules={[{ required: true, message: 'Requerido' }]}>
+                <Select options={DOC_OPTIONS} />
+              </Form.Item>
+            </Col>
+            <Col xs={14} md={6}>
+              <Form.Item name="numDocSolicita" label="Documento" rules={[{ required: true, message: 'Requerido' }]}>
                 <Input style={{ borderRadius: 8 }} />
               </Form.Item>
             </Col>
