@@ -407,9 +407,15 @@ model Sale {
   totalGravada     Decimal       @default(0) @db.Decimal(10, 2)
   totalIva         Decimal       @default(0) @db.Decimal(10, 2)
   ivaRete1         Decimal       @default(0) @db.Decimal(10, 2)
+  reteRenta        Decimal       @default(0) @db.Decimal(10, 2)
   totalDescuento   Decimal       @default(0) @db.Decimal(10, 2)
   totalPagar       Decimal       @db.Decimal(10, 2)
   notes            String?
+  // Documento relacionado (para NC tipo 05 y ND tipo 06)
+  docRelTipoDte          String?  // Tipo DTE del documento original (ej. '03')
+  docRelNumeroControl    String?  // Número de control del original
+  docRelCodigoGeneracion String?  // UUID del original
+  docRelTipoGeneracion   Int      @default(1)  // 1=Normal 2=Contingencia
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 

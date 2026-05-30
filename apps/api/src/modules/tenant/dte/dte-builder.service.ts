@@ -108,6 +108,112 @@ export class DteBuilderService {
     }
   }
 
+  buildNC(sale: any, company: any, branch: any, client: any, numeroControl: string, codigoGeneracion: string): object {
+    const now = this.svDateTime()
+
+    const docRel = sale.docRelTipoDte ? [{
+      tipoDte: sale.docRelTipoDte,
+      tipoGeneracion: sale.docRelTipoGeneracion ?? 1,
+      numeroControl: sale.docRelNumeroControl,
+      codigoGeneracion: sale.docRelCodigoGeneracion,
+    }] : null
+
+    return {
+      identificacion: {
+        version: getDteVersion('05'),
+        ambiente: company.dteAmbiente === 'PROD' ? '01' : '00',
+        tipoDte: '05',
+        numeroControl,
+        codigoGeneracion,
+        tipoModelo: 1,
+        tipoOperacion: 1,
+        tipoContingencia: null,
+        motivoContin: null,
+        fecEmi: now.date,
+        horEmi: now.time,
+        tipoMoneda: 'USD',
+      },
+      documentoRelacionado: docRel,
+      emisor: this.buildEmisor(company, branch),
+      receptor: this.buildReceptorCCF(client),
+      otrosDocumentos: null,
+      ventaTercero: null,
+      cuerpoDocumento: sale.items.map((item: any, i: number) => ({
+        numItem: i + 1,
+        tipoItem: Number.parseInt(item.tipoItem, 10),
+        numeroDocumento: null,
+        cantidad: Number(item.quantity),
+        codigo: item.product?.sku ?? null,
+        codTributo: null,
+        uniMedida: Number(item.uniMedida),
+        descripcion: item.productName,
+        precioUni: Number(item.unitPrice),
+        montoDescu: Number(item.discount),
+        ventaNoSuj: Number(item.ventaNoSuj),
+        ventaExenta: Number(item.ventaExenta),
+        ventaGravada: Number(item.ventaGravada),
+        tributos: Number(item.ventaGravada) > 0 ? ['20'] : null,
+        psv: 0,
+        noGravado: 0,
+      })),
+      resumen: this.buildResumenNC(sale),
+      apendice: null,
+    }
+  }
+
+  buildND(sale: any, company: any, branch: any, client: any, numeroControl: string, codigoGeneracion: string): object {
+    const now = this.svDateTime()
+
+    const docRel = sale.docRelTipoDte ? [{
+      tipoDte: sale.docRelTipoDte,
+      tipoGeneracion: sale.docRelTipoGeneracion ?? 1,
+      numeroControl: sale.docRelNumeroControl,
+      codigoGeneracion: sale.docRelCodigoGeneracion,
+    }] : null
+
+    return {
+      identificacion: {
+        version: getDteVersion('06'),
+        ambiente: company.dteAmbiente === 'PROD' ? '01' : '00',
+        tipoDte: '06',
+        numeroControl,
+        codigoGeneracion,
+        tipoModelo: 1,
+        tipoOperacion: 1,
+        tipoContingencia: null,
+        motivoContin: null,
+        fecEmi: now.date,
+        horEmi: now.time,
+        tipoMoneda: 'USD',
+      },
+      documentoRelacionado: docRel,
+      emisor: this.buildEmisor(company, branch),
+      receptor: this.buildReceptorCCF(client),
+      otrosDocumentos: null,
+      ventaTercero: null,
+      cuerpoDocumento: sale.items.map((item: any, i: number) => ({
+        numItem: i + 1,
+        tipoItem: Number.parseInt(item.tipoItem, 10),
+        numeroDocumento: null,
+        cantidad: Number(item.quantity),
+        codigo: item.product?.sku ?? null,
+        codTributo: null,
+        uniMedida: Number(item.uniMedida),
+        descripcion: item.productName,
+        precioUni: Number(item.unitPrice),
+        montoDescu: Number(item.discount),
+        ventaNoSuj: Number(item.ventaNoSuj),
+        ventaExenta: Number(item.ventaExenta),
+        ventaGravada: Number(item.ventaGravada),
+        tributos: Number(item.ventaGravada) > 0 ? ['20'] : null,
+        psv: 0,
+        noGravado: 0,
+      })),
+      resumen: this.buildResumenCCF(sale),
+      apendice: null,
+    }
+  }
+
   buildContingenciaEvent(params: {
     company: any
     branch: any
@@ -174,6 +280,7 @@ export class DteBuilderService {
       codActividad: this.required(company.actividadEconomicaCodigo, 'actividad economica del emisor'),
       descActividad: this.required(company.actividadEconomica, 'descripcion de actividad economica del emisor'),
       nombreComercial: company.comercialName ?? null,
+      giro: company.giro ?? null,
       direccion: this.buildEmisorAddress(company, branch),
       telefono: company.phone ?? '',
       correo: this.required(company.email, 'correo del emisor'),
@@ -221,6 +328,7 @@ export class DteBuilderService {
     const totalIva = Number(sale.totalIva)
     const totalDescuento = Number(sale.totalDescuento)
     const ivaRete = Number(sale.ivaRete1 ?? 0)
+    const reteRenta = Number(sale.reteRenta ?? 0)
     const subTotalVentas = totalGravada + totalExenta + totalNoSuj
 
     return {
@@ -236,6 +344,7 @@ export class DteBuilderService {
       tributos: null,
       subTotal: subTotalVentas,
       ivaRete,
+      reteRenta: reteRenta > 0 ? reteRenta : undefined,
       montoTotalOperacion: Number(sale.totalPagar) + ivaRete,
       totalNoGravado: 0,
       totalPagar: Number(sale.totalPagar),
@@ -256,6 +365,7 @@ export class DteBuilderService {
     const totalIva = Number(sale.totalIva)
     const totalDescuento = Number(sale.totalDescuento)
     const ivaRete = Number(sale.ivaRete1 ?? 0)
+    const reteRenta = Number(sale.reteRenta ?? 0)
     const subTotalVentas = totalGravada + totalExenta + totalNoSuj
 
     return {
@@ -272,6 +382,7 @@ export class DteBuilderService {
       subTotal: subTotalVentas,
       ivaPerci: 0,
       ivaRete,
+      reteRenta: reteRenta > 0 ? reteRenta : undefined,
       montoTotalOperacion: subTotalVentas + totalIva,
       totalNoGravado: 0,
       totalPagar: Number(sale.totalPagar),
@@ -279,6 +390,39 @@ export class DteBuilderService {
       saldoFavor: 0,
       condicionOperacion: Number.parseInt(sale.condicionOperacion, 10),
       pagos: this.buildPayments(sale),
+      numPagoElectronico: null,
+      observaciones: sale.notes ?? null,
+    }
+  }
+
+  private buildResumenNC(sale: any) {
+    const totalNoSuj = Number(sale.totalNoSuj)
+    const totalExenta = Number(sale.totalExenta)
+    const totalGravada = Number(sale.totalGravada)
+    const totalIva = Number(sale.totalIva)
+    const subTotalVentas = totalGravada + totalExenta + totalNoSuj
+
+    return {
+      totalNoSuj,
+      totalExenta,
+      totalGravada,
+      subTotalVentas,
+      descuNoSuj: 0,
+      descuExenta: 0,
+      descuGravada: 0,
+      porcentajeDescuento: 0,
+      totalDescu: 0,
+      tributos: totalGravada > 0 ? [{ codigo: '20', descripcion: 'Impuesto al Valor Agregado 13%', valor: totalIva }] : null,
+      subTotal: subTotalVentas,
+      ivaPerci: 0,
+      ivaRete: 0,
+      montoTotalOperacion: subTotalVentas,
+      totalNoGravado: 0,
+      totalPagar: Number(sale.totalPagar),
+      totalLetras: this.numberToWords(Number(sale.totalPagar)),
+      saldoFavor: 0,
+      condicionOperacion: Number.parseInt(sale.condicionOperacion ?? '1', 10),
+      pagos: null,
       numPagoElectronico: null,
       observaciones: sale.notes ?? null,
     }

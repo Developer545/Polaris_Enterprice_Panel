@@ -82,6 +82,7 @@ export class DteService {
           select: {
             id: true, name: true, comercialName: true, nit: true, nrc: true,
             actividadEconomica: true, actividadEconomicaCodigo: true,
+            giro: true, tipoDocumento: true, esGranContribuyente: true,
             address: true, departamentoCod: true, municipioCod: true, distritoCod: true,
             phone: true, email: true, dteAmbiente: true,
             haciendaUserEnc: true, haciendaPwdEnc: true, certDataEnc: true, certPwdEnc: true,
@@ -132,6 +133,10 @@ export class DteService {
         dteJson = this.builder.buildCF(sale, company, branch, client, payload.numeroControl, codigoGeneracion) as Record<string, unknown>
       } else if (payload.tipoDte === '03') {
         dteJson = this.builder.buildCCF(sale, company, branch, client, payload.numeroControl, codigoGeneracion) as Record<string, unknown>
+      } else if (payload.tipoDte === '05') {
+        dteJson = this.builder.buildNC(sale, company, branch, client, payload.numeroControl, codigoGeneracion) as Record<string, unknown>
+      } else if (payload.tipoDte === '06') {
+        dteJson = this.builder.buildND(sale, company, branch, client, payload.numeroControl, codigoGeneracion) as Record<string, unknown>
       } else {
         throw new Error(`Unsupported tipoDte: ${payload.tipoDte}`)
       }
