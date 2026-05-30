@@ -154,6 +154,40 @@ export class HaciendaService {
     }
   }
 
+  async submitOperacionEspecial(
+    jwsToken: string,
+    codigoGeneracion: string,
+    ambiente: 'TEST' | 'PROD',
+    authToken: string,
+  ): Promise<HaciendaSubmitResult> {
+    const base = ENDPOINTS[ambiente]
+
+    const body = {
+      ambiente: ambiente === 'PROD' ? '01' : '00',
+      idEnvio: 1,
+      version: 1,
+      tipoEvento: '17',
+      documento: jwsToken,
+      codigoGeneracion,
+    }
+
+    const res = await Axios.post(`${base}/eventosdte`, body, {
+      headers: {
+        Authorization: authToken,
+        'Content-Type': 'application/json',
+      },
+      timeout: 30_000,
+    })
+
+    const { estado, selloRecibido, observaciones } = res.data ?? {}
+    return {
+      selloRecibido: selloRecibido ?? null,
+      observaciones: observaciones ?? [],
+      estado,
+      raw: res.data,
+    }
+  }
+
   async submitRetorno(
     jwsToken: string,
     codigoGeneracion: string,

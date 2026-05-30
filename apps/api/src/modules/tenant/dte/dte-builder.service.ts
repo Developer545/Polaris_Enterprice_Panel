@@ -4,6 +4,7 @@ import {
   assertContingencyBatchSize,
   CONTINGENCY_EVENT_VERSION,
   RETORNO_EVENT_VERSION,
+  OPERACION_ESPECIAL_EVENT_VERSION,
   getDteVersion,
 } from '@pos-dte/dte-core'
 
@@ -288,6 +289,114 @@ export class DteBuilderService {
       },
       motivo: {
         motivo: params.motivo,
+        nombreResponsable: params.nombreResponsable,
+        tipoDocResponsable: params.tipoDocResponsable,
+        numDocResponsable: params.numDocResponsable,
+        nombreSolicita: params.nombreSolicita,
+        tipoDocSolicita: params.tipoDocSolicita,
+        numDocSolicita: params.numDocSolicita,
+      },
+      detalle: params.items.map((item, index) => ({
+        noItem: index + 1,
+        tipoItem: item.tipoItem,
+        descripcion: item.descripcion,
+        cantidad: item.cantidad,
+        uniMedida: item.uniMedida,
+        precioUni: item.precioUni,
+        montoDescu: item.montoDescu,
+        ventaNoSuj: item.ventaNoSuj,
+        ventaExenta: item.ventaExenta,
+        ventaGravada: item.ventaGravada,
+        tributos: item.ventaGravada > 0 ? ['20'] : null,
+        noGravado: 0,
+      })),
+      resumen: {
+        totalNoSuj: params.resumen.totalNoSuj,
+        totalExenta: params.resumen.totalExenta,
+        totalGravada: params.resumen.totalGravada,
+        totalIva: params.resumen.totalIva,
+        totalDescuento: params.resumen.totalDescuento,
+        totalPagar: params.resumen.totalPagar,
+      },
+    }
+  }
+
+  /**
+   * Evento de Operaciones Especiales (Tipo 17) — DTE 2.0 — vigencia dic 2026
+   * Submitted to POST /fesv/eventosdte with tipoEvento: '17'
+   * Covers: anticipos, permutas, retiro de bienes, dación en pago, autoconsumo
+   */
+  buildOperacionEspecialEvent(params: {
+    company: any
+    branch: any
+    codigoGeneracion: string
+    dteDocument: {
+      tipoDte: string
+      codigoGeneracion: string
+      selloRecibido: string | null
+      numeroControl: string
+      fecEmi: string
+    }
+    tipoOperacion: string        // CAT-022
+    motivo: string
+    nombreResponsable: string
+    tipoDocResponsable: string
+    numDocResponsable: string
+    nombreSolicita: string
+    tipoDocSolicita: string
+    numDocSolicita: string
+    items: Array<{
+      tipoItem: number
+      descripcion: string
+      cantidad: number
+      uniMedida: number
+      precioUni: number
+      montoDescu: number
+      ventaNoSuj: number
+      ventaExenta: number
+      ventaGravada: number
+    }>
+    resumen: {
+      totalNoSuj: number
+      totalExenta: number
+      totalGravada: number
+      totalIva: number
+      totalDescuento: number
+      totalPagar: number
+    }
+  }): object {
+    const now = this.svDateTime()
+
+    return {
+      identificacion: {
+        version: OPERACION_ESPECIAL_EVENT_VERSION,
+        ambiente: params.company.dteAmbiente === 'PROD' ? '01' : '00',
+        codigoGeneracion: params.codigoGeneracion,
+        fTransmision: now.date,
+        hTransmision: now.time,
+      },
+      emisor: {
+        nit: this.required(params.company.nit, 'NIT del emisor'),
+        nombre: this.required(params.company.name, 'nombre del emisor'),
+        nombreResponsable: params.nombreResponsable,
+        tipoDocResponsable: params.tipoDocResponsable,
+        numeroDocResponsable: params.numDocResponsable,
+        tipoEstablecimiento: params.branch.tipoEstablecimiento ?? '02',
+        codEstableMH: this.required(params.branch.codEstableMH, 'codigo de establecimiento MH'),
+        codPuntoVentaMH: this.required(params.branch.codPuntoVentaMH, 'codigo de punto de venta MH'),
+        telefono: params.company.phone ?? '',
+        correo: this.required(params.company.email, 'correo del emisor'),
+      },
+      documentoRelacionado: {
+        tipoDte: params.dteDocument.tipoDte,
+        codigoGeneracion: params.dteDocument.codigoGeneracion,
+        selloRecibido: params.dteDocument.selloRecibido,
+        numeroControl: params.dteDocument.numeroControl,
+        fecEmi: params.dteDocument.fecEmi,
+      },
+      motivo: {
+        tipoOperacion: params.tipoOperacion,
+        descripcionOperacion: params.motivo,
         nombreResponsable: params.nombreResponsable,
         tipoDocResponsable: params.tipoDocResponsable,
         numDocResponsable: params.numDocResponsable,

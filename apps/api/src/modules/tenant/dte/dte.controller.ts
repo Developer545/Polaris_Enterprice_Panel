@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Param } from '@nestjs/common'
-import { DteService, AnulacionSchema, RetornoSchema } from './dte.service'
+import { DteService, AnulacionSchema, RetornoSchema, OperacionEspecialSchema } from './dte.service'
 import { ContingencyService, ContingenciaSchema } from './contingency.service'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
@@ -45,6 +45,16 @@ export class DteController {
   ) {
     const { tenantId, dbUrl } = getCurrentTenant()
     return this.svc.emitirRetorno(dto, user, tenantId, dbUrl)
+  }
+
+  @Post('operacion-especial')
+  @RequirePermissions(PERMISSIONS.DTE_EMIT)
+  operacionEspecial(
+    @Body(new ZodValidationPipe(OperacionEspecialSchema)) dto: z.infer<typeof OperacionEspecialSchema>,
+    @CurrentUser() user: JwtAccessPayload,
+  ) {
+    const { tenantId, dbUrl } = getCurrentTenant()
+    return this.svc.emitirOperacionEspecial(dto, user, tenantId, dbUrl)
   }
 
   @Get('contingencia/status')

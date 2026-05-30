@@ -8,7 +8,7 @@ import {
   EyeOutlined, PrinterOutlined, StopOutlined, FileTextOutlined,
   CheckCircleOutlined, ClockCircleOutlined, ReloadOutlined, SearchOutlined,
   DollarOutlined, CalculatorOutlined, FileDoneOutlined, WarningOutlined,
-  FileExcelOutlined, RollbackOutlined,
+  FileExcelOutlined, RollbackOutlined, FundOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
@@ -72,6 +72,8 @@ export default function SalesPage() {
   const [invalidarForm] = Form.useForm()
   const [retornoModal, setRetornoModal] = useState<any>(null)
   const [retornoForm] = Form.useForm()
+  const [opEspecialModal, setOpEspecialModal] = useState<any>(null)
+  const [opEspecialForm] = Form.useForm()
 
   const params: Record<string, any> = { companyId, page }
   if (dateRange?.[0]) params.from = dateRange[0].startOf('day').toISOString()
@@ -100,6 +102,19 @@ export default function SalesPage() {
       setAnularReason('')
     },
     onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error al anular'),
+  })
+
+  const opEspecialMutation = useMutation({
+    mutationFn: (values: any) => api.post('/api/dte/operacion-especial', { ...values, saleId: opEspecialModal.id }),
+    onSuccess: (res) => {
+      if (res.data?.ok) message.success('Operacion Especial enviada a Hacienda')
+      else message.warning('Hacienda no acepto el evento de operacion especial')
+      qc.invalidateQueries({ queryKey: ['sales'] })
+      qc.invalidateQueries({ queryKey: ['sale-detail'] })
+      setOpEspecialModal(null)
+      opEspecialForm.resetFields()
+    },
+    onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error al emitir operacion especial'),
   })
 
   const retornoMutation = useMutation({
@@ -278,6 +293,14 @@ export default function SalesPage() {
           <Tooltip title="Imprimir ticket">
             <Button type="text" size="small" icon={<PrinterOutlined />} onClick={() => handlePrint(r)} />
           </Tooltip>
+          {['01', '03'].includes(r.tipoDte) && r.dteDocument?.status === 'ACCEPTED' && !r.dteDocument?.opEspecialCodigoGeneracion && (
+            <Tooltip title="Operacion Especial (Tipo 17)">
+              <Button
+                type="text" size="small" icon={<FundOutlined style={{ color: '#13c2c2' }} />}
+                onClick={() => { setOpEspecialModal(r); opEspecialForm.resetFields() }}
+              />
+            </Tooltip>
+          )}
           {r.tipoDte === '03' && r.dteDocument?.status === 'ACCEPTED' && !r.dteDocument?.retornoCodigoGeneracion && (
             <Tooltip title="Emitir Evento de Retorno (Tipo 18)">
               <Button
@@ -766,6 +789,95 @@ export default function SalesPage() {
           </Row>
         </Form>
       </Modal>
+      {/* ── Modal Operacion Especial (Tipo 17) ───────────────────────────── */}
+      <Modal
+        open={!!opEspecialModal}
+        title={<Space style={{ color: '#13c2c2' }}><FundOutlined />Operacion Especial (Tipo 17)</Space>}
+        onCancel={() => { setOpEspecialModal(null); opEspecialForm.resetFields() }}
+        onOk={() => opEspecialForm.submit()}
+        confirmLoading={opEspecialMutation.isPending}
+        okText="Enviar evento a Hacienda"
+        okButtonProps={{ style: { background: '#13c2c2', borderColor: '#13c2c2', borderRadius: 8, fontWeight: 600 } }}
+        cancelButtonProps={{ style: { borderRadius: 8 } }}
+        width={640}
+        destroyOnClose
+        style={{ top: 40 }}
+      >
+        <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 14 }}>
+          Evento de operacion especial para el DTE{' '}
+          <Text strong>{opEspecialModal?.dteDocument?.numeroControl ?? opEspecialModal?.id?.substring(0, 8)}</Text>
+          {' '}por{' '}
+          <Text strong style={{ color: '#13c2c2' }}>
+            ${Number(opEspecialModal?.totalPagar ?? 0).toFixed(2)}
+          </Text>.
+        </Text>
+        <Form
+          form={opEspecialForm}
+          layout="vertical"
+          requiredMark={false}
+          onFinish={(values) => opEspecialMutation.mutate(values)}
+        >
+          <Form.Item
+            name="tipoOperacion"
+            label="Tipo de operacion especial (CAT-022)"
+            rules={[{ required: true, message: 'Seleccione tipo' }]}
+          >
+            <Select
+              style={{ borderRadius: 8 }}
+              options={[
+                { value: '01', label: '01 — Anticipo' },
+                { value: '02', label: '02 — Permuta' },
+                { value: '03', label: '03 — Retiro de bienes' },
+                { value: '04', label: '04 — Dacion en pago' },
+                { value: '05', label: '05 — Autoconsumo' },
+                { value: '99', label: '99 — Otro' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item
+            name="motivo"
+            label="Descripcion de la operacion"
+            rules={[{ required: true, min: 5, message: 'Describe la operacion especial' }]}
+          >
+            <Input.TextArea rows={3} placeholder="Ej. Anticipo recibido por servicio a ejecutar en enero..." style={{ borderRadius: 8 }} />
+          </Form.Item>
+          <Row gutter={12}>
+            <Col xs={24} md={12}>
+              <Form.Item name="nombreResponsable" label="Responsable" rules={[{ required: true, message: 'Requerido' }]}>
+                <Input style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col xs={10} md={6}>
+              <Form.Item name="tipDocResponsable" label="Tipo doc." rules={[{ required: true, message: 'Requerido' }]}>
+                <Select options={DOC_OPTIONS} />
+              </Form.Item>
+            </Col>
+            <Col xs={14} md={6}>
+              <Form.Item name="numDocResponsable" label="Documento" rules={[{ required: true, message: 'Requerido' }]}>
+                <Input style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col xs={24} md={12}>
+              <Form.Item name="nombreSolicita" label="Solicita" rules={[{ required: true, message: 'Requerido' }]}>
+                <Input style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col xs={10} md={6}>
+              <Form.Item name="tipDocSolicita" label="Tipo doc." rules={[{ required: true, message: 'Requerido' }]}>
+                <Select options={DOC_OPTIONS} />
+              </Form.Item>
+            </Col>
+            <Col xs={14} md={6}>
+              <Form.Item name="numDocSolicita" label="Documento" rules={[{ required: true, message: 'Requerido' }]}>
+                <Input style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
+
       {/* ── Modal Evento Retorno (Tipo 18) ────────────────────────────────── */}
       <Modal
         open={!!retornoModal}

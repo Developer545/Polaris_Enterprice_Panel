@@ -489,6 +489,14 @@ model DteDocument {
   retornoSelloRecibido         String?
   retornoMotivo                String?
   retornoAt                    DateTime?
+  // Evento Operaciones Especiales (Tipo 17) — DTE 2.0 — vigencia dic 2026
+  opEspecialCodigoGeneracion   String?
+  opEspecialJson               Json?
+  opEspecialJsonFirmado        String?
+  opEspecialSelloRecibido      String?
+  opEspecialTipoOperacion      String?  // CAT-022
+  opEspecialMotivo             String?
+  opEspecialAt                 DateTime?
   processedAt      DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt

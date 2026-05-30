@@ -5,6 +5,21 @@ export const DTE_NORMATIVE_EFFECTIVE_DATE = '2026-12-01'
 export const INVALIDATION_EVENT_VERSION = 3
 export const CONTINGENCY_EVENT_VERSION = 4
 export const RETORNO_EVENT_VERSION = 1
+export const OPERACION_ESPECIAL_EVENT_VERSION = 1
+
+/**
+ * CAT-022 Tipos de Operación Especial — DTE 2.0 (vigencia dic 2026)
+ */
+export const CAT_022_TIPO_OPERACION_ESPECIAL = {
+  '01': 'Anticipo',
+  '02': 'Permuta',
+  '03': 'Retiro de bienes',
+  '04': 'Dación en pago',
+  '05': 'Autoconsumo',
+  '99': 'Otro',
+} as const
+
+export type TipoOperacionEspecial = keyof typeof CAT_022_TIPO_OPERACION_ESPECIAL
 
 export const INVALIDATION_NEXT_MONTH_BUSINESS_DAY_TYPES = [
   '03',
