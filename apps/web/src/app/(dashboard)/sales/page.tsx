@@ -8,9 +8,11 @@ import {
   EyeOutlined, PrinterOutlined, StopOutlined, FileTextOutlined,
   CheckCircleOutlined, ClockCircleOutlined, ReloadOutlined, SearchOutlined,
   DollarOutlined, CalculatorOutlined, FileDoneOutlined, WarningOutlined,
+  FileExcelOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
+import { downloadXlsx } from '../../../lib/download-xlsx'
 import { useAppContext } from '../../../hooks/use-app-context'
 import dayjs from 'dayjs'
 import type { ColumnsType } from 'antd/es/table'
@@ -381,6 +383,19 @@ export default function SalesPage() {
               </Button>
             )}
           </Space>
+          <Button
+            icon={<FileExcelOutlined />}
+            style={{ color: '#217346', borderColor: '#217346' }}
+            onClick={async () => {
+              const xlsxParams: Record<string, any> = { companyId }
+              if (dateRange?.[0]) xlsxParams.from = dateRange[0].startOf('day').toISOString()
+              if (dateRange?.[1]) xlsxParams.to   = dateRange[1].endOf('day').toISOString()
+              const date = new Date().toISOString().slice(0, 10)
+              await downloadXlsx('/api/reports/sales', `reporte_ventas_${date}.xlsx`, xlsxParams)
+            }}
+          >
+            Exportar Excel
+          </Button>
         </div>
       </Card>
 

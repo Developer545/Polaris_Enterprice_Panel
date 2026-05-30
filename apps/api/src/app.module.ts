@@ -57,6 +57,7 @@ import { PayrollModule } from './modules/tenant/payroll/payroll.module'
 // Tenant — Phase 5
 import { InventoryModule } from './modules/tenant/inventory/inventory.module'
 import { AccountsReceivableModule } from './modules/tenant/accounts-receivable/accounts-receivable.module'
+import { ReportsModule } from './modules/tenant/reports/reports.module'
 
 // Tenant — Catalogs (global, read-only for tenant users)
 import { CatalogsModule } from './modules/tenant/catalogs/catalogs.module'
@@ -132,6 +133,7 @@ import { UploadModule } from './modules/tenant/upload/upload.module'
     // Tenant — Phase 5
     InventoryModule,
     AccountsReceivableModule,
+    ReportsModule,
 
     // Tenant — Catalogs (global read-only)
     CatalogsModule,

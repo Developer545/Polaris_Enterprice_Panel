@@ -1,5 +1,5 @@
 ﻿'use client'
-import { useState, useEffect, useDeferredValue } from 'react'
+import { useState, useEffect, useDeferredValue, useMemo } from 'react'
 import {
   Row, Col, Input, Button, Table, Select, Typography, Divider, Tag, Card,
   InputNumber, Modal, Form, Space, App, Empty, Spin, Badge, Segmented, Avatar, theme,
@@ -104,6 +104,63 @@ export default function PosPage() {
   const openRegister: any  = bootstrap?.openRegister ?? null
   const bootstrapCompany: any = bootstrap?.company ?? null
 
+  // Build PrintContext from lastSale data (recomputed only when lastSale/bootstrap change)
+  const printCtx: PrintContext | null = useMemo(() => {
+    const sale = lastSale?.saleData
+    if (!sale) return null
+    return {
+      sale: {
+        id: sale.id ?? '',
+        tipoDte: sale.tipoDte ?? '01',
+        createdAt: sale.createdAt ?? new Date().toISOString(),
+        totalGravada: sale.totalGravada ?? 0,
+        totalIva: sale.totalIva ?? 0,
+        totalPagar: sale.totalPagar ?? 0,
+        ivaRete1: sale.ivaRete1,
+        totalDescuento: sale.totalDescuento,
+        items: (sale.items ?? []).map((it: any) => ({
+          productName: it.product?.name ?? it.productName ?? '—',
+          quantity: it.quantity,
+          unitPrice: it.unitPrice,
+          discount: it.discount,
+          ventaGravada: it.ventaGravada,
+          ivaItem: it.ivaItem,
+        })),
+        payments: (sale.payments ?? []).map((p: any) => ({
+          formaPago: p.formaPago,
+          amount: p.amount,
+          reference: p.reference,
+        })),
+        client: sale.client ? {
+          name: sale.client.name,
+          numDocumento: sale.client.numDocumento,
+          nit: sale.client.nit,
+          nrc: sale.client.nrc,
+          email: sale.client.email,
+          address: sale.client.address,
+          actividadEconomica: sale.client.actividadEconomica,
+          actividadEconomicaCodigo: sale.client.actividadEconomicaCodigo,
+        } : null,
+        branch: sale.branch ? { name: sale.branch.name } : null,
+        dteDocument: sale.dteDocument ?? null,
+      },
+      company: bootstrapCompany ? {
+        name: bootstrapCompany.name,
+        comercialName: bootstrapCompany.comercialName,
+        nit: bootstrapCompany.nit,
+        nrc: bootstrapCompany.nrc,
+        address: bootstrapCompany.address,
+        phone: bootstrapCompany.phone,
+        email: bootstrapCompany.email,
+        actividadEconomica: bootstrapCompany.actividadEconomica,
+      } : { name: 'POS DTE' },
+      branchName: sale.branch?.name ?? openRegister?.branch?.name ?? '',
+      cashierName: (window as any).user?.name ?? '',
+      amountPaid: lastSale?.amountPaid,
+      change: lastSale?.change,
+    }
+  }, [lastSale, bootstrapCompany, openRegister])
+
   // ── Products: usa iniciales del bootstrap ó búsqueda/filtro reactiva ──
   const hasFilter = !!deferredProductSearch || !!selectedCategory
   const { data: filteredProducts = [], isFetching: searchingProducts } = useQuery({
@@ -139,7 +196,7 @@ export default function PosPage() {
     }
   }, [tipoDte])
 
-  // Barcode scanner â€” auto-search and add product to cart
+  // Barcode scanner â€" auto-search and add product to cart
   useBarcodeScanner(async (barcode) => {
     if (!companyId) return
     try {
@@ -189,7 +246,7 @@ export default function PosPage() {
 
       if (isElectron) {
         const paymentLabel = FORMA_PAGO.find(f => f.value === variables.payments?.[0]?.formaPago)?.label ?? 'Efectivo'
-        const saleNumber = response.data?.saleNumber ?? response.data?.id ?? 'â€”'
+        const saleNumber = response.data?.saleNumber ?? response.data?.id ?? 'â€"'
 
         const receiptPayload = {
           businessName: (window as any).user?.company?.name ?? (window as any).user?.tenant?.name ?? 'POS DTE',
@@ -372,7 +429,7 @@ export default function PosPage() {
     },
   ]
 
-  // â”€â”€ Client panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â"€â"€ Client panel â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   const modeOptions = [
     { label: <span style={{ fontSize: 12 }}><IdcardOutlined style={{ marginRight: 4 }} />CF</span>, value: 'cf', disabled: tipoDte === '03' },
     { label: <span style={{ fontSize: 12 }}><UserAddOutlined style={{ marginRight: 4 }} />Nuevo</span>, value: 'nuevo' },
@@ -437,7 +494,7 @@ export default function PosPage() {
               {selectedClient.name}
             </div>
             <div style={{ fontSize: 11, color: '#999' }}>
-              {selectedClient.numDocumento ?? selectedClient.email ?? 'â€”'}
+              {selectedClient.numDocumento ?? selectedClient.email ?? 'â€"'}
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end', flexShrink: 0 }}>
@@ -496,7 +553,7 @@ export default function PosPage() {
   return (
     <div style={{ height: 'calc(100vh - 112px)', display: 'flex', gap: 16 }}>
 
-      {/* â”€â”€ Left: product browser â”€â”€ */}
+      {/* â"€â"€ Left: product browser â"€â"€ */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, gap: 8 }}>
 
         {/* Top bar */}
@@ -663,7 +720,7 @@ export default function PosPage() {
         </div>
       </div>
 
-      {/* â”€â”€ Right: cart + client + totals â”€â”€ */}
+      {/* â"€â"€ Right: cart + client + totals â"€â"€ */}
       <div style={{ width: 340, display: 'flex', flexDirection: 'column', gap: 10 }}>
 
         {/* Cart */}
@@ -735,7 +792,7 @@ export default function PosPage() {
         {/* Register status */}
         <Card size="small" style={{ borderRadius: 10 }} styles={{ body: { padding: '8px 12px' } }}>
           {openRegister
-            ? <Badge status="success" text={<span style={{ fontSize: 12 }}>Caja abierta â€” {openRegister.openedBy?.name ?? 'â€”'}</span>} />
+            ? <Badge status="success" text={<span style={{ fontSize: 12 }}>Caja abierta â€" {openRegister.openedBy?.name ?? 'â€"'}</span>} />
             : <Badge status="error" text={<span style={{ fontSize: 12 }}>Sin caja abierta en esta sucursal</span>} />
           }
         </Card>
@@ -800,95 +857,27 @@ export default function PosPage() {
           </span>
         }
       >
-        {lastSale && (() => {
-          const sale = lastSale.saleData
-          const ctx: PrintContext = {
-            sale: {
-              id: sale?.id ?? '',
-              tipoDte: sale?.tipoDte ?? '01',
-              createdAt: sale?.createdAt ?? new Date().toISOString(),
-              totalGravada: sale?.totalGravada ?? 0,
-              totalIva: sale?.totalIva ?? 0,
-              totalPagar: sale?.totalPagar ?? 0,
-              ivaRete1: sale?.ivaRete1,
-              totalDescuento: sale?.totalDescuento,
-              items: (sale?.items ?? []).map((it: any) => ({
-                productName: it.product?.name ?? it.productName ?? '—',
-                quantity: it.quantity,
-                unitPrice: it.unitPrice,
-                discount: it.discount,
-                ventaGravada: it.ventaGravada,
-                ivaItem: it.ivaItem,
-              })),
-              payments: (sale?.payments ?? []).map((p: any) => ({
-                formaPago: p.formaPago,
-                amount: p.amount,
-                reference: p.reference,
-              })),
-              client: sale?.client ? {
-                name: sale.client.name,
-                numDocumento: sale.client.numDocumento,
-                nit: sale.client.nit,
-                nrc: sale.client.nrc,
-                email: sale.client.email,
-                address: sale.client.address,
-                actividadEconomica: sale.client.actividadEconomica,
-                actividadEconomicaCodigo: sale.client.actividadEconomicaCodigo,
-              } : null,
-              branch: sale?.branch ? { name: sale.branch.name } : null,
-              dteDocument: sale?.dteDocument ?? null,
-            },
-            company: bootstrapCompany ? {
-              name: bootstrapCompany.name,
-              comercialName: bootstrapCompany.tradeName,
-              nit: bootstrapCompany.nit,
-              nrc: bootstrapCompany.nrc,
-              address: bootstrapCompany.address,
-              phone: bootstrapCompany.phone,
-              email: bootstrapCompany.email,
-              actividadEconomica: bootstrapCompany.actividadEconomica,
-            } : { name: 'POS DTE' },
-            branchName: sale?.branch?.name ?? openRegister?.branch?.name ?? '',
-            cashierName: (window as any).user?.name ?? '',
-            amountPaid: lastSale.amountPaid,
-            change: lastSale.change,
-          }
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '8px 0' }}>
-              <div style={{ fontSize: 13, color: '#666', textAlign: 'center', marginBottom: 4 }}>
-                Venta registrada. Selecciona formato de impresión:
-              </div>
-              <Button
-                type=”primary”
-                size=”large”
-                block
-                icon={<PrinterOutlined />}
-                style={{ borderRadius: 8, fontWeight: 600 }}
-                onClick={() => { printTicket80mm(ctx); setPrintModal(false) }}
-              >
-                Ticket 80mm (Caja)
-              </Button>
-              <Button
-                size=”large”
-                block
-                icon={<PrinterOutlined />}
-                style={{ borderRadius: 8, fontWeight: 600 }}
-                onClick={() => { printCartaA4(ctx); setPrintModal(false) }}
-              >
-                Carta A4 (Original)
-              </Button>
-              <Button
-                size=”large”
-                block
-                type=”text”
-                style={{ borderRadius: 8, color: '#999' }}
-                onClick={() => { setPrintModal(false); setLastSale(null) }}
-              >
-                Omitir
-              </Button>
+        {printCtx && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '8px 0' }}>
+            <div style={{ fontSize: 13, color: '#666', textAlign: 'center', marginBottom: 4 }}>
+              Venta registrada. Selecciona formato de impresion:
             </div>
-          )
-        })()}
+            <Button type="primary" size="large" block icon={<PrinterOutlined />}
+              style={{ borderRadius: 8, fontWeight: 600 }}
+              onClick={() => { printTicket80mm(printCtx); setPrintModal(false) }}>
+              Ticket 80mm (Caja)
+            </Button>
+            <Button size="large" block icon={<PrinterOutlined />}
+              style={{ borderRadius: 8, fontWeight: 600 }}
+              onClick={() => { printCartaA4(printCtx); setPrintModal(false) }}>
+              Carta A4 (Original)
+            </Button>
+            <Button size="large" block type="text" style={{ borderRadius: 8, color: '#999' }}
+              onClick={() => { setPrintModal(false); setLastSale(null) }}>
+              Omitir
+            </Button>
+          </div>
+        )}
       </Modal>
 
       {/* ── Payment modal ── */}
@@ -896,7 +885,7 @@ export default function PosPage() {
         open={payModal}
         title={
           <span>
-            Registrar pago â€”{' '}
+            Registrar pago â€"{' '}
             {clientMode === 'cf' && 'Consumidor Final'}
             {clientMode === 'nuevo' && newClientName}
             {clientMode === 'registrado' && selectedClient?.name}

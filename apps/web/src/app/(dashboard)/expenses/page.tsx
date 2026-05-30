@@ -8,8 +8,10 @@ import {
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined,
   DollarOutlined, CalendarOutlined, SearchOutlined, SettingOutlined, TagOutlined,
+  FileExcelOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { downloadXlsx } from '../../../lib/download-xlsx'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
 import dayjs from 'dayjs'
@@ -278,6 +280,19 @@ export default function ExpensesPage() {
         </div>
         <Space>
           <Button icon={<ReloadOutlined />} onClick={() => qc.invalidateQueries({ queryKey: ['expenses-all'] })} />
+          <Button
+            icon={<FileExcelOutlined />}
+            style={{ color: '#217346', borderColor: '#217346' }}
+            onClick={async () => {
+              const xlsxParams: Record<string, any> = { companyId }
+              if (dateRange?.[0]) xlsxParams.from = dateRange[0].startOf('day').toISOString()
+              if (dateRange?.[1]) xlsxParams.to   = dateRange[1].endOf('day').toISOString()
+              const date = new Date().toISOString().slice(0, 10)
+              await downloadXlsx('/api/reports/expenses', `reporte_gastos_${date}.xlsx`, xlsxParams)
+            }}
+          >
+            Excel
+          </Button>
           <Button icon={<SettingOutlined />} onClick={() => setDrawerOpen(true)}>Categorías</Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}
             style={{ background: token.colorPrimary, borderRadius: 8, fontWeight: 600 }}>

@@ -17,12 +17,13 @@ import {
   ArrowDownOutlined, SlidersOutlined, DollarOutlined,
   FilterOutlined, HistoryOutlined, EditOutlined,
   SearchOutlined, ShoppingOutlined, SwapOutlined, InboxOutlined,
-  BarcodeOutlined, SendOutlined,
+  BarcodeOutlined, SendOutlined, FileExcelOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
 import { useBarcodeScanner } from '../../../hooks/use-barcode-scanner'
+import { downloadXlsx } from '../../../lib/download-xlsx'
 import dayjs from 'dayjs'
 import type { ColumnsType } from 'antd/es/table'
 
@@ -170,12 +171,8 @@ export default function InventoryPage() {
   })
 
   // ── Barcode scanner integration ────────────────────────────────────────────
-  useBarcodeScanner({
-    enabled: scannerActive && adjustModal,
-    minLength: 3,
-    maxInterval: 60,
-    ignoreWhenFocusIn: ['INPUT:not([data-scanner-target])', 'TEXTAREA'],
-    onScan: (barcode) => {
+  useBarcodeScanner(
+    (barcode: string) => {
       const allProducts = productsQ.data ?? []
       const found = allProducts.find(
         (p: any) => p.barcode === barcode || p.sku === barcode,
@@ -188,7 +185,13 @@ export default function InventoryPage() {
         message.warning(`Código no encontrado: ${barcode}`)
       }
     },
-  })
+    {
+      enabled: scannerActive && adjustModal,
+      minLength: 3,
+      maxInterval: 60,
+      ignoreWhenFocusIn: ['INPUT', 'TEXTAREA'],
+    },
+  )
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const adjustMutation = useMutation({
@@ -610,6 +613,16 @@ export default function InventoryPage() {
           <Tooltip title="Recargar">
             <Button icon={<ReloadOutlined />} onClick={invalidateAll} />
           </Tooltip>
+          <Button
+            icon={<FileExcelOutlined />}
+            style={{ color: '#217346', borderColor: '#217346' }}
+            onClick={async () => {
+              const date = new Date().toISOString().slice(0, 10)
+              await downloadXlsx('/api/reports/inventory', `reporte_inventario_${date}.xlsx`, { companyId })
+            }}
+          >
+            Exportar Excel
+          </Button>
           <Button icon={<SendOutlined />} onClick={openTransfer}>Transferir</Button>
           <Button type="primary" icon={<SwapOutlined />} onClick={() => openAdjust(undefined)}>
             Ajustar stock
