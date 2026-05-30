@@ -11,13 +11,23 @@ export const AdjustStockSchema = z.object({
   branchId:   z.string().cuid().optional(),
   productId:  z.string().cuid(),
   type:       z.enum(['IN', 'OUT', 'ADJUST']),
-  quantity:   z.number().int().nonnegative(),
+  quantity:   z.number().nonnegative(),
   unitCost:   z.number().nonnegative().optional(),
   reference:  z.string().max(100).optional(),
   reason:     z.string().min(2).max(500),
 })
 
-export type AdjustStockDto = z.infer<typeof AdjustStockSchema>
+export const TransferStockSchema = z.object({
+  companyId:    z.string().cuid(),
+  productId:    z.string().cuid(),
+  fromBranchId: z.string().cuid(),
+  toBranchId:   z.string().cuid(),
+  quantity:     z.number().positive(),
+  reason:       z.string().min(2).max(500),
+})
+
+export type AdjustStockDto    = z.infer<typeof AdjustStockSchema>
+export type TransferStockDto  = z.infer<typeof TransferStockSchema>
 
 @Injectable()
 export class InventoryService {
@@ -305,6 +315,90 @@ export class InventoryService {
         }))
         .sort((a, b) => b.stock - a.stock),
     }))
+  }
+
+  // ─── Transferencia entre sucursales ──────────────────────────────────────
+
+  async transfer(dto: TransferStockDto, user: JwtAccessPayload) {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
+
+    if (dto.fromBranchId === dto.toBranchId) {
+      throw new BadRequestException('La sucursal origen y destino deben ser distintas')
+    }
+
+    // Validate both branches belong to company
+    const [fromBranch, toBranch] = await Promise.all([
+      db.branch.findFirst({ where: { id: dto.fromBranchId, tenantId, companyId: dto.companyId, isActive: true }, select: { id: true, name: true } }),
+      db.branch.findFirst({ where: { id: dto.toBranchId,   tenantId, companyId: dto.companyId, isActive: true }, select: { id: true, name: true } }),
+    ])
+    if (!fromBranch) throw new BadRequestException('Sucursal origen no encontrada')
+    if (!toBranch)   throw new BadRequestException('Sucursal destino no encontrada')
+
+    // Branch users can only transfer OUT from their own branches
+    assertBranchAccess(user, dto.fromBranchId)
+
+    const product = await db.service.findFirst({
+      where: { id: dto.productId, tenantId, companyId: dto.companyId, trackStock: true },
+    })
+    if (!product) throw new NotFoundException('Producto no encontrado o no maneja inventario')
+
+    return db.$transaction(async (tx) => {
+      // Get/init origin BranchInventory
+      const initialStockFrom = await this.getInitialBranchStock(tx, tenantId, dto.companyId, product)
+      const fromInv = await tx.branchInventory.upsert({
+        where:  { tenantId_branchId_productId: { tenantId, branchId: dto.fromBranchId, productId: dto.productId } },
+        update: {},
+        create: { tenantId, companyId: dto.companyId, branchId: dto.fromBranchId, productId: dto.productId, stock: initialStockFrom, minStock: product.minStock },
+        select: { id: true, stock: true },
+      })
+
+      const fromCurrent = Number(fromInv.stock)
+      if (fromCurrent < dto.quantity) {
+        throw new BadRequestException(`Stock insuficiente en ${fromBranch.name} (disponible: ${fromCurrent})`)
+      }
+      const fromNew = fromCurrent - dto.quantity
+
+      // Get/init destination BranchInventory
+      const toInv = await tx.branchInventory.upsert({
+        where:  { tenantId_branchId_productId: { tenantId, branchId: dto.toBranchId, productId: dto.productId } },
+        update: {},
+        create: { tenantId, companyId: dto.companyId, branchId: dto.toBranchId, productId: dto.productId, stock: 0, minStock: product.minStock },
+        select: { id: true, stock: true },
+      })
+      const toCurrent = Number(toInv.stock)
+      const toNew = toCurrent + dto.quantity
+
+      const reason = `Transferencia: ${fromBranch.name} → ${toBranch.name} — ${dto.reason}`
+
+      // Update both inventories and create 2 movement records
+      const [, , movOut, movIn] = await Promise.all([
+        tx.branchInventory.update({ where: { id: fromInv.id }, data: { stock: new Decimal(fromNew) } }),
+        tx.branchInventory.update({ where: { id: toInv.id   }, data: { stock: new Decimal(toNew)  } }),
+        tx.inventoryMovement.create({
+          data: {
+            tenantId, companyId: dto.companyId, branchId: dto.fromBranchId, productId: dto.productId,
+            userId: user.sub, type: 'TRANSFER',
+            quantity: new Decimal(dto.quantity), quantityBefore: new Decimal(fromCurrent), quantityAfter: new Decimal(fromNew),
+            reason,
+          },
+        }),
+        tx.inventoryMovement.create({
+          data: {
+            tenantId, companyId: dto.companyId, branchId: dto.toBranchId, productId: dto.productId,
+            userId: user.sub, type: 'TRANSFER',
+            quantity: new Decimal(dto.quantity), quantityBefore: new Decimal(toCurrent), quantityAfter: new Decimal(toNew),
+            reason,
+          },
+        }),
+      ])
+
+      // Sync global stock on Service
+      await this.syncGlobalStock(tx, tenantId, dto.companyId, dto.productId, fromNew + toNew)
+
+      return { ok: true, fromBranch: fromBranch.name, toBranch: toBranch.name, quantity: dto.quantity, movOut, movIn }
+    })
   }
 
   // ─── Ajuste manual ────────────────────────────────────────────────────────

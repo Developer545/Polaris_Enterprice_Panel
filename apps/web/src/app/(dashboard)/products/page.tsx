@@ -10,6 +10,7 @@ import {
   AppstoreOutlined, DollarOutlined, TagsOutlined, WarningOutlined,
   DeleteOutlined, CheckOutlined, CloseOutlined, ScissorOutlined,
 } from '@ant-design/icons'
+// Note: WarningOutlined kept for KPI icon
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
@@ -72,7 +73,6 @@ export default function ProductsPage() {
   // product state
   const [search, setSearch]       = useState('')
   const [catFilter, setCatFilter] = useState<string | undefined>()
-  const [onlyLow, setOnlyLow]     = useState(false)
   const [page, setPage]           = useState(1)
   const PAGE_LIMIT                = 50
   const [editProd, setEditProd]   = useState<any>(null)
@@ -109,7 +109,7 @@ export default function ProductsPage() {
   })
 
   const { data: productsResp, isLoading } = useQuery<{ data: any[]; total: number; page: number; limit: number }>({
-    queryKey: ['products', companyId, page, search, catFilter, onlyLow],
+    queryKey: ['products', companyId, page, search, catFilter],
     queryFn: () =>
       api.get('/api/products', {
         params: {
@@ -117,23 +117,14 @@ export default function ProductsPage() {
           page, limit: PAGE_LIMIT,
           search: search || undefined,
           categoryId: catFilter || undefined,
-          lowStock: onlyLow || undefined,
         },
       }).then(r => r.data),
     enabled: !!companyId,
-    placeholderData: (prev) => prev, // keep previous data visible while loading new page
+    placeholderData: (prev) => prev,
   })
 
   const products  = productsResp?.data  ?? []
   const totalProds = productsResp?.total ?? 0
-
-  // ── KPI (current page — approximate; full stats in owner dashboard) ───────
-  const valorInventario = products.reduce(
-    (a, p) => a + (p.trackStock ? Number(p.stock ?? 0) * Number(p.cost ?? 0) : 0), 0,
-  )
-  const stockBajoCount = products.filter(
-    p => p.trackStock && Number(p.stock ?? 0) <= Number(p.minStock ?? 0),
-  ).length
 
   const filtered = products // filtering is now server-side
 
@@ -279,17 +270,12 @@ export default function ProductsPage() {
       render: (v: any) => <Text type="secondary" style={{ fontSize: 12 }}>${Number(v ?? 0).toFixed(2)}</Text>,
     },
     {
-      title: 'Stock', key: 'stock', width: 90, align: 'center',
-      render: (r: any) => {
-        if (!r.trackStock) return <Tag style={{ fontSize: 10, borderRadius: 6 }}>N/A</Tag>
-        const low = Number(r.stock ?? 0) <= Number(r.minStock ?? 0)
-        return (
-          <Tag color={low ? 'error' : 'success'} icon={low ? <WarningOutlined style={{ fontSize: 10 }} /> : undefined}
-            style={{ fontWeight: 700, borderRadius: 6, fontSize: 12 }}>
-            {Number(r.stock ?? 0).toFixed(0)}
-          </Tag>
-        )
-      },
+      title: 'Inventario', key: 'inventario', width: 100, align: 'center',
+      render: (r: any) => (
+        <Tag color={r.trackStock ? 'blue' : 'default'} style={{ fontSize: 10, borderRadius: 6 }}>
+          {r.trackStock ? 'Controlado' : 'N/A'}
+        </Tag>
+      ),
     },
     {
       key: 'actions', width: 80, fixed: 'right', align: 'center',
@@ -320,17 +306,18 @@ export default function ProductsPage() {
     },
   ]
 
+  const withStock = products.filter(p => p.trackStock).length
   const kpis = [
-    { title: 'Total productos',  value: products.length,              color: token.colorPrimary, icon: <AppstoreOutlined /> },
-    { title: 'Valor inventario', value: `$${valorInventario.toFixed(2)}`, color: '#52c41a',      icon: <DollarOutlined />   },
-    { title: 'Categorías',       value: categories.length,            color: '#722ed1',          icon: <TagsOutlined />     },
-    { title: 'Stock bajo',       value: stockBajoCount,               color: token.colorError,   icon: <WarningOutlined />  },
+    { title: 'Total productos',      value: totalProds,         color: token.colorPrimary, icon: <AppstoreOutlined /> },
+    { title: 'Con control de stock', value: withStock,          color: '#1677ff',          icon: <WarningOutlined />  },
+    { title: 'Categorías',           value: categories.length,  color: '#722ed1',          icon: <TagsOutlined />     },
+    { title: 'Precio prom.',         value: `$${products.length ? (products.reduce((a, p) => a + Number(p.price ?? 0), 0) / products.length).toFixed(2) : '0.00'}`, color: '#52c41a', icon: <DollarOutlined /> },
   ]
 
   const openNewProd = () => {
     setEditProd({})
     prodForm.resetFields()
-    prodForm.setFieldsValue({ tipoItem: '1', uniMedida: 59, trackStock: false, cost: 0, fraccionable: false, conversionFactor: 1 })
+    prodForm.setFieldsValue({ tipoItem: '1', uniMedida: 59, trackStock: false, cost: 0, fraccionable: false, conversionFactor: 1, price: 0 })
   }
 
   return (
@@ -338,7 +325,7 @@ export default function ProductsPage() {
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <Typography.Title level={4} style={{ margin: '0 0 2px', fontWeight: 700 }}>Productos</Typography.Title>
-        <Text type="secondary" style={{ fontSize: 13 }}>Catálogo de productos — precios, unidades, categorías e inventario</Text>
+        <Text type="secondary" style={{ fontSize: 13 }}>Catálogo de productos — precios, unidades y categorías. El stock se gestiona en Inventario.</Text>
       </div>
 
       {/* KPIs */}
@@ -367,14 +354,6 @@ export default function ProductsPage() {
               allowClear style={{ width: 240, borderRadius: 8 }} />
             <Select placeholder="Categoría" allowClear value={catFilter} onChange={v => { setCatFilter(v); setPage(1) }}
               style={{ width: 160 }} options={categories.map(c => ({ value: c.id, label: c.name }))} />
-            <Button icon={<WarningOutlined />} type={onlyLow ? 'primary' : 'default'} onClick={() => { setOnlyLow(v => !v); setPage(1) }}
-              style={onlyLow ? { background: token.colorError, borderColor: token.colorError, color: '#fff', borderRadius: 8 } : { borderRadius: 8 }}>
-              Stock bajo{stockBajoCount > 0 && (
-                <span style={{ marginLeft: 6, background: onlyLow ? 'rgba(255,255,255,0.3)' : token.colorError, color: '#fff', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 700 }}>
-                  {stockBajoCount}
-                </span>
-              )}
-            </Button>
           </Space>
           <Space size={8}>
             <Tooltip title="Recargar"><Button icon={<ReloadOutlined />} onClick={() => { qc.invalidateQueries({ queryKey: ['products'] }); qc.invalidateQueries({ queryKey: ['categories'] }); qc.invalidateQueries({ queryKey: ['units'] }) }} /></Tooltip>
@@ -399,7 +378,7 @@ export default function ProductsPage() {
             style: { padding: '8px 16px' },
           }}
           style={{ borderRadius: 12, overflow: 'hidden' }}
-          locale={{ emptyText: onlyLow ? 'Sin productos con stock bajo' : 'Sin productos registrados' }}
+          locale={{ emptyText: 'Sin productos registrados' }}
         />
       </Card>
 
@@ -497,26 +476,11 @@ export default function ProductsPage() {
           <Divider style={{ margin: '6px 0 14px' }} />
           <Row gutter={16}>
             <Col xs={24}>
-              <Form.Item name="trackStock" label="Controlar inventario" valuePropName="checked" style={{ marginBottom: 14 }}>
+              <Form.Item name="trackStock" label="Controlar inventario" valuePropName="checked" style={{ marginBottom: 14 }}
+                tooltip="Activa el control de existencias para este producto. El stock se gestiona desde el módulo Inventario.">
                 <Switch checkedChildren="Sí" unCheckedChildren="No" />
               </Form.Item>
             </Col>
-            <Form.Item noStyle shouldUpdate={(p, c) => p.trackStock !== c.trackStock}>
-              {({ getFieldValue }) => getFieldValue('trackStock') && (
-                <Row gutter={16} style={{ width: '100%', padding: '0 8px' }}>
-                  <Col xs={12}>
-                    <Form.Item name="stock" label="Stock inicial" style={{ marginBottom: 14 }}>
-                      <InputNumber min={0} style={{ width: '100%', borderRadius: 8 }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={12}>
-                    <Form.Item name="minStock" label="Stock mínimo de alerta" style={{ marginBottom: 14 }}>
-                      <InputNumber min={0} style={{ width: '100%', borderRadius: 8 }} />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              )}
-            </Form.Item>
           </Row>
 
           <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Unidades de medida</Text>

@@ -306,8 +306,8 @@ model Service {
   uniMedida   Int       @default(59)   // catálogo MH — 59=Unidad
   // Inventory
   trackStock       Boolean  @default(false)
-  stock            Int      @default(0)
-  minStock         Int      @default(0)
+  stock            Decimal  @default(0) @db.Decimal(12, 4)
+  minStock         Decimal  @default(0) @db.Decimal(12, 4)
   // Units / Fractions (barber-pro pattern)
   purchaseUnit     String?  // unidad de compra: "Galón", "Caja", "Libra"
   saleUnitId       String?
@@ -836,8 +836,8 @@ model BranchInventory {
   branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
   productId String
   product   Service  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  stock     Int      @default(0)
-  minStock  Int      @default(0)
+  stock     Decimal  @default(0) @db.Decimal(12, 4)
+  minStock  Decimal  @default(0) @db.Decimal(12, 4)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

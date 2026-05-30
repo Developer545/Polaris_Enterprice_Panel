@@ -21,8 +21,8 @@ export const CreateProductSchema = z.object({
   uniMedida: z.number().int().default(59),
   // Stock
   trackStock: z.boolean().default(false),
-  stock:      z.number().int().nonnegative().optional().default(0),
-  minStock:   z.number().int().nonnegative().optional().default(0),
+  stock:      z.number().nonnegative().optional().default(0),
+  minStock:   z.number().nonnegative().optional().default(0),
   // Units / Fractions
   purchaseUnit:     z.string().max(50).optional().nullable(),
   saleUnitId:       z.string().cuid().optional().nullable(),

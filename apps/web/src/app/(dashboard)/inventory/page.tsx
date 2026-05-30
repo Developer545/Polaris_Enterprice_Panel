@@ -1,26 +1,28 @@
 'use client'
 
 // ══════════════════════════════════════════════════════════════════════════════
-// INVENTARIO — Tab: Productos + Kardex general
-// KPIs | Tabla productos con stock | Drawer kardex por producto
-// Modal ajuste ENTRADA/SALIDA/AJUSTE | Modal edición rápida producto
+// INVENTARIO — Tab: Stock por sucursal + Kardex general
+// KPIs | Tabla productos con stock | Drawer kardex | Modal ajuste | Modal transferencia
+// Scanner de código de barras integrado para búsqueda rápida de producto
 // ══════════════════════════════════════════════════════════════════════════════
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import {
   Table, Button, Tag, Typography, Modal, Form, Select, InputNumber, Input,
   App, Row, Col, Statistic, Card, Space, Tabs, Badge, Tooltip, theme,
-  DatePicker, Progress, Drawer, Switch, Popconfirm,
+  DatePicker, Progress, Drawer, Popconfirm, Alert,
 } from 'antd'
 import {
   PlusOutlined, ReloadOutlined, WarningOutlined, ArrowUpOutlined,
-  ArrowDownOutlined, SlidersOutlined, DollarOutlined, AppstoreOutlined,
-  FilterOutlined, HistoryOutlined, EditOutlined, DeleteOutlined,
-  SearchOutlined, ShoppingOutlined, TagsOutlined, SwapOutlined, InboxOutlined,
+  ArrowDownOutlined, SlidersOutlined, DollarOutlined,
+  FilterOutlined, HistoryOutlined, EditOutlined,
+  SearchOutlined, ShoppingOutlined, SwapOutlined, InboxOutlined,
+  BarcodeOutlined, SendOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
+import { useBarcodeScanner } from '../../../hooks/use-barcode-scanner'
 import dayjs from 'dayjs'
 import type { ColumnsType } from 'antd/es/table'
 
@@ -58,10 +60,10 @@ function stockStatus(actual: number, minimo: number): 'success' | 'exception' | 
 // ── Movement config ───────────────────────────────────────────────────────────
 
 const MOV_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  IN:       { label: 'Entrada',  color: 'success', icon: <ArrowUpOutlined />   },
-  OUT:      { label: 'Salida',   color: 'error',   icon: <ArrowDownOutlined /> },
-  ADJUST:   { label: 'Ajuste',   color: 'warning', icon: <SlidersOutlined />   },
-  TRANSFER: { label: 'Transfer', color: 'blue',    icon: <SwapOutlined />      },
+  IN:       { label: 'Entrada',      color: 'success', icon: <ArrowUpOutlined />   },
+  OUT:      { label: 'Salida',       color: 'error',   icon: <ArrowDownOutlined /> },
+  ADJUST:   { label: 'Ajuste',       color: 'warning', icon: <SlidersOutlined />   },
+  TRANSFER: { label: 'Transferencia', color: 'blue',   icon: <SwapOutlined />      },
 }
 
 const AJUSTE_OPTIONS = [
@@ -84,8 +86,8 @@ export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState<'productos' | 'kardex'>('productos')
 
   // ── Products tab filters ───────────────────────────────────────────────────
-  const [search, setSearch]           = useState('')
-  const [filterCat, setFilterCat]     = useState<string | undefined>()
+  const [search, setSearch]               = useState('')
+  const [filterCat, setFilterCat]         = useState<string | undefined>()
   const [soloStockBajo, setSoloStockBajo] = useState(false)
 
   // ── Kardex tab filters ─────────────────────────────────────────────────────
@@ -103,10 +105,18 @@ export default function InventoryPage() {
   const [adjustForm] = Form.useForm()
   const movType = Form.useWatch('type', adjustForm)
 
+  // ── Transfer modal ─────────────────────────────────────────────────────────
+  const [transferModal, setTransferModal] = useState(false)
+  const [transferForm]                    = Form.useForm()
+
   // ── Edit modal ─────────────────────────────────────────────────────────────
   const [editModal, setEditModal]   = useState(false)
   const [editTarget, setEditTarget] = useState<any>(null)
   const [editForm] = Form.useForm()
+
+  // ── Barcode scanner state ──────────────────────────────────────────────────
+  const [scannerActive, setScannerActive] = useState(false)
+  const searchInputRef = useRef<any>(null)
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const statsQ = useQuery({
@@ -115,15 +125,23 @@ export default function InventoryPage() {
     enabled:  !!companyId,
   })
 
+  // Products query: fetch all (large limit), server returns { data, total, page, limit }
   const productsQ = useQuery<any[]>({
-    queryKey: ['products', companyId, branchId],
-    queryFn:  () => api.get('/api/products', { params: { companyId, branchId } }).then(r => r.data),
+    queryKey: ['products', companyId, branchId, 'inventory'],
+    queryFn:  () => api.get('/api/products', { params: { companyId, branchId, limit: 500 } }).then(r => r.data?.data ?? r.data),
     enabled:  !!companyId,
   })
 
   const categoriesQ = useQuery<any[]>({
     queryKey: ['categories', companyId],
     queryFn:  () => api.get('/api/categories', { params: { companyId } }).then(r => r.data),
+    enabled:  !!companyId,
+  })
+
+  // Branches (for transfer modal)
+  const branchesQ = useQuery<any[]>({
+    queryKey: ['branches', companyId],
+    queryFn:  () => api.get('/api/branches', { params: { companyId } }).then(r => r.data),
     enabled:  !!companyId,
   })
 
@@ -151,6 +169,27 @@ export default function InventoryPage() {
     enabled:  !!companyId && !!kardexProduct && kardexDrawerOpen,
   })
 
+  // ── Barcode scanner integration ────────────────────────────────────────────
+  useBarcodeScanner({
+    enabled: scannerActive && adjustModal,
+    minLength: 3,
+    maxInterval: 60,
+    ignoreWhenFocusIn: ['INPUT:not([data-scanner-target])', 'TEXTAREA'],
+    onScan: (barcode) => {
+      const allProducts = productsQ.data ?? []
+      const found = allProducts.find(
+        (p: any) => p.barcode === barcode || p.sku === barcode,
+      )
+      if (found) {
+        adjustForm.setFieldValue('productId', found.id)
+        setAdjustTarget(found)
+        message.success(`Producto: ${found.name}`)
+      } else {
+        message.warning(`Código no encontrado: ${barcode}`)
+      }
+    },
+  })
+
   // ── Mutations ──────────────────────────────────────────────────────────────
   const adjustMutation = useMutation({
     mutationFn: (values: any) => api.post('/api/inventory/adjust', { ...values, companyId, branchId }),
@@ -164,6 +203,19 @@ export default function InventoryPage() {
       adjustForm.resetFields()
     },
     onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error al registrar'),
+  })
+
+  const transferMutation = useMutation({
+    mutationFn: (values: any) => api.post('/api/inventory/transfer', { ...values, companyId }),
+    onSuccess: (data: any) => {
+      message.success(`Transferencia realizada: ${data.quantity} unidades de ${data.fromBranch} → ${data.toBranch}`)
+      qc.invalidateQueries({ queryKey: ['inventory-movements'] })
+      qc.invalidateQueries({ queryKey: ['inventory-stats'] })
+      qc.invalidateQueries({ queryKey: ['products'] })
+      setTransferModal(false)
+      transferForm.resetFields()
+    },
+    onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error en transferencia'),
   })
 
   const editMutation = useMutation({
@@ -189,9 +241,10 @@ export default function InventoryPage() {
   })
 
   // ── Computed ───────────────────────────────────────────────────────────────
-  const stats      = statsQ.data ?? {}
+  const stats       = statsQ.data ?? {}
   const allProducts = productsQ.data ?? []
   const categories  = categoriesQ.data ?? []
+  const branches    = branchesQ.data ?? []
   const movements   = movQ.data?.data ?? movQ.data ?? []
   const kardexItems = kardexQ.data?.data ?? kardexQ.data ?? []
 
@@ -233,7 +286,14 @@ export default function InventoryPage() {
     } else {
       adjustForm.setFieldsValue({ type: 'IN' })
     }
+    setScannerActive(true)
     setAdjustModal(true)
+  }
+
+  function openTransfer() {
+    transferForm.resetFields()
+    if (branchId) transferForm.setFieldValue('fromBranchId', branchId)
+    setTransferModal(true)
   }
 
   function openEdit(product: any) {
@@ -258,7 +318,7 @@ export default function InventoryPage() {
   // ── KPIs ──────────────────────────────────────────────────────────────────
   const kpis = [
     {
-      title:  'Total productos',
+      title:  'Productos en stock',
       value:  stats.totalProductos ?? allProducts.filter((p: any) => p.trackStock).length,
       color:  primary,
       icon:   <ShoppingOutlined />,
@@ -308,21 +368,21 @@ export default function InventoryPage() {
               <div style={{ fontWeight: 600, fontSize: 13, lineHeight: '18px' }}>{r.name}</div>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
                 {r.category && (
-                  <Tag
-                    color={r.category.color ?? undefined}
-                    style={{ fontSize: 10, margin: 0, lineHeight: '16px' }}
-                  >
+                  <Tag color={r.category.color ?? undefined} style={{ fontSize: 10, margin: 0, lineHeight: '16px' }}>
                     {r.category.name}
                   </Tag>
                 )}
                 {fraccionable && (
-                  <Tag color="cyan" style={{ fontSize: 10, margin: 0, lineHeight: '16px' }}>
-                    Fraccionable
-                  </Tag>
+                  <Tag color="cyan" style={{ fontSize: 10, margin: 0, lineHeight: '16px' }}>Fraccionable</Tag>
                 )}
                 {r.sku && (
                   <code style={{ fontSize: 10, background: token.colorFillSecondary, padding: '1px 4px', borderRadius: 3 }}>
                     {r.sku}
+                  </code>
+                )}
+                {r.barcode && (
+                  <code style={{ fontSize: 10, background: token.colorFillSecondary, padding: '1px 4px', borderRadius: 3, color: token.colorTextSecondary }}>
+                    <BarcodeOutlined style={{ marginRight: 2 }} />{r.barcode}
                   </code>
                 )}
               </div>
@@ -344,11 +404,8 @@ export default function InventoryPage() {
         return (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-              <Text style={{
-                fontSize: 13, fontWeight: 600,
-                color: status === 'exception' ? '#cf1322' : primary,
-              }}>
-                {stock.toFixed(0)} {unitLabel}
+              <Text style={{ fontSize: 13, fontWeight: 600, color: status === 'exception' ? '#cf1322' : primary }}>
+                {stock % 1 === 0 ? stock.toFixed(0) : stock.toFixed(2)} {unitLabel}
               </Text>
               {status === 'exception' && (
                 <Tooltip title={`Mínimo: ${min}`}>
@@ -357,24 +414,13 @@ export default function InventoryPage() {
               )}
             </div>
             <Progress
-              percent={pct}
-              status={status}
-              size="small"
-              showInfo={false}
-              strokeColor={
-                status === 'exception' ? '#ff4d4f'
-                : status === 'normal'  ? '#faad14'
-                : primary
-              }
+              percent={pct} status={status} size="small" showInfo={false}
+              strokeColor={status === 'exception' ? '#ff4d4f' : status === 'normal' ? '#faad14' : primary}
               trailColor={token.colorFillSecondary}
             />
             <Text style={{ fontSize: 10, color: token.colorTextSecondary }}>
-              Mín: {min.toFixed(0)} {unitLabel}
-              {inCompra && (
-                <span style={{ marginLeft: 6 }}>
-                  · {inCompra} {r.purchaseUnit}
-                </span>
-              )}
+              Mín: {min % 1 === 0 ? min.toFixed(0) : min.toFixed(2)} {unitLabel}
+              {inCompra && <span style={{ marginLeft: 6 }}>· {inCompra} {r.purchaseUnit}</span>}
             </Text>
           </div>
         )
@@ -398,10 +444,10 @@ export default function InventoryPage() {
       ),
     },
     {
-      key: 'actions', title: 'Acciones', width: 140, fixed: 'right' as const,
+      key: 'actions', title: 'Acciones', width: 160, fixed: 'right' as const,
       render: (_: any, r: any) => (
         <Space size={4}>
-          <Tooltip title="Editar producto">
+          <Tooltip title="Editar min. stock">
             <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} />
           </Tooltip>
           <Tooltip title="Kardex / Movimientos">
@@ -410,16 +456,24 @@ export default function InventoryPage() {
           <Tooltip title="Ajustar stock">
             <Button size="small" icon={<SwapOutlined />} onClick={() => openAdjust(r)} />
           </Tooltip>
+          <Tooltip title="Transferir a otra sucursal">
+            <Button size="small" icon={<SendOutlined />} onClick={() => {
+              transferForm.resetFields()
+              transferForm.setFieldsValue({
+                productId:    r.id,
+                fromBranchId: branchId || undefined,
+              })
+              setTransferModal(true)
+            }} />
+          </Tooltip>
           <Popconfirm
             title="¿Desactivar producto?"
             description="El producto quedará inactivo."
             onConfirm={() => deactivateMutation.mutate(r.id)}
-            okText="Sí, desactivar"
-            cancelText="Cancelar"
-            okButtonProps={{ danger: true }}
+            okText="Sí, desactivar" cancelText="Cancelar" okButtonProps={{ danger: true }}
           >
             <Tooltip title="Desactivar">
-              <Button size="small" icon={<DeleteOutlined />} danger />
+              <Button size="small" danger icon={<FilterOutlined />} />
             </Tooltip>
           </Popconfirm>
         </Space>
@@ -431,9 +485,7 @@ export default function InventoryPage() {
   const kardexCols: ColumnsType<any> = [
     {
       title: 'Fecha', dataIndex: 'createdAt', width: 140,
-      render: (v: string) => (
-        <Text style={{ fontSize: 12 }}>{dayjs(v).format('DD/MM/YY HH:mm')}</Text>
-      ),
+      render: (v: string) => <Text style={{ fontSize: 12 }}>{dayjs(v).format('DD/MM/YY HH:mm')}</Text>,
     },
     {
       title: 'Producto', key: 'producto',
@@ -449,14 +501,15 @@ export default function InventoryPage() {
       ),
     },
     {
-      title: 'Tipo', dataIndex: 'type', width: 115,
+      title: 'Sucursal', dataIndex: ['branch', 'name'], width: 130,
+      responsive: ['lg'] as any,
+      render: (v: string) => <Text style={{ fontSize: 12 }}>{v ?? '—'}</Text>,
+    },
+    {
+      title: 'Tipo', dataIndex: 'type', width: 130,
       render: (t: string) => {
         const m = MOV_CONFIG[t] ?? { label: t, color: 'default', icon: null }
-        return (
-          <Tag color={m.color} icon={m.icon} style={{ borderRadius: 6, fontWeight: 600 }}>
-            {m.label}
-          </Tag>
-        )
+        return <Tag color={m.color} icon={m.icon} style={{ borderRadius: 6, fontWeight: 600 }}>{m.label}</Tag>
       },
     },
     {
@@ -473,34 +526,26 @@ export default function InventoryPage() {
       render: (v: any, r: any) => {
         const esSalida = r.type === 'OUT'
         return (
-          <Text style={{
-            color: esSalida ? token.colorError : token.colorSuccess,
-            fontWeight: 700, fontSize: 13, fontVariantNumeric: 'tabular-nums',
-          }}>
+          <Text style={{ color: esSalida ? token.colorError : token.colorSuccess, fontWeight: 700, fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>
             {esSalida ? '−' : '+'}{Number(v).toFixed(2)}
           </Text>
         )
       },
     },
     {
-      title: 'Stock ant. → nuevo', key: 'delta', width: 150,
-      responsive: ['lg'] as any,
+      title: 'Stock ant. → nuevo', key: 'delta', width: 150, responsive: ['lg'] as any,
       render: (_: any, r: any) => (
         <Space size={4}>
           <Text type="secondary" style={{ fontSize: 11 }}>{Number(r.quantityBefore ?? 0).toFixed(0)}</Text>
           <Text type="secondary">→</Text>
-          <Text strong style={{
-            fontSize: 12,
-            color: Number(r.quantityAfter) < Number(r.quantityBefore) ? '#cf1322' : primary,
-          }}>
+          <Text strong style={{ fontSize: 12, color: Number(r.quantityAfter) < Number(r.quantityBefore) ? '#cf1322' : primary }}>
             {Number(r.quantityAfter ?? 0).toFixed(0)}
           </Text>
         </Space>
       ),
     },
     {
-      title: 'Usuario', dataIndex: ['user', 'name'], width: 115,
-      responsive: ['md'] as any,
+      title: 'Usuario', dataIndex: ['user', 'name'], width: 115, responsive: ['md'] as any,
       render: (v: string) => <Text style={{ fontSize: 12 }}>{v ?? '—'}</Text>,
     },
   ]
@@ -508,14 +553,10 @@ export default function InventoryPage() {
   // ── Columns — Per-product kardex ───────────────────────────────────────────
   const kardexProductCols: ColumnsType<any> = [
     {
-      title: 'Tipo', dataIndex: 'type', width: 110,
+      title: 'Tipo', dataIndex: 'type', width: 130,
       render: (t: string) => {
         const m = MOV_CONFIG[t] ?? { label: t, color: 'default', icon: null }
-        return (
-          <Tag color={m.color} icon={m.icon} style={{ borderRadius: 6, fontWeight: 600, fontSize: 11 }}>
-            {m.label}
-          </Tag>
-        )
+        return <Tag color={m.color} icon={m.icon} style={{ borderRadius: 6, fontWeight: 600, fontSize: 11 }}>{m.label}</Tag>
       },
     },
     {
@@ -532,10 +573,7 @@ export default function InventoryPage() {
       render: (v: any, r: any) => {
         const esSalida = r.type === 'OUT'
         return (
-          <Text style={{
-            fontVariantNumeric: 'tabular-nums', fontSize: 12,
-            color: esSalida ? '#cf1322' : '#389e0d', fontWeight: 600,
-          }}>
+          <Text style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12, color: esSalida ? '#cf1322' : '#389e0d', fontWeight: 600 }}>
             {esSalida ? '−' : '+'}{Math.abs(Number(v))}
           </Text>
         )
@@ -547,21 +585,15 @@ export default function InventoryPage() {
         <Space size={4}>
           <Text type="secondary" style={{ fontSize: 11 }}>{Number(r.quantityBefore ?? 0).toFixed(0)}</Text>
           <Text type="secondary">→</Text>
-          <Text strong style={{
-            fontSize: 12,
-            color: Number(r.quantityAfter) < Number(r.quantityBefore) ? '#cf1322' : primary,
-          }}>
+          <Text strong style={{ fontSize: 12, color: Number(r.quantityAfter) < Number(r.quantityBefore) ? '#cf1322' : primary }}>
             {Number(r.quantityAfter ?? 0).toFixed(0)}
           </Text>
         </Space>
       ),
     },
     {
-      title: 'Fecha', dataIndex: 'createdAt', width: 130,
-      responsive: ['md'] as any,
-      render: (v: string) => (
-        <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(v).format('DD/MM/YY HH:mm')}</Text>
-      ),
+      title: 'Fecha', dataIndex: 'createdAt', width: 130, responsive: ['md'] as any,
+      render: (v: string) => <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(v).format('DD/MM/YY HH:mm')}</Text>,
     },
   ]
 
@@ -572,16 +604,14 @@ export default function InventoryPage() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
         <div>
           <Typography.Title level={4} style={{ margin: '0 0 2px', fontWeight: 700 }}>Inventario</Typography.Title>
-          <Text type="secondary" style={{ fontSize: 13 }}>Control de stock y movimientos de productos</Text>
+          <Text type="secondary" style={{ fontSize: 13 }}>Control de stock, movimientos y transferencias entre sucursales</Text>
         </div>
         <Space wrap>
           <Tooltip title="Recargar">
             <Button icon={<ReloadOutlined />} onClick={invalidateAll} />
           </Tooltip>
-          <Button
-            icon={<SwapOutlined />}
-            onClick={() => openAdjust(undefined)}
-          >
+          <Button icon={<SendOutlined />} onClick={openTransfer}>Transferir</Button>
+          <Button type="primary" icon={<SwapOutlined />} onClick={() => openAdjust(undefined)}>
             Ajustar stock
           </Button>
         </Space>
@@ -591,14 +621,7 @@ export default function InventoryPage() {
       <Row gutter={[14, 14]} style={{ marginBottom: 20 }}>
         {kpis.map(k => (
           <Col xs={12} sm={12} md={6} key={k.title}>
-            <Card
-              size="small"
-              style={{
-                borderRadius: 12, border: 'none',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
-                borderTop: `3px solid ${k.color}`,
-              }}
-            >
+            <Card size="small" style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 12px rgba(0,0,0,0.07)', borderTop: `3px solid ${k.color}` }}>
               <Statistic
                 title={<Text style={{ fontSize: 12, color: token.colorTextSecondary }}>{k.title}</Text>}
                 value={k.value}
@@ -611,15 +634,9 @@ export default function InventoryPage() {
       </Row>
 
       {/* Tabs */}
-      <Card
-        size="small"
-        style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}
-        styles={{ body: { padding: '0 16px 16px' } }}
-      >
-        <Tabs
-          activeKey={activeTab}
-          onChange={k => setActiveTab(k as any)}
-          size="small"
+      <Card size="small" style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}
+        styles={{ body: { padding: '0 16px 16px' } }}>
+        <Tabs activeKey={activeTab} onChange={k => setActiveTab(k as any)} size="small"
           items={[
             {
               key: 'productos',
@@ -627,9 +644,7 @@ export default function InventoryPage() {
                 <Space>
                   <ShoppingOutlined />
                   {`Productos (${allProducts.filter((p: any) => p.trackStock).length})`}
-                  {stockBajoCount > 0 && (
-                    <Badge count={stockBajoCount} style={{ backgroundColor: token.colorError }} />
-                  )}
+                  {stockBajoCount > 0 && <Badge count={stockBajoCount} style={{ backgroundColor: token.colorError }} />}
                 </Space>
               ),
               children: (
@@ -638,83 +653,79 @@ export default function InventoryPage() {
                   <Row gutter={[8, 8]} align="middle" style={{ marginBottom: 14, marginTop: 8 }}>
                     <Col flex="1">
                       <Input
+                        ref={searchInputRef}
                         prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
+                        suffix={
+                          <Tooltip title={scannerActive ? 'Scanner activo — escanea para buscar' : 'Activar scanner de código de barras'}>
+                            <BarcodeOutlined
+                              onClick={() => setScannerActive(v => !v)}
+                              style={{ color: scannerActive ? primary : token.colorTextQuaternary, cursor: 'pointer', fontSize: 16 }}
+                            />
+                          </Tooltip>
+                        }
                         placeholder="Buscar producto, SKU o código de barras..."
-                        allowClear
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        style={{ maxWidth: 340 }}
+                        allowClear value={search} onChange={e => setSearch(e.target.value)}
+                        style={{ maxWidth: 360 }}
                       />
                     </Col>
                     <Col>
-                      <Select
-                        placeholder="Categoría"
-                        allowClear
-                        style={{ width: 160 }}
-                        value={filterCat}
-                        onChange={setFilterCat}
+                      <Select placeholder="Categoría" allowClear style={{ width: 160 }}
+                        value={filterCat} onChange={setFilterCat}
                         options={categories.map((c: any) => ({ value: c.id, label: c.name }))}
                       />
                     </Col>
                     <Col>
                       <Space size={6}>
-                        <Switch size="small" checked={soloStockBajo} onChange={setSoloStockBajo} />
-                        <Text style={{ fontSize: 12 }}>
-                          Solo stock bajo
-                          {stockBajoCount > 0 && (
-                            <span style={{ marginLeft: 4, color: '#ff4d4f', fontWeight: 600 }}>
-                              ({stockBajoCount})
-                            </span>
-                          )}
-                        </Text>
+                        <Button
+                          type={soloStockBajo ? 'primary' : 'default'}
+                          icon={<WarningOutlined />}
+                          onClick={() => setSoloStockBajo(v => !v)}
+                          danger={soloStockBajo}
+                          size="small"
+                        >
+                          Stock bajo {stockBajoCount > 0 && `(${stockBajoCount})`}
+                        </Button>
                       </Space>
                     </Col>
                   </Row>
 
+                  {/* Scanner active banner */}
+                  {scannerActive && (
+                    <Alert
+                      type="info"
+                      icon={<BarcodeOutlined />}
+                      showIcon
+                      message="Scanner activo — escanea un código de barras para abrir el ajuste de ese producto"
+                      style={{ marginBottom: 12, borderRadius: 8 }}
+                      closable
+                      onClose={() => setScannerActive(false)}
+                    />
+                  )}
+
                   {/* Stock bajo alert */}
                   {stockBajoCount > 0 && !soloStockBajo && (
-                    <div style={{
-                      background: '#fff1f0', border: '1px solid #ffccc7',
-                      borderRadius: 8, padding: '8px 14px', marginBottom: 12,
-                      display: 'flex', alignItems: 'center', gap: 8,
-                    }}>
+                    <div style={{ background: '#fff1f0', border: '1px solid #ffccc7', borderRadius: 8, padding: '8px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <WarningOutlined style={{ color: '#ff4d4f' }} />
                       <Text style={{ color: '#cf1322', fontSize: 13 }}>
                         {stockBajoCount} {stockBajoCount === 1 ? 'producto tiene' : 'productos tienen'} stock por debajo del mínimo.{' '}
                       </Text>
-                      <button
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: primary, fontWeight: 600, fontSize: 13, padding: 0 }}
-                        onClick={() => setSoloStockBajo(true)}
-                      >
+                      <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: primary, fontWeight: 600, fontSize: 13, padding: 0 }}
+                        onClick={() => setSoloStockBajo(true)}>
                         Ver productos
                       </button>
                     </div>
                   )}
 
-                  <Table
-                    size="small"
-                    columns={productCols}
-                    dataSource={stockProducts}
-                    rowKey="id"
-                    loading={productsQ.isLoading}
-                    scroll={{ x: 900 }}
-                    rowClassName={(r: any) =>
-                      Number(r.stock ?? 0) <= Number(r.minStock ?? 0) ? 'ant-table-row-danger' : ''
-                    }
-                    pagination={{
-                      pageSize: 15,
-                      showSizeChanger: true,
-                      pageSizeOptions: ['15', '30', '50'],
-                      showTotal: (t, range) => `${range[0]}–${range[1]} de ${t} productos`,
-                    }}
+                  <Table size="small" columns={productCols} dataSource={stockProducts} rowKey="id"
+                    loading={productsQ.isLoading} scroll={{ x: 900 }}
+                    rowClassName={(r: any) => Number(r.stock ?? 0) <= Number(r.minStock ?? 0) ? 'ant-table-row-danger' : ''}
+                    pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['20', '50', '100'], showTotal: (t, range) => `${range[0]}–${range[1]} de ${t} productos` }}
                     locale={{
                       emptyText: (
                         <div style={{ padding: 48, textAlign: 'center' }}>
                           <InboxOutlined style={{ fontSize: 36, color: token.colorTextDisabled }} />
                           <div style={{ marginTop: 10, color: token.colorTextSecondary }}>
-                            {soloStockBajo
-                              ? 'No hay productos con stock bajo'
-                              : 'Sin productos con control de stock. Activa "Llevar control de stock" en el módulo Productos.'}
+                            {soloStockBajo ? 'No hay productos con stock bajo' : 'Sin productos con control de stock. Activa "Controlar inventario" en el módulo Productos.'}
                           </div>
                         </div>
                       ),
@@ -725,57 +736,28 @@ export default function InventoryPage() {
             },
             {
               key: 'kardex',
-              label: (
-                <Space>
-                  <HistoryOutlined />
-                  Kardex general
-                </Space>
-              ),
+              label: <Space><HistoryOutlined />Kardex general</Space>,
               children: (
                 <>
-                  {/* Filtros */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 12, marginTop: 8 }}>
-                    <Select
-                      placeholder="Tipo de movimiento"
-                      allowClear
-                      style={{ width: 170 }}
-                      value={filterType}
-                      onChange={setFilterType}
+                    <Select placeholder="Tipo de movimiento" allowClear style={{ width: 180 }}
+                      value={filterType} onChange={setFilterType}
                       options={Object.entries(MOV_CONFIG).map(([k, v]) => ({ value: k, label: v.label }))}
                     />
-                    <Select
-                      placeholder="Producto"
-                      allowClear showSearch
-                      optionFilterProp="label"
-                      style={{ width: 220 }}
-                      value={filterProduct}
-                      onChange={setFilterProduct}
+                    <Select placeholder="Producto" allowClear showSearch optionFilterProp="label" style={{ width: 220 }}
+                      value={filterProduct} onChange={setFilterProduct}
                       options={allProducts.map((p: any) => ({ value: p.id, label: p.name }))}
                     />
-                    <RangePicker
-                      value={dateRange}
-                      onChange={v => setDateRange(v as any)}
-                      format="DD/MM/YY"
-                      placeholder={['Desde', 'Hasta']}
-                      style={{ borderRadius: 8 }}
-                    />
+                    <RangePicker value={dateRange} onChange={v => setDateRange(v as any)}
+                      format="DD/MM/YY" placeholder={['Desde', 'Hasta']} style={{ borderRadius: 8 }} />
                     {(filterType || filterProduct || dateRange) && (
-                      <Button
-                        size="small"
-                        onClick={() => { setFilterType(undefined); setFilterProduct(undefined); setDateRange(null) }}
-                      >
+                      <Button size="small" onClick={() => { setFilterType(undefined); setFilterProduct(undefined); setDateRange(null) }}>
                         Limpiar
                       </Button>
                     )}
                   </div>
-
-                  <Table
-                    size="small"
-                    columns={kardexCols}
-                    dataSource={movements}
-                    rowKey="id"
-                    loading={movQ.isLoading}
-                    scroll={{ x: 900 }}
+                  <Table size="small" columns={kardexCols} dataSource={movements} rowKey="id"
+                    loading={movQ.isLoading} scroll={{ x: 900 }}
                     pagination={{ pageSize: 30, showTotal: t => `${t} movimientos`, showSizeChanger: false }}
                     locale={{ emptyText: 'Sin movimientos en el período seleccionado' }}
                   />
@@ -790,48 +772,26 @@ export default function InventoryPage() {
           Drawer: Kardex por producto
       ══════════════════════════════════════════════════════ */}
       <Drawer
-        title={
-          <Space>
-            <HistoryOutlined style={{ color: primary }} />
-            <span>Kardex: {kardexProduct?.name ?? 'Producto'}</span>
-          </Space>
-        }
-        open={kardexDrawerOpen}
-        onClose={() => { setKardexDrawerOpen(false); setKardexProduct(null) }}
+        title={<Space><HistoryOutlined style={{ color: primary }} /><span>Kardex: {kardexProduct?.name ?? 'Producto'}</span></Space>}
+        open={kardexDrawerOpen} onClose={() => { setKardexDrawerOpen(false); setKardexProduct(null) }}
         width={700}
         extra={
           kardexProduct && (
-            <Button
-              size="small"
-              icon={<SwapOutlined />}
-              onClick={() => {
-                setKardexDrawerOpen(false)
-                openAdjust(kardexProduct)
-              }}
-            >
+            <Button size="small" icon={<SwapOutlined />} onClick={() => { setKardexDrawerOpen(false); openAdjust(kardexProduct) }}>
               Ajustar stock
             </Button>
           )
         }
         destroyOnClose
       >
-        {/* Product summary card */}
         {kardexProduct && (
-          <Card
-            size="small"
-            style={{ marginBottom: 16, background: `${primary}12`, border: `1px solid ${primary}30` }}
-          >
+          <Card size="small" style={{ marginBottom: 16, background: `${primary}12`, border: `1px solid ${primary}30` }}>
             <Row gutter={[16, 8]}>
               <Col span={6}>
                 <div style={{ fontSize: 11, color: token.colorTextSecondary }}>Stock actual</div>
-                <div style={{
-                  fontWeight: 700, fontSize: 18,
-                  color: Number(kardexProduct.stock ?? 0) <= Number(kardexProduct.minStock ?? 0) ? '#cf1322' : primary,
-                }}>
-                  {Number(kardexProduct.stock ?? 0).toFixed(0)}
-                  <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 4 }}>
-                    {kardexProduct.saleUnit?.symbol ?? kardexProduct.saleUnit?.name ?? ''}
-                  </span>
+                <div style={{ fontWeight: 700, fontSize: 18, color: Number(kardexProduct.stock ?? 0) <= Number(kardexProduct.minStock ?? 0) ? '#cf1322' : primary }}>
+                  {Number(kardexProduct.stock ?? 0) % 1 === 0 ? Number(kardexProduct.stock ?? 0).toFixed(0) : Number(kardexProduct.stock ?? 0).toFixed(2)}
+                  <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 4 }}>{kardexProduct.saleUnit?.symbol ?? kardexProduct.saleUnit?.name ?? ''}</span>
                 </div>
                 {Number(kardexProduct.conversionFactor ?? 1) > 1 && (
                   <div style={{ fontSize: 10, color: token.colorTextSecondary }}>
@@ -841,42 +801,23 @@ export default function InventoryPage() {
               </Col>
               <Col span={6}>
                 <div style={{ fontSize: 11, color: token.colorTextSecondary }}>Mínimo</div>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>
-                  {Number(kardexProduct.minStock ?? 0).toFixed(0)}
-                </div>
+                <div style={{ fontWeight: 600, fontSize: 15 }}>{Number(kardexProduct.minStock ?? 0).toFixed(0)}</div>
               </Col>
               <Col span={6}>
                 <div style={{ fontSize: 11, color: token.colorTextSecondary }}>Costo</div>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>
-                  ${Number(kardexProduct.cost ?? 0).toFixed(2)}
-                </div>
+                <div style={{ fontWeight: 600, fontSize: 15 }}>${Number(kardexProduct.cost ?? 0).toFixed(2)}</div>
               </Col>
               <Col span={6}>
                 <div style={{ fontSize: 11, color: token.colorTextSecondary }}>Precio venta</div>
-                <div style={{ fontWeight: 700, fontSize: 15, color: primary }}>
-                  ${Number(kardexProduct.price ?? 0).toFixed(2)}
-                </div>
+                <div style={{ fontWeight: 700, fontSize: 15, color: primary }}>${Number(kardexProduct.price ?? 0).toFixed(2)}</div>
               </Col>
             </Row>
           </Card>
         )}
-
-        <Table
-          size="small"
-          columns={kardexProductCols}
-          dataSource={kardexItems}
-          rowKey="id"
-          loading={kardexQ.isLoading}
-          scroll={{ x: 600 }}
+        <Table size="small" columns={kardexProductCols} dataSource={kardexItems} rowKey="id"
+          loading={kardexQ.isLoading} scroll={{ x: 600 }}
           pagination={{ pageSize: 15, showTotal: t => `${t} movimientos`, showSizeChanger: false }}
-          locale={{
-            emptyText: (
-              <div style={{ padding: 32, textAlign: 'center', color: token.colorTextSecondary }}>
-                <HistoryOutlined style={{ fontSize: 28, color: token.colorTextDisabled }} />
-                <div style={{ marginTop: 8 }}>Sin movimientos registrados para este producto</div>
-              </div>
-            ),
-          }}
+          locale={{ emptyText: (<div style={{ padding: 32, textAlign: 'center', color: token.colorTextSecondary }}><HistoryOutlined style={{ fontSize: 28, color: token.colorTextDisabled }} /><div style={{ marginTop: 8 }}>Sin movimientos registrados para este producto</div></div>) }}
         />
       </Drawer>
 
@@ -885,72 +826,51 @@ export default function InventoryPage() {
       ══════════════════════════════════════════════════════ */}
       <Modal
         open={adjustModal}
-        title={
-          <Space>
-            <SwapOutlined style={{ color: primary }} />
-            <span>
-              {adjustTarget ? `Ajuste de stock — ${adjustTarget.name}` : 'Ajuste de stock'}
-            </span>
-          </Space>
-        }
-        onCancel={() => { setAdjustModal(false); adjustForm.resetFields() }}
+        title={<Space><SwapOutlined style={{ color: primary }} /><span>{adjustTarget ? `Ajustar stock — ${adjustTarget.name}` : 'Ajustar stock'}</span></Space>}
+        onCancel={() => { setAdjustModal(false); setScannerActive(false); adjustForm.resetFields() }}
         onOk={() => adjustForm.submit()}
         confirmLoading={adjustMutation.isPending}
-        okText="Confirmar"
-        okButtonProps={{ style: { borderRadius: 8, fontWeight: 600 } }}
+        okText="Confirmar" okButtonProps={{ style: { borderRadius: 8, fontWeight: 600 } }}
         cancelButtonProps={{ style: { borderRadius: 8 } }}
-        width={500}
-        style={{ top: 40 }}
-        destroyOnClose
+        width={500} style={{ top: 40 }} destroyOnClose
       >
-        {/* Product info card when pre-filled */}
         {adjustTarget && (
           <Card size="small" style={{ marginBottom: 14, background: token.colorFillAlter }}>
             <Row gutter={16}>
               <Col span={12}>
                 <div style={{ fontSize: 11, color: token.colorTextSecondary }}>Stock actual</div>
-                <div style={{
-                  fontWeight: 700, fontSize: 16,
-                  color: Number(adjustTarget.stock ?? 0) <= Number(adjustTarget.minStock ?? 0) ? '#cf1322' : primary,
-                }}>
-                  {Number(adjustTarget.stock ?? 0).toFixed(0)}
-                  <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 4 }}>
-                    {adjustTarget.saleUnit?.symbol ?? adjustTarget.saleUnit?.name ?? ''}
-                  </span>
+                <div style={{ fontWeight: 700, fontSize: 16, color: Number(adjustTarget.stock ?? 0) <= Number(adjustTarget.minStock ?? 0) ? '#cf1322' : primary }}>
+                  {Number(adjustTarget.stock ?? 0) % 1 === 0 ? Number(adjustTarget.stock ?? 0).toFixed(0) : Number(adjustTarget.stock ?? 0).toFixed(2)}
+                  <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 4 }}>{adjustTarget.saleUnit?.symbol ?? adjustTarget.saleUnit?.name ?? ''}</span>
                 </div>
               </Col>
               <Col span={12}>
                 <div style={{ fontSize: 11, color: token.colorTextSecondary }}>Stock mínimo</div>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>
-                  {Number(adjustTarget.minStock ?? 0).toFixed(0)}
-                </div>
+                <div style={{ fontWeight: 600, fontSize: 15 }}>{Number(adjustTarget.minStock ?? 0).toFixed(0)}</div>
               </Col>
             </Row>
           </Card>
         )}
 
-        <Form
-          form={adjustForm}
-          layout="vertical"
-          requiredMark={false}
-          onFinish={values => adjustMutation.mutate(values)}
-        >
+        <Alert
+          type="info"
+          icon={<BarcodeOutlined />}
+          showIcon
+          message="Puedes escanear el código de barras del producto para seleccionarlo automáticamente."
+          style={{ marginBottom: 14, borderRadius: 8, fontSize: 12 }}
+        />
+
+        <Form form={adjustForm} layout="vertical" requiredMark={false} onFinish={values => adjustMutation.mutate(values)}>
           {!adjustTarget && (
             <Form.Item name="productId" label="Producto" rules={[{ required: true }]} style={{ marginBottom: 14 }}>
-              <Select
-                showSearch
-                optionFilterProp="label"
-                placeholder="Buscar producto con stock..."
-                options={allProducts
-                  .filter((p: any) => p.trackStock)
-                  .map((p: any) => ({
-                    value: p.id,
-                    label: `${p.name}${p.sku ? ` (${p.sku})` : ''} — Stock: ${p.stock ?? 0}`,
-                  }))}
+              <Select showSearch optionFilterProp="label" placeholder="Buscar producto con stock..."
+                options={allProducts.filter((p: any) => p.trackStock).map((p: any) => ({
+                  value: p.id,
+                  label: `${p.name}${p.sku ? ` (${p.sku})` : ''} — Stock: ${Number(p.stock ?? 0).toFixed(0)}`,
+                }))}
               />
             </Form.Item>
           )}
-
           <Row gutter={16}>
             <Col xs={24} sm={12}>
               <Form.Item name="type" label="Tipo de movimiento" rules={[{ required: true }]} style={{ marginBottom: 14 }}>
@@ -961,10 +881,9 @@ export default function InventoryPage() {
               <Form.Item
                 name="quantity"
                 label={movType === 'ADJUST' ? 'Stock final (absoluto)' : 'Cantidad'}
-                rules={[{ required: true }]}
-                style={{ marginBottom: 14 }}
+                rules={[{ required: true }]} style={{ marginBottom: 14 }}
               >
-                <InputNumber min={0} precision={2} style={{ width: '100%' }} />
+                <InputNumber min={0} precision={4} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
@@ -978,16 +897,8 @@ export default function InventoryPage() {
               </Form.Item>
             </Col>
             <Col span={24}>
-              <Form.Item
-                name="reason"
-                label="Razón / descripción"
-                rules={[{ required: true, min: 2, message: 'Describe el motivo del movimiento' }]}
-                style={{ marginBottom: 0 }}
-              >
-                <Input.TextArea
-                  rows={2}
-                  placeholder="Ej: Compra a proveedor, devolución, conteo físico..."
-                />
+              <Form.Item name="reason" label="Razón / descripción" rules={[{ required: true, min: 2, message: 'Describe el motivo del movimiento' }]} style={{ marginBottom: 0 }}>
+                <Input.TextArea rows={2} placeholder="Ej: Compra a proveedor, devolución, conteo físico..." />
               </Form.Item>
             </Col>
           </Row>
@@ -995,32 +906,72 @@ export default function InventoryPage() {
       </Modal>
 
       {/* ══════════════════════════════════════════════════════
-          Modal: Editar producto (quick edit)
+          Modal: Transferencia entre sucursales
+      ══════════════════════════════════════════════════════ */}
+      <Modal
+        open={transferModal}
+        title={<Space><SendOutlined style={{ color: primary }} /><span>Transferir stock entre sucursales</span></Space>}
+        onCancel={() => { setTransferModal(false); transferForm.resetFields() }}
+        onOk={() => transferForm.submit()}
+        confirmLoading={transferMutation.isPending}
+        okText="Transferir" okButtonProps={{ style: { borderRadius: 8, fontWeight: 600 } }}
+        cancelButtonProps={{ style: { borderRadius: 8 } }}
+        width={520} style={{ top: 40 }} destroyOnClose
+      >
+        <Alert
+          type="warning"
+          message="El stock se descuenta de la sucursal origen y se agrega a la destino. Se registran 2 movimientos en el kardex."
+          style={{ marginBottom: 16, borderRadius: 8 }}
+        />
+        <Form form={transferForm} layout="vertical" requiredMark={false} onFinish={values => transferMutation.mutate(values)}>
+          <Form.Item name="productId" label="Producto" rules={[{ required: true }]} style={{ marginBottom: 14 }}>
+            <Select showSearch optionFilterProp="label" placeholder="Seleccionar producto con stock..."
+              options={allProducts.filter((p: any) => p.trackStock).map((p: any) => ({
+                value: p.id,
+                label: `${p.name}${p.sku ? ` (${p.sku})` : ''} — Stock total: ${Number(p.stock ?? 0).toFixed(0)}`,
+              }))}
+            />
+          </Form.Item>
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item name="fromBranchId" label="Sucursal origen" rules={[{ required: true }]} style={{ marginBottom: 14 }}>
+                <Select placeholder="Origen" options={branches.map((b: any) => ({ value: b.id, label: b.name }))} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="toBranchId" label="Sucursal destino" rules={[{ required: true }]} style={{ marginBottom: 14 }}>
+                <Select placeholder="Destino" options={branches.map((b: any) => ({ value: b.id, label: b.name }))} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="quantity" label="Cantidad a transferir" rules={[{ required: true, min: 0.0001 }]} style={{ marginBottom: 14 }}>
+                <InputNumber min={0.0001} precision={4} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Form.Item name="reason" label="Motivo de transferencia" rules={[{ required: true, min: 2 }]} style={{ marginBottom: 0 }}>
+                <Input.TextArea rows={2} placeholder="Ej: Desabastecimiento sucursal norte, redistribución mensual..." />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
+
+      {/* ══════════════════════════════════════════════════════
+          Modal: Editar producto (quick edit — min stock + precio)
       ══════════════════════════════════════════════════════ */}
       <Modal
         open={editModal}
-        title={
-          <Space>
-            <EditOutlined style={{ color: primary }} />
-            <span>Editar producto — {editTarget?.name}</span>
-          </Space>
-        }
+        title={<Space><EditOutlined style={{ color: primary }} /><span>Editar — {editTarget?.name}</span></Space>}
         onCancel={() => { setEditModal(false); editForm.resetFields() }}
         onOk={() => editForm.submit()}
         confirmLoading={editMutation.isPending}
-        okText="Guardar cambios"
-        okButtonProps={{ style: { borderRadius: 8, fontWeight: 600 } }}
+        okText="Guardar cambios" okButtonProps={{ style: { borderRadius: 8, fontWeight: 600 } }}
         cancelButtonProps={{ style: { borderRadius: 8 } }}
-        width={520}
-        style={{ top: 40 }}
-        destroyOnClose
+        width={520} style={{ top: 40 }} destroyOnClose
       >
-        <Form
-          form={editForm}
-          layout="vertical"
-          requiredMark={false}
-          onFinish={values => editMutation.mutate({ id: editTarget.id, data: values })}
-        >
+        <Form form={editForm} layout="vertical" requiredMark={false}
+          onFinish={values => editMutation.mutate({ id: editTarget.id, data: values })}>
           <Form.Item name="name" label="Nombre" rules={[{ required: true, min: 2 }]} style={{ marginBottom: 14 }}>
             <Input />
           </Form.Item>
@@ -1028,12 +979,8 @@ export default function InventoryPage() {
             <Input.TextArea rows={2} />
           </Form.Item>
           <Form.Item name="categoryId" label="Categoría" style={{ marginBottom: 14 }}>
-            <Select
-              allowClear showSearch
-              optionFilterProp="label"
-              placeholder="Sin categoría"
-              options={categories.map((c: any) => ({ value: c.id, label: c.name }))}
-            />
+            <Select allowClear showSearch optionFilterProp="label" placeholder="Sin categoría"
+              options={categories.map((c: any) => ({ value: c.id, label: c.name }))} />
           </Form.Item>
           <Row gutter={16}>
             <Col span={12}>
@@ -1047,8 +994,9 @@ export default function InventoryPage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="minStock" label="Stock mínimo" style={{ marginBottom: 0 }}>
-                <InputNumber min={0} precision={0} style={{ width: '100%' }} />
+              <Form.Item name="minStock" label="Stock mínimo de alerta" style={{ marginBottom: 0 }}
+                tooltip="Cantidad mínima antes de mostrar alerta de stock bajo">
+                <InputNumber min={0} precision={4} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
           </Row>

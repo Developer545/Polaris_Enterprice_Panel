@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Query } from '@nestjs/common'
-import { InventoryService, AdjustStockSchema } from './inventory.service'
+import { InventoryService, AdjustStockSchema, TransferStockSchema } from './inventory.service'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
 import { CurrentUser } from '../../../common/decorators/current-user.decorator'
@@ -82,5 +82,14 @@ export class InventoryController {
     @CurrentUser() user: JwtAccessPayload,
   ) {
     return this.svc.adjust(dto, user)
+  }
+
+  @Post('transfer')
+  @RequirePermissions(PERMISSIONS.INVENTORY_ADJUST)
+  transfer(
+    @Body(new ZodValidationPipe(TransferStockSchema)) dto: z.infer<typeof TransferStockSchema>,
+    @CurrentUser() user: JwtAccessPayload,
+  ) {
+    return this.svc.transfer(dto, user)
   }
 }
