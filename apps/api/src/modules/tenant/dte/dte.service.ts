@@ -89,6 +89,8 @@ export class DteService {
     tipoDte: string
     numeroControl: string
     dbUrl?: string
+    /** Presente solo cuando se re-emite un DTE marcado como CONTINGENCY */
+    contingencia?: { tipoContingencia: number; motivoContin: string }
   }) {
     const db = this.getDb(payload.dbUrl)
 
@@ -156,14 +158,15 @@ export class DteService {
       const codigoGeneracion = dteDoc.codigoGeneracion
       let dteJson: Record<string, unknown>
 
+      const contingencia = payload.contingencia
       if (payload.tipoDte === '01') {
-        dteJson = this.builder.buildCF(sale, company, branch, client, payload.numeroControl, codigoGeneracion) as Record<string, unknown>
+        dteJson = this.builder.buildCF(sale, company, branch, client, payload.numeroControl, codigoGeneracion, contingencia) as Record<string, unknown>
       } else if (payload.tipoDte === '03') {
-        dteJson = this.builder.buildCCF(sale, company, branch, client, payload.numeroControl, codigoGeneracion) as Record<string, unknown>
+        dteJson = this.builder.buildCCF(sale, company, branch, client, payload.numeroControl, codigoGeneracion, contingencia) as Record<string, unknown>
       } else if (payload.tipoDte === '05') {
-        dteJson = this.builder.buildNC(sale, company, branch, client, payload.numeroControl, codigoGeneracion) as Record<string, unknown>
+        dteJson = this.builder.buildNC(sale, company, branch, client, payload.numeroControl, codigoGeneracion, contingencia) as Record<string, unknown>
       } else if (payload.tipoDte === '06') {
-        dteJson = this.builder.buildND(sale, company, branch, client, payload.numeroControl, codigoGeneracion) as Record<string, unknown>
+        dteJson = this.builder.buildND(sale, company, branch, client, payload.numeroControl, codigoGeneracion, contingencia) as Record<string, unknown>
       } else {
         throw new Error(`Unsupported tipoDte: ${payload.tipoDte}`)
       }
@@ -236,9 +239,14 @@ export class DteService {
         where: { id: dteDoc.id },
         data: {
           status: shouldContingency ? 'CONTINGENCY' : 'ERROR',
+          // Persistir tipo de contingencia para re-emisión correcta con tipoModelo=2
+          ...(shouldContingency ? {
+            tipoContingenciaEmision: payload.contingencia?.tipoContingencia ?? 1,
+            motivoContingenciaEmision: payload.contingencia?.motivoContin ?? 'No disponibilidad del sistema del Ministerio de Hacienda',
+          } : {}),
           observaciones: [
             shouldContingency
-              ? 'Falla de comunicacion con MH. Emitir en contingencia: tipoModelo=2, tipoOperacion=2 y luego transmitir evento de contingencia.'
+              ? 'Falla de comunicacion con MH. DTE marcado para re-emision con tipoModelo=2 tras transmision del evento de contingencia.'
               : err.message,
           ],
           processedAt: new Date(),

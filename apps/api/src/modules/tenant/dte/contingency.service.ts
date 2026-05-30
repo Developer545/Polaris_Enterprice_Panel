@@ -238,7 +238,7 @@ export class ContingencyService {
 
       this.logger.log(`Evento de contingencia transmitido (sucursal ${branchId}) sello=${result.selloRecibido} docs=${docs.length}`)
 
-      // Evento aceptado → reintentar la emisión real de cada DTE (best-effort).
+      // Evento aceptado → reintentar la emisión real de cada DTE con tipoModelo=2 (best-effort).
       for (const doc of docs) {
         try {
           await this.dteService.emitFromQueue({
@@ -249,6 +249,14 @@ export class ContingencyService {
             tipoDte: doc.tipoDte,
             numeroControl: doc.numeroControl,
             dbUrl: scope.dbUrl,
+            // Re-emitir con tipoModelo=2 si se conoce el tipo de contingencia del DTE
+            contingencia: (doc as any).tipoContingenciaEmision ? {
+              tipoContingencia: (doc as any).tipoContingenciaEmision,
+              motivoContin: (doc as any).motivoContingenciaEmision ?? dto.motivoContingencia ?? 'No disponibilidad del sistema del Ministerio de Hacienda',
+            } : {
+              tipoContingencia: dto.tipoContingencia ?? CAT_005_TIPO_CONTINGENCIA.NO_DISPONIBILIDAD_MH,
+              motivoContin: dto.motivoContingencia ?? 'No disponibilidad del sistema del Ministerio de Hacienda',
+            },
           })
           base.reemitidos += 1
         } catch (err: any) {

@@ -15,9 +15,14 @@ type GeoAddress = {
   complemento: string
 }
 
+type ContingenciaParams = {
+  tipoContingencia: number   // CAT-005: 1-5
+  motivoContin: string
+}
+
 @Injectable()
 export class DteBuilderService {
-  buildCF(sale: any, company: any, branch: any, client: any, numeroControl: string, codigoGeneracion: string): object {
+  buildCF(sale: any, company: any, branch: any, client: any, numeroControl: string, codigoGeneracion: string, contingencia?: ContingenciaParams): object {
     const now = this.svDateTime()
 
     return {
@@ -27,10 +32,10 @@ export class DteBuilderService {
         tipoDte: '01',
         numeroControl,
         codigoGeneracion,
-        tipoModelo: 1,
-        tipoOperacion: 1,
-        tipoContingencia: null,
-        motivoContin: null,
+        tipoModelo: contingencia ? 2 : 1,
+        tipoOperacion: contingencia ? 2 : 1,
+        tipoContingencia: contingencia?.tipoContingencia ?? null,
+        motivoContin: contingencia?.motivoContin ?? null,
         fecEmi: now.date,
         horEmi: now.time,
         tipoMoneda: 'USD',
@@ -64,7 +69,7 @@ export class DteBuilderService {
     }
   }
 
-  buildCCF(sale: any, company: any, branch: any, client: any, numeroControl: string, codigoGeneracion: string): object {
+  buildCCF(sale: any, company: any, branch: any, client: any, numeroControl: string, codigoGeneracion: string, contingencia?: ContingenciaParams): object {
     const now = this.svDateTime()
 
     return {
@@ -74,10 +79,10 @@ export class DteBuilderService {
         tipoDte: '03',
         numeroControl,
         codigoGeneracion,
-        tipoModelo: 1,
-        tipoOperacion: 1,
-        tipoContingencia: null,
-        motivoContin: null,
+        tipoModelo: contingencia ? 2 : 1,
+        tipoOperacion: contingencia ? 2 : 1,
+        tipoContingencia: contingencia?.tipoContingencia ?? null,
+        motivoContin: contingencia?.motivoContin ?? null,
         fecEmi: now.date,
         horEmi: now.time,
         tipoMoneda: 'USD',
@@ -110,7 +115,7 @@ export class DteBuilderService {
     }
   }
 
-  buildNC(sale: any, company: any, branch: any, client: any, numeroControl: string, codigoGeneracion: string): object {
+  buildNC(sale: any, company: any, branch: any, client: any, numeroControl: string, codigoGeneracion: string, contingencia?: ContingenciaParams): object {
     const now = this.svDateTime()
 
     const docRel = sale.docRelTipoDte ? [{
@@ -127,10 +132,10 @@ export class DteBuilderService {
         tipoDte: '05',
         numeroControl,
         codigoGeneracion,
-        tipoModelo: 1,
-        tipoOperacion: 1,
-        tipoContingencia: null,
-        motivoContin: null,
+        tipoModelo: contingencia ? 2 : 1,
+        tipoOperacion: contingencia ? 2 : 1,
+        tipoContingencia: contingencia?.tipoContingencia ?? null,
+        motivoContin: contingencia?.motivoContin ?? null,
         fecEmi: now.date,
         horEmi: now.time,
         tipoMoneda: 'USD',
@@ -163,7 +168,7 @@ export class DteBuilderService {
     }
   }
 
-  buildND(sale: any, company: any, branch: any, client: any, numeroControl: string, codigoGeneracion: string): object {
+  buildND(sale: any, company: any, branch: any, client: any, numeroControl: string, codigoGeneracion: string, contingencia?: ContingenciaParams): object {
     const now = this.svDateTime()
 
     const docRel = sale.docRelTipoDte ? [{
@@ -180,10 +185,10 @@ export class DteBuilderService {
         tipoDte: '06',
         numeroControl,
         codigoGeneracion,
-        tipoModelo: 1,
-        tipoOperacion: 1,
-        tipoContingencia: null,
-        motivoContin: null,
+        tipoModelo: contingencia ? 2 : 1,
+        tipoOperacion: contingencia ? 2 : 1,
+        tipoContingencia: contingencia?.tipoContingencia ?? null,
+        motivoContin: contingencia?.motivoContin ?? null,
         fecEmi: now.date,
         horEmi: now.time,
         tipoMoneda: 'USD',

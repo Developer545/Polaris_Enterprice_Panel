@@ -482,6 +482,9 @@ model DteDocument {
   invalidacionSelloRecibido    String?
   invalidationReason           String?
   invalidatedAt                DateTime?
+  // Contingencia: campos del DTE emitido fuera de línea (para re-emisión con tipoModelo=2)
+  tipoContingenciaEmision  Int?     // CAT-005: 1-5, si fue emitido en contingencia
+  motivoContingenciaEmision String? // Motivo de contingencia declarado al momento de emisión
   // Evento Retorno (Tipo 18) — DTE 2.0 — vigencia dic 2026
   retornoCodigoGeneracion      String?
   retornoJson                  Json?
