@@ -45,36 +45,38 @@ export class ClientsService {
     if (user.companyId !== companyId) throw new ForbiddenException('Empresa no autorizada')
   }
 
-  async findAll(companyId: string, user: JwtAccessPayload, search?: string, branchId?: string) {
+  async findAll(companyId: string, user: JwtAccessPayload, search?: string, branchId?: string, page = 1, limit = 50) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     this.assertCompanyAccess(user, companyId)
-    return db.client.findMany({
-      where: {
-        tenantId,
-        companyId,
-        isActive: true,
-        ...buildBranchWhere(user, branchId),
-        ...(search ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { numDocumento: { contains: search } },
-            { nrc: { contains: search } },
-            { email: { contains: search, mode: 'insensitive' } },
-          ],
-        } : {}),
-      },
-      select: {
-        id: true, branchId: true, name: true, comercialName: true, email: true, phone: true,
-        address: true, departamentoCod: true, municipioCod: true, distritoCod: true,
-        tipoDocumento: true, numDocumento: true, nrc: true,
-        actividadEconomica: true, actividadEconomicaCodigo: true,
-        esCreditoFiscal: true, esGranContribuyente: true, retieneIva1: true,
-        isActive: true, createdAt: true,
-      },
-      orderBy: { name: 'asc' },
-      take: 100,
-    })
+    const where = {
+      tenantId,
+      companyId,
+      isActive: true,
+      ...buildBranchWhere(user, branchId),
+      ...(search ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { numDocumento: { contains: search } },
+          { nrc: { contains: search } },
+          { email: { contains: search, mode: 'insensitive' } },
+        ],
+      } : {}),
+    }
+    const select = {
+      id: true, branchId: true, name: true, comercialName: true, email: true, phone: true,
+      address: true, departamentoCod: true, municipioCod: true, distritoCod: true,
+      tipoDocumento: true, numDocumento: true, nrc: true,
+      actividadEconomica: true, actividadEconomicaCodigo: true,
+      esCreditoFiscal: true, esGranContribuyente: true, retieneIva1: true,
+      isActive: true, createdAt: true,
+    }
+    const skip = (page - 1) * limit
+    const [data, total] = await Promise.all([
+      db.client.findMany({ where, select, orderBy: { name: 'asc' }, skip, take: limit }),
+      db.client.count({ where }),
+    ])
+    return { data, total, page, limit }
   }
 
   async findOne(id: string, user: JwtAccessPayload) {

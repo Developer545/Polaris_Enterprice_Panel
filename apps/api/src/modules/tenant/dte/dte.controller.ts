@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common'
+import { Controller, Get, Post, Body, Param, Res } from '@nestjs/common'
+import type { FastifyReply } from 'fastify'
 import { DteService, AnulacionSchema, RetornoSchema, OperacionEspecialSchema } from './dte.service'
 import { ContingencyService, ContingenciaSchema } from './contingency.service'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
@@ -25,6 +26,28 @@ export class DteController {
   findBySale(@Param('saleId') saleId: string, @CurrentUser() user: JwtAccessPayload) {
     const { tenantId, dbUrl } = getCurrentTenant()
     return this.svc.findBySale(saleId, user, tenantId, dbUrl)
+  }
+
+  @Get('pdf/:saleId')
+  @RequirePermissions(PERMISSIONS.DTE_VIEW)
+  async downloadPdf(
+    @Param('saleId') saleId: string,
+    @CurrentUser() user: JwtAccessPayload,
+    @Res() reply: FastifyReply,
+  ) {
+    const { tenantId, dbUrl } = getCurrentTenant()
+    const buffer = await this.svc.downloadPdf(saleId, user, tenantId, dbUrl)
+    reply
+      .header('Content-Type', 'application/pdf')
+      .header('Content-Disposition', `attachment; filename="DTE_${saleId}.pdf"`)
+      .send(buffer)
+  }
+
+  @Post('resend-email/:saleId')
+  @RequirePermissions(PERMISSIONS.DTE_VIEW)
+  resendEmail(@Param('saleId') saleId: string, @CurrentUser() user: JwtAccessPayload) {
+    const { tenantId, dbUrl } = getCurrentTenant()
+    return this.svc.resendEmail(saleId, user, tenantId, dbUrl)
   }
 
   @Post('anular')

@@ -13,6 +13,18 @@ import type { Transporter } from 'nodemailer'
 const DTE_LABELS: Record<string, string> = {
   '01': 'Factura — Consumidor Final',
   '03': 'Comprobante de Crédito Fiscal',
+  '05': 'Nota de Crédito',
+  '06': 'Nota de Débito',
+  '16': 'Venta Simplificada',
+}
+
+export interface SmtpConfig {
+  host: string
+  port: number
+  secure: boolean
+  user: string
+  pass: string
+  from: string
 }
 
 @Injectable()
@@ -45,15 +57,31 @@ export class MailService {
    *
    * Logs a warning and returns silently if no SMTP config or no client email.
    */
+  /**
+   * Build transporter: uses per-company config if provided, falls back to global env SMTP.
+   */
+  private buildTransporter(smtpConfig?: SmtpConfig): Transporter | null {
+    if (smtpConfig) {
+      return nodemailer.createTransport({
+        host: smtpConfig.host,
+        port: smtpConfig.port,
+        secure: smtpConfig.secure,
+        auth: { user: smtpConfig.user, pass: smtpConfig.pass },
+      })
+    }
+    return this.transporter
+  }
+
   async sendDteEmail(opts: {
     sale: any
     dte: any
     pdfBuffer: Buffer
     dteJson: Record<string, unknown> | null
+    smtpConfig?: SmtpConfig
   }): Promise<void> {
-    if (!this.transporter) return
-
-    const { sale, dte, pdfBuffer, dteJson } = opts
+    const { sale, dte, pdfBuffer, dteJson, smtpConfig } = opts
+    const transporter = this.buildTransporter(smtpConfig)
+    if (!transporter) return
     const client = sale.client ?? null
     const company = sale.company ?? {}
     const tipoDte: string = dte.tipoDte ?? '01'
@@ -65,7 +93,9 @@ export class MailService {
     }
 
     const fromLabel = company.comercialName ?? company.name ?? 'POS DTE'
-    const from = `"${fromLabel}" <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`
+    const from = smtpConfig?.from
+      ? smtpConfig.from
+      : `"${fromLabel}" <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`
     const subject = `${DTE_LABELS[tipoDte] ?? 'Documento Tributario'} — ${dte.numeroControl}`
 
     const svDate = new Intl.DateTimeFormat('es-SV', {
@@ -144,7 +174,7 @@ export class MailService {
     }
 
     try {
-      await this.transporter.sendMail({ from, to: toEmail, subject, html, attachments })
+      await transporter.sendMail({ from, to: toEmail, subject, html, attachments })
       this.logger.log(`DTE email enviado a ${toEmail} — ${dte.numeroControl}`)
     } catch (err: any) {
       // Email failure must NEVER block the DTE emission flow

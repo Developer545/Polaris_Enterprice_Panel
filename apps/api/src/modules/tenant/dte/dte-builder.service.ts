@@ -222,6 +222,58 @@ export class DteBuilderService {
   }
 
   /**
+   * Venta Simplificada (tipo 16 provisional) — receptor siempre anónimo (null).
+   * Estructura idéntica a CF pero sin datos del receptor.
+   * Código de tipo actualizable mediante VENTA_SIMPLIFICADA_TIPO_DTE en shared-types.
+   */
+  buildVS(sale: any, company: any, branch: any, numeroControl: string, codigoGeneracion: string, contingencia?: ContingenciaParams): object {
+    const now = this.svDateTime()
+
+    return {
+      identificacion: {
+        version: getDteVersion('16'),
+        ambiente: company.dteAmbiente === 'PROD' ? '01' : '00',
+        tipoDte: '16',
+        numeroControl,
+        codigoGeneracion,
+        tipoModelo: contingencia ? 2 : 1,
+        tipoOperacion: contingencia ? 2 : 1,
+        tipoContingencia: contingencia?.tipoContingencia ?? null,
+        motivoContin: contingencia?.motivoContin ?? null,
+        fecEmi: now.date,
+        horEmi: now.time,
+        tipoMoneda: 'USD',
+      },
+      documentoRelacionado: null,
+      emisor: this.buildEmisor(company, branch),
+      receptor: null, // VS siempre anónimo
+      otrosDocumentos: null,
+      ventaTercero: null,
+      cuerpoDocumento: sale.items.map((item: any, i: number) => ({
+        numItem: i + 1,
+        tipoItem: Number.parseInt(item.tipoItem, 10),
+        numeroDocumento: null,
+        cantidad: Number(item.quantity),
+        codigo: item.product?.sku ?? null,
+        codTributo: null,
+        uniMedida: Number(item.uniMedida),
+        descripcion: item.productName,
+        precioUni: Number(item.unitPrice),
+        montoDescu: Number(item.discount),
+        ventaNoSuj: Number(item.ventaNoSuj),
+        ventaExenta: Number(item.ventaExenta),
+        ventaGravada: Number(item.ventaGravada),
+        tributos: null,
+        psv: 0,
+        noGravado: 0,
+        ivaItem: Number(item.ivaItem),
+      })),
+      resumen: this.buildResumenCF(sale),
+      apendice: null,
+    }
+  }
+
+  /**
    * Evento de Retorno (Tipo 18) — DTE 2.0 — vigencia dic 2026
    * Submitted to POST /fesv/eventosdte with tipoEvento: '18'
    */

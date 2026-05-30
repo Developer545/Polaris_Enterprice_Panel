@@ -18,6 +18,9 @@ function fmt(val: any): string { return `$${n(val)}` }
 const DTE_LABELS: Record<string, string> = {
   '01': 'FACTURA — CONSUMIDOR FINAL',
   '03': 'COMPROBANTE DE CRÉDITO FISCAL',
+  '05': 'NOTA DE CRÉDITO',
+  '06': 'NOTA DE DÉBITO',
+  '16': 'VENTA SIMPLIFICADA',
 }
 
 @Injectable()
@@ -46,6 +49,10 @@ export class DtePdfService {
         const items: any[] = sale.items ?? []
         const payments: any[] = sale.payments ?? []
         const tipoDte: string = dte.tipoDte ?? '01'
+        const isNC  = tipoDte === '05'
+        const isND  = tipoDte === '06'
+        const isVS  = tipoDte === '16'
+        const isCCF = tipoDte === '03'
 
         const primaryColor = '#1a365d'
         const accentColor = '#2b6cb0'
@@ -129,20 +136,39 @@ export class DtePdfService {
 
         let y = ctrlY + 62
 
+        // ── Documento relacionado (NC/ND) ─────────────────────────────────
+        if ((isNC || isND) && sale.docRelNumeroControl) {
+          doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(9)
+            .text('DOCUMENTO RELACIONADO', margin, y)
+          y += 12
+          doc.rect(margin, y, contentW, 28).fill(lightGray).stroke(borderGray)
+          const half2 = contentW / 2 - 10
+          doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(7)
+            .text('NÚMERO DE CONTROL RELACIONADO', margin + 6, y + 5)
+          doc.fillColor(textGray).font('Helvetica').fontSize(8)
+            .text(sale.docRelNumeroControl ?? '—', margin + 6, y + 15, { width: half2 })
+          doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(7)
+            .text('CÓDIGO DE GENERACIÓN', margin + half2 + 16, y + 5)
+          doc.fillColor(textGray).font('Helvetica').fontSize(8)
+            .text(sale.docRelCodigoGeneracion ?? '—', margin + half2 + 16, y + 15, { width: half2 })
+          y += 36
+        }
+
         // ── Client section ─────────────────────────────────────────────────
         doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(10)
-          .text(tipoDte === '03' ? 'DATOS DEL RECEPTOR' : 'CLIENTE', margin, y)
+          .text(isCCF || isNC || isND ? 'DATOS DEL RECEPTOR' : 'CLIENTE', margin, y)
         y += 14
 
-        doc.rect(margin, y, contentW, tipoDte === '03' ? 70 : 30).fill(lightGray).stroke(borderGray)
+        const clientBoxH = (isCCF || isNC || isND) ? 70 : 30
+        doc.rect(margin, y, contentW, clientBoxH).fill(lightGray).stroke(borderGray)
 
         const clientLabel = (label: string, val: string | null | undefined, x: number, iy: number, w: number) => {
           doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(7).text(label, x, iy)
           doc.fillColor(textGray).font('Helvetica').fontSize(9).text(val ?? '—', x, iy + 10, { width: w - 4 })
         }
 
-        if (tipoDte === '03') {
-          // CCF — full client fields
+        if (isCCF || isNC || isND) {
+          // CCF / NC / ND — full client fields
           const col = contentW / 3
           clientLabel('NOMBRE / RAZÓN SOCIAL', client?.name, margin + 6, y + 6, col * 1.5)
           clientLabel('NIT', client?.nit ?? client?.numDocumento, margin + col * 1.5 + 10, y + 6, col * 0.75)
@@ -151,6 +177,10 @@ export class DtePdfService {
           clientLabel('CORREO', client?.email, margin + col * 1.5 + 10, y + 38, col)
           clientLabel('DIRECCIÓN', client?.address, margin + 6, y + 52, contentW - 12)
           y += 80
+        } else if (isVS) {
+          // VS — siempre anónimo
+          clientLabel('RECEPTOR', 'Consumidor Final (Anónimo)', margin + 6, y + 6, contentW - 12)
+          y += 40
         } else {
           // CF
           clientLabel('CLIENTE', client?.name ?? 'Consumidor Final', margin + 6, y + 6, contentW / 2)
@@ -167,7 +197,8 @@ export class DtePdfService {
         y += 14
 
         // Table header
-        const cols = tipoDte === '03'
+        const useCcfCols = isCCF || isNC || isND
+        const cols = useCcfCols
           ? [
               { label: '#', w: 22, align: 'right' as const },
               { label: 'DESCRIPCIÓN', w: contentW - 22 - 60 - 70 - 70 - 70, align: 'left' as const },
@@ -203,7 +234,7 @@ export class DtePdfService {
           doc.rect(margin, y, contentW, rowH).fill(rowBg).stroke(borderGray)
 
           colX = margin
-          const vals = tipoDte === '03'
+          const vals = useCcfCols
             ? [
                 String(rowIdx + 1),
                 item.product?.name ?? item.productName ?? '—',

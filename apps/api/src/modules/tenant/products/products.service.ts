@@ -65,6 +65,7 @@ export class ProductsService {
     branchId?: string,
     page = 1,
     limit = 50,
+    trackStockOnly?: boolean,
   ) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
@@ -76,6 +77,7 @@ export class ProductsService {
       companyId,
       isActive: true,
       ...(categoryId ? { categoryId } : {}),
+      ...(trackStockOnly ? { trackStock: true } : {}),
       ...(search ? {
         OR: [
           { name: { contains: search, mode: 'insensitive' as const } },
@@ -113,7 +115,7 @@ export class ProductsService {
         }))
       : products
 
-    const filtered = (!branchId && lowStock)
+    const filtered = lowStock
       ? (mapped as any[]).filter(p => p.trackStock && Number(p.stock ?? 0) <= Number(p.minStock ?? 0))
       : mapped
 

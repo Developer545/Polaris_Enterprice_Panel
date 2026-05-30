@@ -23,6 +23,8 @@
     "db:migrate:tenant": "dotenv -e .env -- prisma migrate dev --schema packages/db/prisma/tenant.prisma",
     "db:push:cp": "dotenv -e .env -- prisma db push --schema packages/db/prisma/control-plane.prisma",
     "db:push:tenant": "dotenv -e .env -- prisma db push --schema packages/db/prisma/tenant.prisma",
+    "db:push:cp:neon": "dotenv -e .env.render -- prisma db push --schema packages/db/prisma/control-plane.prisma",
+    "db:push:tenant:neon": "dotenv -e .env.render -- prisma db push --schema packages/db/prisma/tenant.prisma",
     "db:studio:cp": "dotenv -e .env -- prisma studio --schema packages/db/prisma/control-plane.prisma",
     "db:studio:tenant": "dotenv -e .env -- prisma studio --schema packages/db/prisma/tenant.prisma",
     "db:seed": "dotenv -e .env -- npx ts-node --project apps/api/tsconfig.json scripts/seed.ts"

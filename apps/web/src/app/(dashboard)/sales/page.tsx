@@ -8,11 +8,12 @@ import {
   EyeOutlined, PrinterOutlined, StopOutlined, FileTextOutlined,
   CheckCircleOutlined, ClockCircleOutlined, ReloadOutlined, SearchOutlined,
   DollarOutlined, CalculatorOutlined, FileDoneOutlined, WarningOutlined,
-  FileExcelOutlined, RollbackOutlined, FundOutlined,
+  FileExcelOutlined, RollbackOutlined, FundOutlined, FilePdfOutlined, MailOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { downloadXlsx } from '../../../lib/download-xlsx'
+import { printCartaA4 } from '../../../lib/print-receipt'
 import { useAppContext } from '../../../hooks/use-app-context'
 import dayjs from 'dayjs'
 import type { ColumnsType } from 'antd/es/table'
@@ -24,6 +25,7 @@ const TIPO_DTE_LABEL: Record<string, { label: string; color: string }> = {
   '03': { label: 'CCF', color: 'blue'    },
   '05': { label: 'NC',  color: 'orange'  },
   '06': { label: 'ND',  color: 'purple'  },
+  '16': { label: 'VS',  color: 'default' },
 }
 
 const DTE_STATUS: Record<string, { badge: 'processing' | 'success' | 'error' | 'warning' | 'default'; label: string; color: string }> = {
@@ -74,6 +76,8 @@ export default function SalesPage() {
   const [retornoForm] = Form.useForm()
   const [opEspecialModal, setOpEspecialModal] = useState<any>(null)
   const [opEspecialForm] = Form.useForm()
+  const [pdfLoading, setPdfLoading]         = useState(false)
+  const [emailLoading, setEmailLoading]     = useState(false)
 
   const params: Record<string, any> = { companyId, page }
   if (dateRange?.[0]) params.from = dateRange[0].startOf('day').toISOString()
@@ -159,11 +163,11 @@ export default function SalesPage() {
     if (win.electron?.printer?.printReceipt) {
       win.electron.printer.printReceipt({
         businessName: sale.company?.name ?? sale.branch?.name ?? 'Empresa',
-        branchName:   sale.branch?.name ?? 'â€”',
+        branchName:   sale.branch?.name ?? '—',
         address:      sale.company?.address,
         nit:          sale.company?.nit,
         nrc:          sale.company?.nrc,
-        cashierName:  sale.user?.name ?? 'â€”',
+        cashierName:  sale.user?.name ?? '—',
         saleNumber:   sale.dteDocument?.numeroControl ?? sale.id?.substring(0, 8),
         date:         dayjs(sale.createdAt).format('DD/MM/YYYY HH:mm'),
         tipoDte:      TIPO_DTE_LABEL[sale.tipoDte]?.label ?? sale.tipoDte,
@@ -180,12 +184,87 @@ export default function SalesPage() {
         total:         Number(sale.totalPagar ?? 0),
         paymentMethod: sale.payments?.length
           ? (FORMA_PAGO_LABEL[sale.payments[0].formaPago] ?? sale.payments[0].formaPago)
-          : 'â€”',
+          : '—',
         amountPaid: sale.payments?.[0]?.amount ? Number(sale.payments[0].amount) : undefined,
       })
     } else {
       window.print()
     }
+  }
+
+  async function handleDownloadPdf(saleId: string, numeroControl?: string) {
+    setPdfLoading(true)
+    try {
+      const res = await api.get(`/api/dte/pdf/${saleId}`, { responseType: 'blob' })
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `DTE_${numeroControl?.replace(/\//g, '-') ?? saleId}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e: any) {
+      message.error(e?.response?.data?.message ?? 'Error al descargar PDF')
+    } finally {
+      setPdfLoading(false)
+    }
+  }
+
+  async function handleResendEmail(saleId: string) {
+    setEmailLoading(true)
+    try {
+      await api.post(`/api/dte/resend-email/${saleId}`)
+      message.success('Correo DTE reenviado al cliente')
+    } catch (e: any) {
+      message.error(e?.response?.data?.message ?? 'Error al reenviar correo')
+    } finally {
+      setEmailLoading(false)
+    }
+  }
+
+  function handlePrintCartaA4(sale: any) {
+    printCartaA4({
+      sale: {
+        id: sale.id,
+        tipoDte: sale.tipoDte,
+        createdAt: sale.createdAt,
+        totalGravada: sale.totalGravada,
+        totalIva: sale.totalIva,
+        totalPagar: sale.totalPagar,
+        ivaRete1: sale.ivaRete1,
+        totalDescuento: sale.totalDescuento,
+        totalNoSuj: sale.totalNoSuj,
+        totalExenta: sale.totalExenta,
+        items: (sale.items ?? []).map((i: any) => ({
+          productName: i.productName,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          discount: i.discount,
+          ventaGravada: i.ventaGravada,
+          ivaItem: i.ivaItem,
+        })),
+        payments: (sale.payments ?? []).map((p: any) => ({
+          formaPago: p.formaPago,
+          amount: p.amount,
+          reference: p.reference,
+        })),
+        client: sale.client ?? null,
+        branch: sale.branch ?? null,
+        dteDocument: sale.dteDocument ?? null,
+      },
+      company: {
+        name: sale.company?.name ?? '',
+        comercialName: sale.company?.comercialName,
+        nit: sale.company?.nit,
+        nrc: sale.company?.nrc,
+        address: sale.company?.address,
+        phone: sale.company?.phone,
+        email: sale.company?.email,
+        actividadEconomica: sale.company?.actividadEconomica,
+        logoUrl: sale.company?.logoUrl,
+      },
+      branchName: sale.branch?.name ?? '',
+      cashierName: sale.user?.name ?? '',
+    })
   }
 
   // â”€â”€ Computed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -244,10 +323,10 @@ export default function SalesPage() {
       },
     },
     {
-      title: 'NÂ° Control', key: 'control', width: 200,
+      title: 'N° Control', key: 'control', width: 200,
       render: (_: any, r: any) => r.dteDocument?.numeroControl
         ? <code style={{ fontSize: 10, color: token.colorText }}>{r.dteDocument.numeroControl}</code>
-        : <Text type="secondary" style={{ fontSize: 12 }}>â€”</Text>,
+        : <Text type="secondary" style={{ fontSize: 12 }}>—</Text>,
     },
     {
       title: 'Pago', key: 'pago', width: 130,
@@ -337,7 +416,7 @@ export default function SalesPage() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
         <div>
           <Title level={4} style={{ margin: '0 0 2px', fontWeight: 700 }}>Historial de Ventas</Title>
-          <Text type="secondary" style={{ fontSize: 13 }}>Consulta, detalle e impresiÃ³n de comprobantes DTE</Text>
+          <Text type="secondary" style={{ fontSize: 13 }}>Consulta, detalle e impresión de comprobantes DTE</Text>
         </div>
         <Tooltip title="Recargar">
           <Button icon={<ReloadOutlined />} onClick={() => qc.invalidateQueries({ queryKey: ['sales'] })} />
@@ -383,7 +462,7 @@ export default function SalesPage() {
           <Space wrap size={8}>
             <Input
               prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
-              placeholder="Buscar cliente, NÂ° control..."
+              placeholder="Buscar cliente, N° control..."
               allowClear
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -400,6 +479,7 @@ export default function SalesPage() {
                 { value: '03', label: 'CCF (03)' },
                 { value: '05', label: 'NC (05)'  },
                 { value: '06', label: 'ND (06)'  },
+                { value: '16', label: 'VS (16)'  },
               ]}
             />
             <Select
@@ -464,7 +544,7 @@ export default function SalesPage() {
               <div style={{ padding: '8px 16px' }}>
                 <Descriptions size="small" column={{ xs: 1, sm: 2, md: 3 }}>
                   {r.dteDocument?.codigoGeneracion && (
-                    <Descriptions.Item label="CÃ³digo generaciÃ³n" span={3}>
+                    <Descriptions.Item label="Código generación" span={3}>
                       <code style={{ fontSize: 10, wordBreak: 'break-all', color: token.colorText }}>
                         {r.dteDocument.codigoGeneracion}
                       </code>
@@ -477,8 +557,8 @@ export default function SalesPage() {
                       </code>
                     </Descriptions.Item>
                   )}
-                  <Descriptions.Item label="Sucursal">{r.branch?.name ?? 'â€”'}</Descriptions.Item>
-                  <Descriptions.Item label="Cajero">{r.user?.name ?? 'â€”'}</Descriptions.Item>
+                  <Descriptions.Item label="Sucursal">{r.branch?.name ?? '—'}</Descriptions.Item>
+                  <Descriptions.Item label="Cajero">{r.user?.name ?? '—'}</Descriptions.Item>
                   <Descriptions.Item label="IVA 13%">${Number(r.totalIva ?? 0).toFixed(2)}</Descriptions.Item>
                 </Descriptions>
               </div>
@@ -492,7 +572,7 @@ export default function SalesPage() {
             showSizeChanger: true,
             pageSizeOptions: ['20', '50', '100'],
             onChange: p => { if (!hasFilters) setPage(p) },
-            showTotal: (t, range) => `${range[0]}â€“${range[1]} de ${t} ${hasFilters ? '(filtrado)' : 'ventas'}`,
+            showTotal: (t, range) => `${range[0]}–${range[1]} de ${t} ${hasFilters ? '(filtrado)' : 'ventas'}`,
             style: { padding: '8px 16px' },
           }}
         />
@@ -504,13 +584,43 @@ export default function SalesPage() {
         title={<Space><FileDoneOutlined />Detalle de venta</Space>}
         onCancel={() => setDetail(null)}
         footer={[
+          saleDetail?.dteDocument?.status === 'ACCEPTED' && (
+            <Button
+              key="pdf"
+              icon={<FilePdfOutlined />}
+              loading={pdfLoading}
+              style={{ borderRadius: 8, color: '#cf1322', borderColor: '#cf1322' }}
+              onClick={() => handleDownloadPdf(saleDetail.id, saleDetail.dteDocument?.numeroControl)}
+            >
+              Descargar PDF
+            </Button>
+          ),
+          saleDetail?.dteDocument?.status === 'ACCEPTED' && saleDetail?.client?.email && (
+            <Button
+              key="email"
+              icon={<MailOutlined />}
+              loading={emailLoading}
+              style={{ borderRadius: 8 }}
+              onClick={() => handleResendEmail(saleDetail.id)}
+            >
+              Reenviar correo
+            </Button>
+          ),
+          <Button
+            key="print-a4"
+            icon={<FileTextOutlined />}
+            style={{ borderRadius: 8 }}
+            onClick={() => saleDetail && handlePrintCartaA4(saleDetail)}
+          >
+            Carta A4
+          </Button>,
           <Button
             key="print"
             icon={<PrinterOutlined />}
             style={{ borderRadius: 8 }}
             onClick={() => saleDetail && handlePrint(saleDetail)}
           >
-            Imprimir
+            Ticket 80mm
           </Button>,
           <Button key="close" onClick={() => setDetail(null)} style={{ borderRadius: 8 }}>
             Cerrar
@@ -523,7 +633,7 @@ export default function SalesPage() {
         {saleDetail && (
           <div>
             <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              InformaciÃ³n general
+              Información general
             </Text>
             <Divider style={{ margin: '4px 0 14px' }} />
 
@@ -545,7 +655,7 @@ export default function SalesPage() {
                 {saleDetail.client?.name ?? <Text type="secondary">Consumidor Final</Text>}
               </Descriptions.Item>
               <Descriptions.Item label="Sucursal">{saleDetail.branch?.name}</Descriptions.Item>
-              <Descriptions.Item label="Cajero">{saleDetail.user?.name ?? 'â€”'}</Descriptions.Item>
+              <Descriptions.Item label="Cajero">{saleDetail.user?.name ?? '—'}</Descriptions.Item>
               <Descriptions.Item label="Estado DTE">
                 {(() => {
                   const s = saleDetail.dteDocument?.status
@@ -555,12 +665,12 @@ export default function SalesPage() {
                 })()}
               </Descriptions.Item>
               {saleDetail.dteDocument?.numeroControl && (
-                <Descriptions.Item label="NÂ° Control" span={2}>
+                <Descriptions.Item label="N° Control" span={2}>
                   <code style={{ fontSize: 11 }}>{saleDetail.dteDocument.numeroControl}</code>
                 </Descriptions.Item>
               )}
               {saleDetail.dteDocument?.codigoGeneracion && (
-                <Descriptions.Item label="CÃ³digo generaciÃ³n" span={2}>
+                <Descriptions.Item label="Código generación" span={2}>
                   <code style={{ fontSize: 10, wordBreak: 'break-all' }}>
                     {saleDetail.dteDocument.codigoGeneracion}
                   </code>
@@ -576,7 +686,7 @@ export default function SalesPage() {
             </Descriptions>
 
             <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              LÃ­neas de venta
+              Líneas de venta
             </Text>
             <Divider style={{ margin: '4px 0 12px' }} />
 
@@ -667,7 +777,7 @@ export default function SalesPage() {
         onCancel={() => { setAnularModal(null); setAnularReason('') }}
         onOk={() => anularMutation.mutate({ id: anularModal.id, reason: anularReason })}
         confirmLoading={anularMutation.isPending}
-        okText="Confirmar anulaciÃ³n"
+        okText="Confirmar anulación"
         okButtonProps={{ danger: true, disabled: !anularReason.trim(), style: { borderRadius: 8, fontWeight: 600 } }}
         cancelButtonProps={{ style: { borderRadius: 8 } }}
         width={480}
@@ -675,17 +785,17 @@ export default function SalesPage() {
         style={{ top: 40 }}
       >
         <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 14 }}>
-          Se anularÃ¡ la venta{' '}
+          Se anulará la venta{' '}
           <Text strong>{anularModal?.dteDocument?.numeroControl ?? anularModal?.id?.substring(0, 8)}</Text>
           {' '}por un total de{' '}
           <Text strong style={{ color: token.colorError }}>
             ${Number(anularModal?.totalPagar ?? 0).toFixed(2)}
           </Text>.
-          Esta operaciÃ³n no se puede deshacer.
+          Esta operación no se puede deshacer.
         </Text>
         <Input.TextArea
           rows={3}
-          placeholder="Motivo de anulaciÃ³n (requerido)"
+          placeholder="Motivo de anulación (requerido)"
           value={anularReason}
           onChange={e => setAnularReason(e.target.value)}
           style={{ borderRadius: 8 }}

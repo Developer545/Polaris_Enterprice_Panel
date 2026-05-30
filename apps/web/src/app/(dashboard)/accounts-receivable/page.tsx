@@ -72,7 +72,7 @@ export default function AccountsReceivablePage() {
 
   const clientsQ = useQuery({
     queryKey: ['clients', companyId],
-    queryFn:  () => api.get('/api/clients', { params: { companyId } }).then(r => r.data),
+    queryFn:  () => api.get('/api/clients', { params: { companyId, limit: 200 } }).then(r => r.data?.data ?? r.data),
     enabled:  !!companyId,
   })
 

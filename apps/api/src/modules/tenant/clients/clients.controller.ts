@@ -21,8 +21,10 @@ export class ClientsController {
     @Query('companyId') companyId: string,
     @Query('search') search?: string,
     @Query('branchId') branchId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.svc.findAll(companyId, user, search, branchId)
+    return this.svc.findAll(companyId, user, search, branchId, page ? +page : 1, limit ? Math.min(+limit, 200) : 50)
   }
 
   @Get('consumidor-final')

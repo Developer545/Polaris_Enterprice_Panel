@@ -25,6 +25,7 @@ export class ProductsController {
     @Query('branchId') branchId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('trackStock') trackStock?: string,
   ) {
     return this.svc.findAll(
       companyId, user,
@@ -33,6 +34,7 @@ export class ProductsController {
       branchId,
       page ? +page : 1,
       limit ? Math.min(+limit, 200) : 50,
+      trackStock === 'true',
     )
   }
 

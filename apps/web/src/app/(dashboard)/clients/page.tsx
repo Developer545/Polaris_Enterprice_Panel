@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useDeferredValue } from 'react'
 import {
   Table, Button, Tag, Input, Typography, Modal, Form, Select, App,
   Row, Col, Switch, Divider, Card, Statistic, Space, Tooltip, Popconfirm, Avatar,
@@ -63,14 +63,20 @@ export default function ClientsPage() {
   const [zona, setZona] = useState<string | undefined>()
 
   const { companyId } = useAppContext()
+  const [page, setPage] = useState(1)
+  const deferredSearch = useDeferredValue(search)
+  useEffect(() => { setPage(1) }, [deferredSearch])
 
   // ── Queries ─────────────────────────────────────────────────────────────────
 
-  const { data: clients = [], isLoading, refetch } = useQuery({
-    queryKey: ['clients', companyId, search],
-    queryFn: () => api.get('/api/clients', { params: { companyId, search: search || undefined } }).then(r => r.data),
+  const { data: clientsData, isLoading, refetch } = useQuery({
+    queryKey: ['clients', companyId, deferredSearch, page],
+    queryFn: () => api.get('/api/clients', { params: { companyId, search: deferredSearch || undefined, page } }).then(r => r.data),
     enabled: !!companyId,
+    placeholderData: (prev) => prev,
   })
+  const clients: any[] = clientsData?.data ?? []
+  const clientsTotal: number = clientsData?.total ?? 0
 
   const { data: departamentosApi = [] } = useQuery({
     queryKey: ['catalogs-departamentos'],
@@ -96,9 +102,9 @@ export default function ClientsPage() {
 
   // ── KPIs ────────────────────────────────────────────────────────────────────
 
-  const totalClients = clients.length
-  const ccfClients = clients.filter((c: any) => c.esCreditoFiscal).length
-  const cfClients = clients.filter((c: any) => !c.esCreditoFiscal).length
+  const totalClients  = clientsTotal
+  const ccfClients    = clients.filter((c: any) => c.esCreditoFiscal).length
+  const cfClients     = clients.filter((c: any) => !c.esCreditoFiscal).length
   const activeClients = clients.filter((c: any) => c.isActive !== false).length
 
   // ── Municipios según departamento ────────────────────────────────────────────
@@ -478,9 +484,13 @@ export default function ClientsPage() {
           loading={isLoading}
           scroll={{ x: 900 }}
           pagination={{
-            pageSize: 15,
-            showSizeChanger: false,
-            showTotal: (total) => `${total} clientes`,
+            current: page,
+            total: clientsTotal,
+            pageSize: 50,
+            showSizeChanger: true,
+            pageSizeOptions: ['25', '50', '100'],
+            onChange: (p) => setPage(p),
+            showTotal: (t, range) => `${range[0]}–${range[1]} de ${t} clientes`,
             style: { padding: '8px 16px' },
           }}
           style={{ borderRadius: 12, overflow: 'hidden' }}

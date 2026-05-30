@@ -54,13 +54,15 @@ function avatarBg(name: string) {
 }
 
 type ClientMode = 'cf' | 'nuevo' | 'registrado'
+type TipoDtePOS = '01' | '03' | '16'
 
-function calcLine(item: CartItem, tipoDte: '01' | '03') {
+function calcLine(item: CartItem, tipoDte: TipoDtePOS) {
   const sub = item.price * item.quantity - item.discount
   if (tipoDte === '03') {
     const iva = sub * 0.13
     return { ventaGravada: sub, ivaItem: iva, total: sub + iva }
   }
+  // CF (01) y VS (16): IVA incluido en precio
   const iva = sub * 13 / 113
   return { ventaGravada: sub, ivaItem: iva, total: sub }
 }
@@ -81,7 +83,7 @@ export default function PosPage() {
   const [newClientName, setNewClientName] = useState('')
   const [newClientEmail, setNewClientEmail] = useState('')
 
-  const [tipoDte, setTipoDte] = useState<'01' | '03'>('01')
+  const [tipoDte, setTipoDte] = useState<TipoDtePOS>('01')
   const [payModal, setPayModal] = useState(false)
   const [payForm] = Form.useForm()
   const [recibidoEfectivo, setRecibidoEfectivo] = useState<number>(0)
@@ -100,9 +102,13 @@ export default function PosPage() {
     staleTime: 60_000,
   })
 
-  const categories: any[]  = bootstrap?.categories  ?? []
-  const openRegister: any  = bootstrap?.openRegister ?? null
-  const bootstrapCompany: any = bootstrap?.company ?? null
+  const categories: any[]     = bootstrap?.categories  ?? []
+  const openRegister: any     = bootstrap?.openRegister ?? null
+  const bootstrapCompany: any = bootstrap?.company      ?? null
+  const bootstrapBranch: any  = bootstrap?.branch       ?? null
+  const enabledDteTypes: string[] = bootstrapCompany?.dteEnabledTypes?.length
+    ? bootstrapCompany.dteEnabledTypes
+    : ['01', '03']
 
   // Build PrintContext from lastSale data (recomputed only when lastSale/bootstrap change)
   const printCtx: PrintContext | null = useMemo(() => {
@@ -154,12 +160,12 @@ export default function PosPage() {
         email: bootstrapCompany.email,
         actividadEconomica: bootstrapCompany.actividadEconomica,
       } : { name: 'POS DTE' },
-      branchName: sale.branch?.name ?? openRegister?.branch?.name ?? '',
+      branchName: sale.branch?.name ?? bootstrapBranch?.name ?? openRegister?.branch?.name ?? '',
       cashierName: (window as any).user?.name ?? '',
       amountPaid: lastSale?.amountPaid,
       change: lastSale?.change,
     }
-  }, [lastSale, bootstrapCompany, openRegister])
+  }, [lastSale, bootstrapCompany, bootstrapBranch, openRegister])
 
   // ── Products: usa iniciales del bootstrap ó búsqueda/filtro reactiva ──
   const hasFilter = !!deferredProductSearch || !!selectedCategory
@@ -181,12 +187,13 @@ export default function PosPage() {
   const products = hasFilter ? filteredProducts : (bootstrap?.products ?? [])
 
   // ── Clients search (user-triggered, ≥2 chars) ──
-  const { data: clientResults = [], isFetching: searchingClients } = useQuery({
+  const { data: clientResultsRaw, isFetching: searchingClients } = useQuery({
     queryKey: ['clients-search', companyId, deferredClientSearch],
     queryFn: () => api.get('/api/clients', { params: { companyId, search: deferredClientSearch } }).then(r => r.data),
     enabled: !!companyId && deferredClientSearch.length >= 2 && clientMode === 'registrado',
     staleTime: 30_000,
   })
+  const clientResults: any[] = clientResultsRaw?.data ?? clientResultsRaw ?? []
 
   // When tipoDte changes to CCF, force registrado mode
   useEffect(() => {
@@ -203,16 +210,16 @@ export default function PosPage() {
       const res = await api.get('/api/products', {
         params: { companyId, branchId, search: barcode },
       })
-      const matches: any[] = res.data ?? []
-      const product = matches.find(p => p.sku === barcode || p.barcode === barcode) ?? matches[0]
+      const matches: any[] = res.data?.data ?? res.data ?? []
+      const product = matches.find((p: any) => p.sku === barcode || p.barcode === barcode) ?? matches[0]
       if (product) {
         addToCart(product)
         message.success({ content: `Escaneado: ${product.name}`, duration: 1.5 })
       } else {
-        message.warning({ content: `CÃ³digo no encontrado: ${barcode}`, duration: 3 })
+        message.warning({ content: `Código no encontrado: ${barcode}`, duration: 3 })
       }
     } catch {
-      message.error({ content: 'Error al buscar por cÃ³digo de barras', duration: 3 })
+      message.error({ content: 'Error al buscar por código de barras', duration: 3 })
     }
   }, { enabled: !payModal })
 
@@ -221,16 +228,16 @@ export default function PosPage() {
     if (!isElectron) return
     window.electron!.drawer.onShortcut((result) => {
       if (result.ok) {
-        message.success({ content: 'CajÃ³n abierto (F12)', duration: 2 })
+        message.success({ content: 'Cajón abierto (F12)', duration: 2 })
       } else {
-        message.error({ content: `Error cajÃ³n: ${result.error}`, duration: 4 })
+        message.error({ content: `Error cajón: ${result.error}`, duration: 4 })
       }
     })
     window.electron!.printer.onPrintShortcut((result) => {
       if (result.ok) {
         message.success({ content: 'Ticket reimpreso (F11)', duration: 2 })
       } else {
-        message.error({ content: `Error impresiÃ³n: ${result.error}`, duration: 4 })
+        message.error({ content: `Error impresión: ${result.error}`, duration: 4 })
       }
     })
   }, [])
@@ -254,7 +261,7 @@ export default function PosPage() {
           cashierName: (window as any).user?.name ?? '',
           saleNumber,
           date: new Date().toLocaleString('es-SV'),
-          tipoDte: tipoDte === '03' ? 'CCF' : 'CF',
+          tipoDte: tipoDte === '03' ? 'CCF' : tipoDte === '16' ? 'VS' : 'CF',
           items: cart.map(i => ({
             description: i.name,
             qty: i.quantity,
@@ -337,13 +344,13 @@ export default function PosPage() {
   const lines = cart.map(item => ({ item, ...calcLine(item, tipoDte) }))
   const totalIva = lines.reduce((s, l) => s + l.ivaItem, 0)
   const totalGravada = lines.reduce((s, l) => s + l.ventaGravada, 0)
-  const totalPagar = tipoDte === '03' ? totalGravada + totalIva : totalGravada
+  const totalPagar = tipoDte === '03' ? totalGravada + totalIva : totalGravada // CF/VS: IVA incluido
 
   async function openPayModal() {
     if (!cart.length) { message.warning('Agrega productos al carrito'); return }
     if (!openRegister) { message.error('No hay caja abierta en esta sucursal'); return }
     if (tipoDte === '03' && !selectedClient) {
-      message.error('CrÃ©dito Fiscal requiere seleccionar un cliente registrado con NIT/NRC'); return
+      message.error('Crédito Fiscal requiere seleccionar un cliente registrado con NIT/NRC'); return
     }
     payForm.setFieldsValue({ payments: [{ formaPago: '01', amount: totalPagar.toFixed(2) }] })
     setRecibidoEfectivo(0)
@@ -431,7 +438,7 @@ export default function PosPage() {
 
   // â"€â"€ Client panel â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   const modeOptions = [
-    { label: <span style={{ fontSize: 12 }}><IdcardOutlined style={{ marginRight: 4 }} />CF</span>, value: 'cf', disabled: tipoDte === '03' },
+    { label: <span style={{ fontSize: 12 }}><IdcardOutlined style={{ marginRight: 4 }} />CF</span>, value: 'cf', disabled: tipoDte === '03' }, // VS (16) permite modo CF
     { label: <span style={{ fontSize: 12 }}><UserAddOutlined style={{ marginRight: 4 }} />Nuevo</span>, value: 'nuevo' },
     { label: <span style={{ fontSize: 12 }}><TeamOutlined style={{ marginRight: 4 }} />Registrado</span>, value: 'registrado' },
   ]
@@ -443,7 +450,7 @@ export default function PosPage() {
           <Avatar style={{ background: '#8c8c8c', flexShrink: 0 }} size={32} icon={<UserOutlined />} />
           <div>
             <div style={{ fontWeight: 600, fontSize: 12 }}>Consumidor Final</div>
-            <div style={{ fontSize: 11, color: '#999' }}>Sin cliente especÃ­fico</div>
+            <div style={{ fontSize: 11, color: '#999' }}>Sin cliente específico</div>
           </div>
           <Tag color="default" style={{ marginLeft: 'auto', fontSize: 10 }}>CF</Tag>
         </div>
@@ -560,15 +567,20 @@ export default function PosPage() {
         <div style={{ display: 'flex', gap: 8 }}>
           <Select
             value={tipoDte}
-            onChange={v => { setTipoDte(v); if (v === '03' && clientMode === 'cf') setClientMode('registrado') }}
-            style={{ width: 168 }}
+            onChange={(v: TipoDtePOS) => {
+              setTipoDte(v)
+              if (v === '03' && clientMode === 'cf') setClientMode('registrado')
+              if (v !== '03' && clientMode === 'registrado') { setClientMode('cf'); setSelectedClient(null) }
+            }}
+            style={{ width: 182 }}
             options={[
-              { value: '01', label: <><Tag color="default" style={{ fontSize: 11 }}>01</Tag> Consumidor Final</> },
-              { value: '03', label: <><Tag color="blue" style={{ fontSize: 11 }}>03</Tag> CrÃ©dito Fiscal</> },
+              { value: '01', label: <><Tag color="default" style={{ fontSize: 11 }}>01</Tag> Consumidor Final</>, disabled: !enabledDteTypes.includes('01') },
+              { value: '03', label: <><Tag color="blue" style={{ fontSize: 11 }}>03</Tag> Crédito Fiscal</>, disabled: !enabledDteTypes.includes('03') },
+              ...(enabledDteTypes.includes('16') ? [{ value: '16' as const, label: <><Tag color="default" style={{ fontSize: 11 }}>16</Tag> Venta Simplificada</> }] : []),
             ]}
           />
           <Input
-            placeholder="Buscar producto por nombre, SKU o cÃ³digo de barras..."
+            placeholder="Buscar producto por nombre, SKU o código de barras..."
             prefix={<SearchOutlined />}
             value={productSearch}
             onChange={e => setProductSearch(e.target.value)}
@@ -609,7 +621,7 @@ export default function PosPage() {
             </div>
           ) : (products as any[]).length === 0 ? (
             <Empty
-              description={<span style={{ color: '#ccc' }}>Sin productos. Busca o filtra por categorÃ­a.</span>}
+              description={<span style={{ color: '#ccc' }}>Sin productos. Busca o filtra por categoría.</span>}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               style={{ padding: 48 }}
             />
@@ -732,7 +744,7 @@ export default function PosPage() {
               Carrito
               {cart.length > 0 && (
                 <Tag color="orange" style={{ marginLeft: 8, fontSize: 11 }}>
-                  {cart.length} Ã­tem{cart.length !== 1 ? 's' : ''}
+                  {cart.length} ítem{cart.length !== 1 ? 's' : ''}
                 </Tag>
               )}
             </span>
@@ -911,7 +923,7 @@ export default function PosPage() {
               <div style={{ fontSize: 24, fontWeight: 700, color: token.colorPrimary }}>${totalPagar.toFixed(2)}</div>
             </div>
             <Tag color={tipoDte === '03' ? 'blue' : 'default'} style={{ fontSize: 13 }}>
-              {tipoDte === '03' ? 'CrÃ©dito Fiscal' : 'Consumidor Final'}
+              {tipoDte === '03' ? 'Crédito Fiscal' : tipoDte === '16' ? 'Venta Simplificada' : 'Consumidor Final'}
             </Tag>
           </div>
 

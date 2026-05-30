@@ -6,7 +6,7 @@ import { FirmadorService } from './firmador.service'
 import { HaciendaService } from './hacienda.service'
 import { DteBuilderService } from './dte-builder.service'
 import { DtePdfService } from './dte-pdf.service'
-import { MailService } from './mail.service'
+import { MailService, type SmtpConfig } from './mail.service'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { assertCanInvalidateDte, assertValidDteJson, INVALIDATION_EVENT_VERSION } from '@pos-dte/dte-core'
 import { z } from 'zod'
@@ -115,6 +115,7 @@ export class DteService {
             address: true, departamentoCod: true, municipioCod: true, distritoCod: true,
             phone: true, email: true, dteAmbiente: true,
             haciendaUserEnc: true, haciendaPwdEnc: true, certDataEnc: true, certPwdEnc: true,
+            smtpHost: true, smtpPort: true, smtpUser: true, smtpPwdEnc: true, smtpFrom: true, smtpSecure: true,
           },
         },
       },
@@ -167,6 +168,8 @@ export class DteService {
         dteJson = this.builder.buildNC(sale, company, branch, client, payload.numeroControl, codigoGeneracion, contingencia) as Record<string, unknown>
       } else if (payload.tipoDte === '06') {
         dteJson = this.builder.buildND(sale, company, branch, client, payload.numeroControl, codigoGeneracion, contingencia) as Record<string, unknown>
+      } else if (payload.tipoDte === '16') {
+        dteJson = this.builder.buildVS(sale, company, branch, payload.numeroControl, codigoGeneracion, contingencia) as Record<string, unknown>
       } else {
         throw new Error(`Unsupported tipoDte: ${payload.tipoDte}`)
       }
@@ -221,11 +224,13 @@ export class DteService {
         setImmediate(async () => {
           try {
             const pdfBuffer = await this.dtePdf.generate(sale, updatedDte)
+            const smtpConfig = this.buildSmtpConfig(company)
             await this.mail.sendDteEmail({
               sale,
               dte: updatedDte,
               pdfBuffer,
               dteJson: dteJson as Record<string, unknown>,
+              smtpConfig,
             })
           } catch (emailErr: any) {
             this.logger.warn(`Error post-emision generando PDF/email para sale ${sale.id}: ${emailErr.message}`)
@@ -254,6 +259,79 @@ export class DteService {
       })
       throw err // Re-throw so BullMQ retries
     }
+  }
+
+  /** Builds SmtpConfig from company record (per-company SMTP, fallback returns undefined) */
+  private buildSmtpConfig(company: any): SmtpConfig | undefined {
+    if (!company?.smtpHost || !company?.smtpPwdEnc) return undefined
+    return {
+      host: company.smtpHost,
+      port: company.smtpPort ?? 587,
+      secure: company.smtpSecure ?? false,
+      user: company.smtpUser ?? '',
+      pass: this.crypto.decrypt(company.smtpPwdEnc),
+      from: company.smtpFrom ?? `"${company.comercialName ?? company.name}" <${company.smtpUser}>`,
+    }
+  }
+
+  /** Returns PDF buffer for a given sale's DTE (for download endpoint). */
+  async downloadPdf(saleId: string, user: JwtAccessPayload, tenantId: string, dbUrl?: string): Promise<Buffer> {
+    const db = this.getDb(dbUrl)
+    const sale = await db.sale.findFirst({
+      where: { id: saleId, tenantId, companyId: user.companyId },
+      include: {
+        client: true,
+        items: { include: { product: { select: { sku: true } } } },
+        payments: true,
+        branch: true,
+        company: { select: { id: true, name: true, comercialName: true, nit: true, nrc: true, actividadEconomica: true, address: true, phone: true, email: true } },
+        dteDocument: true,
+      },
+    })
+    if (!sale) throw new NotFoundException('Venta no encontrada')
+    this.assertSaleAccess(user, sale)
+    if (!sale.dteDocument) throw new NotFoundException('Sin DTE para esta venta')
+    return this.dtePdf.generate(sale, sale.dteDocument)
+  }
+
+  /** Re-sends DTE email for an accepted DTE. */
+  async resendEmail(saleId: string, user: JwtAccessPayload, tenantId: string, dbUrl?: string): Promise<{ sent: boolean }> {
+    const db = this.getDb(dbUrl)
+    const sale = await db.sale.findFirst({
+      where: { id: saleId, tenantId, companyId: user.companyId },
+      include: {
+        client: true,
+        items: { include: { product: { select: { sku: true } } } },
+        payments: true,
+        branch: true,
+        company: {
+          select: {
+            id: true, name: true, comercialName: true, nit: true, nrc: true,
+            actividadEconomica: true, address: true, phone: true, email: true,
+            smtpHost: true, smtpPort: true, smtpUser: true, smtpPwdEnc: true, smtpFrom: true, smtpSecure: true,
+          },
+        },
+        dteDocument: true,
+      },
+    })
+    if (!sale) throw new NotFoundException('Venta no encontrada')
+    this.assertSaleAccess(user, sale)
+    if (!sale.dteDocument || sale.dteDocument.status !== 'ACCEPTED') {
+      throw new NotFoundException('Solo se pueden reenviar DTE aceptados')
+    }
+    const clientEmail = sale.client?.email
+    if (!clientEmail) throw new NotFoundException('El cliente no tiene correo registrado')
+
+    const pdfBuffer = await this.dtePdf.generate(sale, sale.dteDocument)
+    const smtpConfig = this.buildSmtpConfig(sale.company)
+    await this.mail.sendDteEmail({
+      sale,
+      dte: sale.dteDocument,
+      pdfBuffer,
+      dteJson: sale.dteDocument.jsonOriginal as Record<string, unknown> | null,
+      smtpConfig,
+    })
+    return { sent: true }
   }
 
   async findBySale(saleId: string, user: JwtAccessPayload, tenantId: string, dbUrl?: string) {

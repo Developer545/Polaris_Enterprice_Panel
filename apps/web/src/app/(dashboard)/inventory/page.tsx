@@ -6,7 +6,7 @@
 // Scanner de código de barras integrado para búsqueda rápida de producto
 // ══════════════════════════════════════════════════════════════════════════════
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect, useDeferredValue } from 'react'
 import {
   Table, Button, Tag, Typography, Modal, Form, Select, InputNumber, Input,
   App, Row, Col, Statistic, Card, Space, Tabs, Badge, Tooltip, theme,
@@ -119,6 +119,12 @@ export default function InventoryPage() {
   const [scannerActive, setScannerActive] = useState(false)
   const searchInputRef = useRef<any>(null)
 
+  // ── Inventory product table pagination ────────────────────────────────────
+  const [productPage, setProductPage] = useState(1)
+  const deferredSearch      = useDeferredValue(search)
+  // Reset page when any filter changes
+  useEffect(() => { setProductPage(1) }, [deferredSearch, filterCat, soloStockBajo, branchId])
+
   // ── Queries ────────────────────────────────────────────────────────────────
   const statsQ = useQuery({
     queryKey: ['inventory-stats', companyId, branchId],
@@ -126,11 +132,30 @@ export default function InventoryPage() {
     enabled:  !!companyId,
   })
 
-  // Products query: fetch all (large limit), server returns { data, total, page, limit }
-  const productsQ = useQuery<any[]>({
-    queryKey: ['products', companyId, branchId, 'inventory'],
-    queryFn:  () => api.get('/api/products', { params: { companyId, branchId, limit: 500 } }).then(r => r.data?.data ?? r.data),
+  // Products query — server-side filtered & paginated (trackStock=true, inventory view)
+  const productsQ = useQuery({
+    queryKey: ['products', companyId, branchId, 'inventory', deferredSearch, filterCat, soloStockBajo, productPage],
+    queryFn:  () => api.get('/api/products', {
+      params: {
+        companyId, branchId,
+        trackStock: true,
+        search:     deferredSearch || undefined,
+        categoryId: filterCat     || undefined,
+        lowStock:   soloStockBajo || undefined,
+        page:       productPage,
+        limit:      50,
+      },
+    }).then(r => r.data),
     enabled:  !!companyId,
+    placeholderData: (prev: any) => prev,
+  })
+
+  // Unfiltered products for Select options (adjust / transfer / kardex filter)
+  const allProductsSelectQ = useQuery({
+    queryKey: ['products-select', companyId, branchId],
+    queryFn:  () => api.get('/api/products', { params: { companyId, branchId, trackStock: true, limit: 200 } }).then(r => r.data?.data ?? []),
+    enabled:  !!companyId,
+    staleTime: 5 * 60_000,
   })
 
   const categoriesQ = useQuery<any[]>({
@@ -171,22 +196,36 @@ export default function InventoryPage() {
   })
 
   // ── Barcode scanner integration ────────────────────────────────────────────
+  // API lookup — finds any product regardless of current page/filter
   useBarcodeScanner(
-    (barcode: string) => {
-      const allProducts = productsQ.data ?? []
-      const found = allProducts.find(
-        (p: any) => p.barcode === barcode || p.sku === barcode,
-      )
-      if (found) {
-        adjustForm.setFieldValue('productId', found.id)
-        setAdjustTarget(found)
-        message.success(`Producto: ${found.name}`)
-      } else {
-        message.warning(`Código no encontrado: ${barcode}`)
+    async (barcode: string) => {
+      if (!companyId) return
+      try {
+        const res = await api.get('/api/products', {
+          params: { companyId, branchId, search: barcode, limit: 10 },
+        })
+        const results: any[] = res.data?.data ?? []
+        const found = results.find((p: any) => p.barcode === barcode || p.sku === barcode) ?? results[0]
+        if (found) {
+          adjustForm.resetFields()
+          adjustForm.setFieldsValue({
+            productId: found.id,
+            type: 'IN',
+            unitCost: Number(found.cost ?? 0) > 0 ? Number(found.cost) : undefined,
+          })
+          setAdjustTarget(found)
+          setAdjustModal(true)
+          setScannerActive(true)
+          message.success({ content: `Escaneado: ${found.name}`, duration: 1.5 })
+        } else {
+          message.warning(`Código no encontrado: ${barcode}`)
+        }
+      } catch {
+        message.error('Error al buscar por código de barras')
       }
     },
     {
-      enabled: scannerActive && adjustModal,
+      enabled: scannerActive,
       minLength: 3,
       maxInterval: 60,
       ignoreWhenFocusIn: ['INPUT', 'TEXTAREA'],
@@ -244,32 +283,27 @@ export default function InventoryPage() {
   })
 
   // ── Computed ───────────────────────────────────────────────────────────────
-  const stats       = statsQ.data ?? {}
-  const allProducts = productsQ.data ?? []
+  const stats                 = statsQ.data ?? {}
+  // Current page products (server-filtered: trackStock=true + search + category + lowStock)
+  const allProducts: any[]    = productsQ.data?.data ?? []
+  const productsTotal: number = productsQ.data?.total ?? 0
+  // Unfiltered for select options
+  const allProductsForSelect: any[] = allProductsSelectQ.data ?? []
   const categories  = categoriesQ.data ?? []
   const branches    = branchesQ.data ?? []
   const movements   = movQ.data?.data ?? movQ.data ?? []
   const kardexItems = kardexQ.data?.data ?? kardexQ.data ?? []
 
-  // Inventory tab: only products with trackStock
-  const stockProducts = useMemo(() => {
-    let list = allProducts.filter((p: any) => p.trackStock)
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      list = list.filter((p: any) =>
-        p.name.toLowerCase().includes(q) ||
-        (p.sku ?? '').toLowerCase().includes(q) ||
-        (p.barcode ?? '').includes(q)
-      )
-    }
-    if (filterCat) list = list.filter((p: any) => p.categoryId === filterCat)
-    if (soloStockBajo) list = list.filter((p: any) => Number(p.stock ?? 0) <= Number(p.minStock ?? 0))
-    return list
-  }, [allProducts, search, filterCat, soloStockBajo])
+  // Server already filters: trackStock + search + category + lowStock
+  // Just use allProducts directly as the table data source
+  const stockProducts = allProducts
 
-  const stockBajoCount = allProducts.filter(
-    (p: any) => p.trackStock && Number(p.stock ?? 0) <= Number(p.minStock ?? 0)
-  ).length
+  // Low-stock count: use stats or productsTotal when soloStockBajo is active
+  const stockBajoCount: number = soloStockBajo
+    ? productsTotal
+    : (stats.lowStockCount ?? stats.stockBajoCount ?? allProductsForSelect.filter(
+        (p: any) => Number(p.stock ?? 0) <= Number(p.minStock ?? 0)
+      ).length)
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   function openKardex(product: any) {
@@ -322,7 +356,7 @@ export default function InventoryPage() {
   const kpis = [
     {
       title:  'Productos en stock',
-      value:  stats.totalProductos ?? allProducts.filter((p: any) => p.trackStock).length,
+      value:  stats.totalProductos ?? productsTotal,
       color:  primary,
       icon:   <ShoppingOutlined />,
     },
@@ -656,7 +690,7 @@ export default function InventoryPage() {
               label: (
                 <Space>
                   <ShoppingOutlined />
-                  {`Productos (${allProducts.filter((p: any) => p.trackStock).length})`}
+                  {`Productos (${productsTotal})`}
                   {stockBajoCount > 0 && <Badge count={stockBajoCount} style={{ backgroundColor: token.colorError }} />}
                 </Space>
               ),
@@ -730,9 +764,16 @@ export default function InventoryPage() {
                   )}
 
                   <Table size="small" columns={productCols} dataSource={stockProducts} rowKey="id"
-                    loading={productsQ.isLoading} scroll={{ x: 900 }}
+                    loading={productsQ.isLoading || productsQ.isFetching} scroll={{ x: 900 }}
                     rowClassName={(r: any) => Number(r.stock ?? 0) <= Number(r.minStock ?? 0) ? 'ant-table-row-danger' : ''}
-                    pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: ['20', '50', '100'], showTotal: (t, range) => `${range[0]}–${range[1]} de ${t} productos` }}
+                    pagination={{
+                      current: productPage,
+                      total: productsTotal,
+                      pageSize: 50,
+                      showSizeChanger: false,
+                      onChange: setProductPage,
+                      showTotal: (t, range) => `${range[0]}–${range[1]} de ${t} productos`,
+                    }}
                     locale={{
                       emptyText: (
                         <div style={{ padding: 48, textAlign: 'center' }}>
@@ -759,7 +800,7 @@ export default function InventoryPage() {
                     />
                     <Select placeholder="Producto" allowClear showSearch optionFilterProp="label" style={{ width: 220 }}
                       value={filterProduct} onChange={setFilterProduct}
-                      options={allProducts.map((p: any) => ({ value: p.id, label: p.name }))}
+                      options={allProductsForSelect.map((p: any) => ({ value: p.id, label: p.name }))}
                     />
                     <RangePicker value={dateRange} onChange={v => setDateRange(v as any)}
                       format="DD/MM/YY" placeholder={['Desde', 'Hasta']} style={{ borderRadius: 8 }} />
@@ -877,7 +918,7 @@ export default function InventoryPage() {
           {!adjustTarget && (
             <Form.Item name="productId" label="Producto" rules={[{ required: true }]} style={{ marginBottom: 14 }}>
               <Select showSearch optionFilterProp="label" placeholder="Buscar producto con stock..."
-                options={allProducts.filter((p: any) => p.trackStock).map((p: any) => ({
+                options={allProductsForSelect.map((p: any) => ({
                   value: p.id,
                   label: `${p.name}${p.sku ? ` (${p.sku})` : ''} — Stock: ${Number(p.stock ?? 0).toFixed(0)}`,
                 }))}
@@ -939,7 +980,7 @@ export default function InventoryPage() {
         <Form form={transferForm} layout="vertical" requiredMark={false} onFinish={values => transferMutation.mutate(values)}>
           <Form.Item name="productId" label="Producto" rules={[{ required: true }]} style={{ marginBottom: 14 }}>
             <Select showSearch optionFilterProp="label" placeholder="Seleccionar producto con stock..."
-              options={allProducts.filter((p: any) => p.trackStock).map((p: any) => ({
+              options={allProductsForSelect.map((p: any) => ({
                 value: p.id,
                 label: `${p.name}${p.sku ? ` (${p.sku})` : ''} — Stock total: ${Number(p.stock ?? 0).toFixed(0)}`,
               }))}

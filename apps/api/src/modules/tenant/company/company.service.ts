@@ -31,6 +31,13 @@ export const UpdateCompanySchema = z.object({
   certPassword: z.string().optional(),
   dteAmbiente: z.enum(['TEST', 'PROD']).optional(),
   dteEnabledTypes: z.array(z.enum(DTE_TYPE_VALUES)).optional(),
+  // SMTP por empresa (opcional — fallback a env global)
+  smtpHost: z.string().optional().nullable(),
+  smtpPort: z.number().int().min(1).max(65535).optional().nullable(),
+  smtpUser: z.string().optional().nullable(),
+  smtpPassword: z.string().optional(),   // stored encrypted → smtpPwdEnc
+  smtpFrom: z.string().optional().nullable(),
+  smtpSecure: z.boolean().optional(),
 })
 
 export type UpdateCompanyDto = z.infer<typeof UpdateCompanySchema>
@@ -84,6 +91,8 @@ export class CompanyService {
         dteAmbiente: true, dteEnabledTypes: true, isActive: true, createdAt: true,
         haciendaUserEnc: true,
         certDataEnc: true,
+        smtpHost: true, smtpPort: true, smtpUser: true, smtpFrom: true, smtpSecure: true,
+        smtpPwdEnc: true,
         branches: { select: { id: true, name: true, codEstableMH: true, isActive: true } },
       },
     })
@@ -94,10 +103,12 @@ export class CompanyService {
       ...company,
       haciendaConfigured:  !!company.haciendaUserEnc,
       certConfigured:      !!company.certDataEnc,
+      smtpConfigured:      !!company.smtpHost && !!company.smtpPwdEnc,
       // Treat empty array as default ["01","03"]
       dteEnabledTypes:     enabledTypes.length > 0 ? enabledTypes : ['01', '03'],
       haciendaUserEnc: undefined,
       certDataEnc:     undefined,
+      smtpPwdEnc:      undefined,
     }
   }
 
@@ -109,7 +120,7 @@ export class CompanyService {
     const company = await db.company.findFirst({ where: { id, tenantId } })
     if (!company) throw new NotFoundException('Empresa no encontrada')
 
-    const { haciendaUser, haciendaPassword, certData, certPassword, dteEnabledTypes, ...rest } = dto
+    const { haciendaUser, haciendaPassword, certData, certPassword, dteEnabledTypes, smtpPassword, ...rest } = dto
     const data: Record<string, unknown> = { ...rest }
     if (dteEnabledTypes !== undefined) data.dteEnabledTypes = dteEnabledTypes
 
@@ -117,6 +128,7 @@ export class CompanyService {
     if (haciendaPassword) data.haciendaPwdEnc = this.crypto.encrypt(haciendaPassword)
     if (certData) data.certDataEnc = this.crypto.encrypt(certData)
     if (certPassword) data.certPwdEnc = this.crypto.encrypt(certPassword)
+    if (smtpPassword) data.smtpPwdEnc = this.crypto.encrypt(smtpPassword)
 
     return db.company.update({ where: { id }, data })
   }
