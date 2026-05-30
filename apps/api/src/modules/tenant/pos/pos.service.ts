@@ -510,7 +510,18 @@ export class PosService {
     if (branchId && !user.branchIds.includes(branchId) && !user.canViewAllBranches)
       throw new ForbiddenException('Sucursal no autorizada')
 
-    const [categories, products, openRegister] = await Promise.all([
+    const [categories, products, openRegister, company] = await Promise.all([
+      // Company — for print headers
+      db.company.findFirst({
+        where: { id: companyId, tenantId },
+        select: {
+          id: true, name: true, tradeName: true,
+          nit: true, nrc: true, phone: true, email: true,
+          address: true, actividadEconomica: true, codActividad: true,
+          esGranContribuyente: true,
+        },
+      }),
+
       // Categories — lightweight, all active
       db.category.findMany({
         where: { tenantId, companyId, isActive: true },
@@ -555,7 +566,7 @@ export class PosService {
       minStock: branchInventories?.[0]?.minStock ?? p.minStock,
     }))
 
-    return { categories, products: resolvedProducts, openRegister }
+    return { categories, products: resolvedProducts, openRegister, company }
   }
 
   async voidSale(id: string, reason: string, user: JwtAccessPayload) {

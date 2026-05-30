@@ -7,8 +7,9 @@ import {
 import {
   SearchOutlined, PlusOutlined, DeleteOutlined,
   ShoppingCartOutlined, UserOutlined, DollarOutlined,
-  TeamOutlined, UserAddOutlined, IdcardOutlined,
+  TeamOutlined, UserAddOutlined, IdcardOutlined, PrinterOutlined,
 } from '@ant-design/icons'
+import { printTicket80mm, printCartaA4, type PrintContext } from '../../../lib/print-receipt'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
@@ -85,6 +86,8 @@ export default function PosPage() {
   const [payForm] = Form.useForm()
   const [recibidoEfectivo, setRecibidoEfectivo] = useState<number>(0)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [lastSale, setLastSale] = useState<any>(null)
+  const [printModal, setPrintModal] = useState(false)
 
   const { companyId, branchId } = useAppContext()
 
@@ -99,6 +102,7 @@ export default function PosPage() {
 
   const categories: any[]  = bootstrap?.categories  ?? []
   const openRegister: any  = bootstrap?.openRegister ?? null
+  const bootstrapCompany: any = bootstrap?.company ?? null
 
   // ── Products: usa iniciales del bootstrap ó búsqueda/filtro reactiva ──
   const hasFilter = !!deferredProductSearch || !!selectedCategory
@@ -213,6 +217,14 @@ export default function PosPage() {
 
       const win = window as any
       if (win.electron?.drawer?.open) win.electron.drawer.open().catch(() => {})
+
+      // Store completed sale for print modal (capture before state reset)
+      setLastSale({
+        saleData: response.data,
+        amountPaid: recibidoEfectivo > 0 ? recibidoEfectivo : totalPagar,
+        change: recibidoEfectivo > 0 ? Math.max(0, recibidoEfectivo - totalPagar) : 0,
+      })
+      setPrintModal(true)
 
       setCart([])
       resetClient()
@@ -774,7 +786,112 @@ export default function PosPage() {
         )}
       </div>
 
-      {/* â”€â”€ Payment modal â”€â”€ */}
+      {/* ── Print modal ── */}
+      <Modal
+        open={printModal}
+        onCancel={() => { setPrintModal(false); setLastSale(null) }}
+        footer={null}
+        width={380}
+        centered
+        title={
+          <span>
+            <PrinterOutlined style={{ marginRight: 8, color: token.colorPrimary }} />
+            Imprimir comprobante
+          </span>
+        }
+      >
+        {lastSale && (() => {
+          const sale = lastSale.saleData
+          const ctx: PrintContext = {
+            sale: {
+              id: sale?.id ?? '',
+              tipoDte: sale?.tipoDte ?? '01',
+              createdAt: sale?.createdAt ?? new Date().toISOString(),
+              totalGravada: sale?.totalGravada ?? 0,
+              totalIva: sale?.totalIva ?? 0,
+              totalPagar: sale?.totalPagar ?? 0,
+              ivaRete1: sale?.ivaRete1,
+              totalDescuento: sale?.totalDescuento,
+              items: (sale?.items ?? []).map((it: any) => ({
+                productName: it.product?.name ?? it.productName ?? '—',
+                quantity: it.quantity,
+                unitPrice: it.unitPrice,
+                discount: it.discount,
+                ventaGravada: it.ventaGravada,
+                ivaItem: it.ivaItem,
+              })),
+              payments: (sale?.payments ?? []).map((p: any) => ({
+                formaPago: p.formaPago,
+                amount: p.amount,
+                reference: p.reference,
+              })),
+              client: sale?.client ? {
+                name: sale.client.name,
+                numDocumento: sale.client.numDocumento,
+                nit: sale.client.nit,
+                nrc: sale.client.nrc,
+                email: sale.client.email,
+                address: sale.client.address,
+                actividadEconomica: sale.client.actividadEconomica,
+                actividadEconomicaCodigo: sale.client.actividadEconomicaCodigo,
+              } : null,
+              branch: sale?.branch ? { name: sale.branch.name } : null,
+              dteDocument: sale?.dteDocument ?? null,
+            },
+            company: bootstrapCompany ? {
+              name: bootstrapCompany.name,
+              comercialName: bootstrapCompany.tradeName,
+              nit: bootstrapCompany.nit,
+              nrc: bootstrapCompany.nrc,
+              address: bootstrapCompany.address,
+              phone: bootstrapCompany.phone,
+              email: bootstrapCompany.email,
+              actividadEconomica: bootstrapCompany.actividadEconomica,
+            } : { name: 'POS DTE' },
+            branchName: sale?.branch?.name ?? openRegister?.branch?.name ?? '',
+            cashierName: (window as any).user?.name ?? '',
+            amountPaid: lastSale.amountPaid,
+            change: lastSale.change,
+          }
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '8px 0' }}>
+              <div style={{ fontSize: 13, color: '#666', textAlign: 'center', marginBottom: 4 }}>
+                Venta registrada. Selecciona formato de impresión:
+              </div>
+              <Button
+                type=”primary”
+                size=”large”
+                block
+                icon={<PrinterOutlined />}
+                style={{ borderRadius: 8, fontWeight: 600 }}
+                onClick={() => { printTicket80mm(ctx); setPrintModal(false) }}
+              >
+                Ticket 80mm (Caja)
+              </Button>
+              <Button
+                size=”large”
+                block
+                icon={<PrinterOutlined />}
+                style={{ borderRadius: 8, fontWeight: 600 }}
+                onClick={() => { printCartaA4(ctx); setPrintModal(false) }}
+              >
+                Carta A4 (Original)
+              </Button>
+              <Button
+                size=”large”
+                block
+                type=”text”
+                style={{ borderRadius: 8, color: '#999' }}
+                onClick={() => { setPrintModal(false); setLastSale(null) }}
+              >
+                Omitir
+              </Button>
+            </div>
+          )
+        })()}
+      </Modal>
+
+      {/* ── Payment modal ── */}
       <Modal destroyOnClose
         open={payModal}
         title={
