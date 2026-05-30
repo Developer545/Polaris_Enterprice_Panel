@@ -65,9 +65,18 @@ const DTE_CATALOG = [
     color: '#722ed1',
     requiresCCF: false,
   },
+  {
+    code: '16',
+    abbr: 'VS',
+    name: 'Venta Simplificada (provisional)',
+    desc: 'Ventas anónimas sin datos de receptor. Código provisional — sujeto a cambio cuando MH formalice CAT-003.',
+    required: false,
+    color: '#8c8c8c',
+    requiresCCF: false,
+  },
 ] as const
 
-type DteCode = '01' | '03' | '05' | '06' | '11'
+type DteCode = '01' | '03' | '05' | '06' | '11' | '16'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,6 +85,12 @@ interface CompanyData {
   name: string
   haciendaConfigured: boolean
   certConfigured:     boolean
+  smtpConfigured:     boolean
+  smtpHost:           string | null
+  smtpPort:           number | null
+  smtpUser:           string | null
+  smtpFrom:           string | null
+  smtpSecure:         boolean
   dteAmbiente:        'TEST' | 'PROD'
   dteEnabledTypes:    string[]
 }
@@ -148,6 +163,7 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
 
   const [haciendaForm] = Form.useForm()
   const [certForm]     = Form.useForm()
+  const [smtpForm]     = Form.useForm()
   const [testingMH,    setTestingMH]    = useState(false)
   const [certFileName, setCertFileName] = useState<string | null>(null)
   const [certBase64,   setCertBase64]   = useState<string | null>(null)
@@ -181,8 +197,15 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
     if (company) {
       haciendaForm.setFieldsValue({ dteAmbiente: company.dteAmbiente ?? 'TEST' })
       setLocalDteTypes(company.dteEnabledTypes ?? ['01', '03'])
+      smtpForm.setFieldsValue({
+        smtpHost: company.smtpHost ?? '',
+        smtpPort: company.smtpPort ?? 587,
+        smtpUser: company.smtpUser ?? '',
+        smtpFrom: company.smtpFrom ?? '',
+        smtpSecure: company.smtpSecure ?? false,
+      })
     }
-  }, [company, haciendaForm])
+  }, [company, haciendaForm, smtpForm])
 
   // ── Mutations ─────────────────────────────────────────────────────────────────
 
@@ -219,6 +242,31 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
     },
     onError: (err: any) => message.error(err?.response?.data?.message ?? 'Error al guardar'),
   })
+
+  const updateSmtp = useMutation({
+    mutationFn: (values: any) =>
+      api.put(`/api/companies/${companyId}`, values).then(r => r.data),
+    onSuccess: () => {
+      message.success('Configuración SMTP guardada')
+      qc.invalidateQueries({ queryKey: ['company', companyId] })
+      smtpForm.resetFields(['smtpPassword'])
+    },
+    onError: (err: any) => message.error(err?.response?.data?.message ?? 'Error al guardar SMTP'),
+  })
+
+  async function handleSaveSmtp() {
+    try {
+      const values = await smtpForm.validateFields()
+      await updateSmtp.mutateAsync({
+        smtpHost: values.smtpHost || null,
+        smtpPort: values.smtpPort ? Number(values.smtpPort) : null,
+        smtpUser: values.smtpUser || null,
+        smtpPassword: values.smtpPassword || undefined,
+        smtpFrom: values.smtpFrom || null,
+        smtpSecure: values.smtpSecure ?? false,
+      })
+    } catch {}
+  }
 
   function toggleDteType(code: string, enabled: boolean) {
     // CF (01) is always required — cannot disable
@@ -648,6 +696,88 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
           >
             Guardar certificado
           </Button>
+        </Form>
+      </Section>
+
+      <Divider style={{ margin: '8px 0 24px' }} />
+
+      {/* ══ 4b. SMTP por empresa ══════════════════════════════════════════════ */}
+      <Section
+        icon={<MailOutlined />}
+        title="Correo SMTP — Envío de DTE"
+        subtitle="Configura el servidor de correo para enviar la representación gráfica del DTE al cliente tras su aceptación"
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <StatusBadge ok={!!company?.smtpConfigured} label={company?.smtpConfigured ? 'SMTP configurado' : 'Sin SMTP (usa servidor global)'} />
+        </div>
+
+        <Alert
+          type="info"
+          showIcon
+          icon={<InfoCircleOutlined />}
+          message={
+            <span style={{ fontSize: 12 }}>
+              Si no configuras SMTP propio, el sistema usará el servidor global de Speeddan System
+              (si está disponible). Se recomienda configurar uno propio para que el correo salga
+              desde tu dominio empresarial.
+            </span>
+          }
+          style={{ marginBottom: 16, borderRadius: 8 }}
+        />
+
+        <Form form={smtpForm} layout="vertical" size="middle">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 12 }}>
+            <Form.Item name="smtpHost" label="Servidor SMTP (Host)">
+              <Input placeholder="mail.tudominio.com" autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="smtpPort" label="Puerto">
+              <Input placeholder="587" type="number" />
+            </Form.Item>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Form.Item name="smtpUser" label="Usuario SMTP">
+              <Input placeholder="noreply@tudominio.com" autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="smtpPassword" label="Contraseña SMTP"
+              extra={<span style={{ fontSize: 11 }}>Dejar vacío para mantener la actual</span>}
+            >
+              <Input.Password
+                placeholder={company?.smtpConfigured ? '••••••• (guardado)' : 'Contraseña del servidor'}
+                autoComplete="new-password"
+                iconRender={v => v ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+              />
+            </Form.Item>
+          </div>
+
+          <Form.Item name="smtpFrom" label='Remitente ("De")'>
+            <Input placeholder='"Mi Empresa" <noreply@tudominio.com>' />
+          </Form.Item>
+
+          <Form.Item name="smtpSecure" valuePropName="checked" label="Conexión segura (TLS/SSL)">
+            <Switch size="small" />
+          </Form.Item>
+
+          <Space>
+            <Button type="primary" loading={updateSmtp.isPending} onClick={handleSaveSmtp}>
+              Guardar configuración SMTP
+            </Button>
+            {company?.smtpConfigured && (
+              <Button
+                icon={<SyncOutlined />}
+                onClick={async () => {
+                  try {
+                    await api.post(`/api/companies/${companyId}/test-smtp`)
+                    message.success('Conexión SMTP exitosa')
+                  } catch (e: any) {
+                    message.error(e?.response?.data?.message ?? 'Error al probar SMTP')
+                  }
+                }}
+              >
+                Probar conexión
+              </Button>
+            )}
+          </Space>
         </Form>
       </Section>
 

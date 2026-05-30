@@ -56,10 +56,10 @@ export class ClientsService {
       ...buildBranchWhere(user, branchId),
       ...(search ? {
         OR: [
-          { name: { contains: search, mode: 'insensitive' } },
+          { name: { contains: search, mode: 'insensitive' as const } },
           { numDocumento: { contains: search } },
           { nrc: { contains: search } },
-          { email: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' as const } },
         ],
       } : {}),
     }

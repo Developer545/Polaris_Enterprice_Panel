@@ -154,7 +154,7 @@ export class LicensesPublicController {
     return this.service.heartbeat(dto)
   }
 
-  /** Sync compacto: licencia + mÃ³dulos + heartbeat + comandos pendientes */
+  /** Sync compacto: licencia + módulos + heartbeat + comandos pendientes */
   @Public()
   @Post('sync')
   @HttpCode(200)

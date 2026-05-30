@@ -543,7 +543,7 @@ export class DteService {
       },
     })
 
-    const jws = await this.firmador.firmarDocumento(retornoJson, certData ?? '', certPassword ?? '')
+    const jws = await this.firmador.firmarDocumento(retornoJson as Record<string, unknown>, certData ?? '', certPassword ?? '')
     const cacheKey = `${tenantId}:${company.id}`
     const authToken = await this.hacienda.authenticate(haciendaUser, haciendaPassword, ambiente, cacheKey)
     const result = await this.hacienda.submitRetorno(jws, retornoCodigoGeneracion, ambiente, authToken)
@@ -644,7 +644,7 @@ export class DteService {
       },
     })
 
-    const jws = await this.firmador.firmarDocumento(opEspecialJson, certData ?? '', certPassword ?? '')
+    const jws = await this.firmador.firmarDocumento(opEspecialJson as Record<string, unknown>, certData ?? '', certPassword ?? '')
     const cacheKey = `${tenantId}:${company.id}`
     const authToken = await this.hacienda.authenticate(haciendaUser, haciendaPassword, ambiente, cacheKey)
     const result = await this.hacienda.submitOperacionEspecial(jws, opEspecialCodigoGeneracion, ambiente, authToken)

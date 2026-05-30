@@ -1,5 +1,8 @@
 // DTE El Salvador shared types between API and frontend.
 
+/** Tipo provisional para Venta Simplificada — actualizar cuando MH formalice en CAT-003 */
+export const VENTA_SIMPLIFICADA_TIPO_DTE = '16' as const
+
 export const DTE_TYPE_VALUES = [
   '01',
   '03',
@@ -12,6 +15,7 @@ export const DTE_TYPE_VALUES = [
   '11',
   '14',
   '15',
+  '16', // Venta Simplificada (provisional — código pendiente de CAT-003 oficial MH)
 ] as const
 
 export type TipoDte = (typeof DTE_TYPE_VALUES)[number]
@@ -31,6 +35,7 @@ export const DTE_VERSION_BY_TYPE: Record<TipoDte, number> = {
   '11': 3,
   '14': 2,
   '15': 2,
+  '16': 1, // VS provisional
 }
 
 export const DTE_SCHEMA_NAME_BY_TYPE: Record<TipoDte, string> = {
@@ -45,6 +50,7 @@ export const DTE_SCHEMA_NAME_BY_TYPE: Record<TipoDte, string> = {
   '11': 'fe-fex-v3',
   '14': 'fe-fse-v2',
   '15': 'fe-cd-v2',
+  '16': 'fe-vs-v1', // VS provisional
 }
 
 export function isTipoDte(value: string): value is TipoDte {
@@ -82,6 +88,7 @@ export const CATALOGO_TIPO_DTE: Record<TipoDte, string> = {
   '11': 'Factura de Exportacion',
   '14': 'Factura de Sujeto Excluido',
   '15': 'Comprobante de Donacion',
+  '16': 'Venta Simplificada',
 }
 
 export const CATALOGO_TIPO_EVENTO_DTE: Record<TipoEventoDte, string> = {

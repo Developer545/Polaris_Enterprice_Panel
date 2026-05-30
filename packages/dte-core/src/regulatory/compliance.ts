@@ -34,7 +34,7 @@ export const INVALIDATION_NEXT_MONTH_BUSINESS_DAY_TYPES = [
   '18',
 ] as const
 
-export const INVALIDATION_THREE_MONTH_TYPES = ['01', '11', '14'] as const
+export const INVALIDATION_THREE_MONTH_TYPES = ['01', '11', '14', '16'] as const
 
 export const CAT_005_TIPO_CONTINGENCIA = {
   NO_DISPONIBILIDAD_MH: 1,

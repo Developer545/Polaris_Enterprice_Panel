@@ -39,6 +39,13 @@ const DTE_TYPES = [
     description: 'Ventas al exterior / exportaciones',
     color: '#13c2c2',
   },
+  {
+    code: '16',
+    name: 'Venta Simplificada (VS) — provisional',
+    description: 'Ventas anónimas sin datos del receptor · Código provisional pendiente de CAT-003 oficial MH',
+    color: '#8c8c8c',
+    provisional: true,
+  },
 ]
 
 interface Props {
@@ -122,6 +129,9 @@ export default function DocumentosFiscalesTab({ tenantId, dteAllowedTypes: initi
                       <Typography.Text type="secondary" style={{ fontSize: 11, marginLeft: 6, fontWeight: 400 }}>
                         (siempre activo)
                       </Typography.Text>
+                    )}
+                    {(dt as any).provisional && (
+                      <Tag color="orange" style={{ fontSize: 10, marginLeft: 6 }}>PROVISIONAL</Tag>
                     )}
                   </Typography.Text>
                   <br />

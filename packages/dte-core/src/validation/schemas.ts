@@ -70,7 +70,7 @@ function baseResumenProperties(tipoDte: TipoDte): Record<string, unknown> {
     totalNoGravado: money,
     totalPagar: money,
     totalLetras: { type: 'string', minLength: 1 },
-    ...(tipoDte === '01' ? { totalIva: money } : {}),
+    ...(tipoDte === '01' || tipoDte === '16' ? { totalIva: money } : {}),
     saldoFavor: money,
     condicionOperacion: { type: 'integer' },
     pagos: { anyOf: [{ type: 'array', items: pagoSchema, minItems: 1 }, { type: 'null' }] },
@@ -83,6 +83,7 @@ function baseDteSchema(tipoDte: TipoDte): JsonSchema {
   const version = DTE_VERSION_BY_TYPE[tipoDte]
   const isFactura = tipoDte === '01'
   const isCcf = tipoDte === '03'
+  const isVS = tipoDte === '16' // Venta Simplificada — receptor always null
 
   return {
     $id: `sv-dte-${tipoDte}-v${version}`,
@@ -169,7 +170,7 @@ function baseDteSchema(tipoDte: TipoDte): JsonSchema {
           codPuntoVenta: { type: 'string', minLength: 4, maxLength: 4 },
         },
       },
-      receptor: isFactura ? nullableObject : {
+      receptor: isVS ? { type: 'null' } : isFactura ? nullableObject : {
         type: 'object',
         additionalProperties: false,
         required: [
@@ -220,7 +221,7 @@ function baseDteSchema(tipoDte: TipoDte): JsonSchema {
             'tributos',
             'psv',
             'noGravado',
-            ...(isFactura ? ['ivaItem'] : []),
+            ...(isFactura || isVS ? ['ivaItem'] : []),
           ],
           properties: {
             numItem: { type: 'integer', minimum: 1 },
@@ -239,7 +240,7 @@ function baseDteSchema(tipoDte: TipoDte): JsonSchema {
             tributos: { anyOf: [{ type: 'array', items: { type: 'string', minLength: 2, maxLength: 2 } }, { type: 'null' }] },
             psv: { type: 'number' },
             noGravado: { type: 'number' },
-            ...(isFactura ? { ivaItem: { type: 'number' } } : {}),
+            ...(isFactura || isVS ? { ivaItem: { type: 'number' } } : {}),
           },
         },
       },
@@ -264,7 +265,7 @@ function baseDteSchema(tipoDte: TipoDte): JsonSchema {
           'totalNoGravado',
           'totalPagar',
           'totalLetras',
-          ...(isFactura ? ['totalIva'] : []),
+          ...(isFactura || isVS ? ['totalIva'] : []),
           'saldoFavor',
           'condicionOperacion',
           'pagos',
@@ -290,4 +291,5 @@ export const DTE_JSON_SCHEMAS: Record<TipoDte, JsonSchema> = {
   '11': baseDteSchema('11'),
   '14': baseDteSchema('14'),
   '15': baseDteSchema('15'),
+  '16': baseDteSchema('16'), // Venta Simplificada provisional
 }
