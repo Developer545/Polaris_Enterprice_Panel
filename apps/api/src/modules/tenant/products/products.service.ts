@@ -179,7 +179,7 @@ export class ProductsService {
     if (!product) throw new NotFoundException('Producto no encontrado')
     if (!product.trackStock) throw new BadRequestException('Este producto no lleva control de inventario')
 
-    const newStock = (product.stock ?? 0) + quantity
+    const newStock = Number(product.stock ?? 0) + quantity
     if (newStock < 0) throw new BadRequestException('Stock insuficiente')
 
     return db.service.update({ where: { id }, data: { stock: newStock } })

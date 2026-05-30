@@ -8,6 +8,8 @@ import { DteLocalOutboxService } from './dte-local-outbox.service'
 import { ContingencyService } from './contingency.service'
 import { ContingencyOutboxService } from './contingency-outbox.service'
 import { DteBuilderService } from './dte-builder.service'
+import { DtePdfService } from './dte-pdf.service'
+import { MailService } from './mail.service'
 import { FirmadorService } from './firmador.service'
 import { HaciendaService } from './hacienda.service'
 import { CompanyModule } from '../company/company.module'
@@ -22,6 +24,8 @@ import { CompanyModule } from '../company/company.module'
     DteService,
     ...(useBullDteQueue() ? [DteProcessor] : [DteLocalOutboxService]),
     DteBuilderService,
+    DtePdfService,
+    MailService,
     FirmadorService,
     HaciendaService,
     ContingencyService,

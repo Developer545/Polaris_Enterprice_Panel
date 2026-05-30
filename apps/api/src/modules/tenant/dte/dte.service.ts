@@ -5,6 +5,8 @@ import { CompanyService } from '../company/company.service'
 import { FirmadorService } from './firmador.service'
 import { HaciendaService } from './hacienda.service'
 import { DteBuilderService } from './dte-builder.service'
+import { DtePdfService } from './dte-pdf.service'
+import { MailService } from './mail.service'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { assertCanInvalidateDte, assertValidDteJson, INVALIDATION_EVENT_VERSION } from '@pos-dte/dte-core'
 import { z } from 'zod'
@@ -33,6 +35,8 @@ export class DteService {
     private readonly firmador: FirmadorService,
     private readonly hacienda: HaciendaService,
     private readonly builder: DteBuilderService,
+    private readonly dtePdf: DtePdfService,
+    private readonly mail: MailService,
   ) {}
 
   private getDb(dbUrl?: string) {
@@ -162,19 +166,37 @@ export class DteService {
       )
 
       // Update DTE doc
-      await db.dteDocument.update({
+      const accepted = !!result.selloRecibido
+      const updatedDte = await db.dteDocument.update({
         where: { id: dteDoc.id },
         data: {
           jsonOriginal: dteJson as any,
           jsonFirmado: jws,
           selloRecibido: result.selloRecibido,
-          status: result.selloRecibido ? 'ACCEPTED' : 'REJECTED',
+          status: accepted ? 'ACCEPTED' : 'REJECTED',
           observaciones: result.observaciones,
           processedAt: new Date(),
         },
       })
 
       this.logger.log(`DTE emitido: ${payload.numeroControl} | sello: ${result.selloRecibido}`)
+
+      // Send email with PDF + JSON (fire-and-forget — never blocks emission)
+      if (accepted && sale.client?.email) {
+        setImmediate(async () => {
+          try {
+            const pdfBuffer = await this.dtePdf.generate(sale, updatedDte)
+            await this.mail.sendDteEmail({
+              sale,
+              dte: updatedDte,
+              pdfBuffer,
+              dteJson: dteJson as Record<string, unknown>,
+            })
+          } catch (emailErr: any) {
+            this.logger.warn(`Error post-emision generando PDF/email para sale ${sale.id}: ${emailErr.message}`)
+          }
+        })
+      }
     } catch (err: any) {
       this.logger.error(`DTE emission failed for sale ${payload.saleId}: ${err.message}`)
       const shouldContingency = this.hacienda.isConnectivityError(err)

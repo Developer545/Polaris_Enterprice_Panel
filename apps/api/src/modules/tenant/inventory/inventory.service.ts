@@ -48,7 +48,7 @@ export class InventoryService {
 
   // ─── Movimientos / Kardex ──────────────────────────────────────────────────
 
-  private async getInitialBranchStock(db: any, tenantId: string, companyId: string, product: { id: string; stock: number | null }) {
+  private async getInitialBranchStock(db: any, tenantId: string, companyId: string, product: { id: string; stock: Decimal | number | null }) {
     const [existingBranchStockCount, activeBranchCount] = await Promise.all([
       db.branchInventory.count({ where: { tenantId, companyId, productId: product.id } }),
       db.branch.count({ where: { tenantId, companyId, isActive: true } }),
@@ -214,7 +214,7 @@ export class InventoryService {
         }),
       ])
 
-      const valorStock = inventories.reduce((sum, row) => sum + row.stock * Number(row.product.cost ?? 0), 0)
+      const valorStock = inventories.reduce((sum, row) => sum + Number(row.stock) * Number(row.product.cost ?? 0), 0)
       const itemsBajoMinimo = inventories.filter((row) => row.stock <= row.minStock).length
 
       return {
@@ -313,7 +313,7 @@ export class InventoryService {
           branchName: inv.branch.name,
           stock: inv.stock,
         }))
-        .sort((a, b) => b.stock - a.stock),
+        .sort((a, b) => Number(b.stock) - Number(a.stock)),
     }))
   }
 

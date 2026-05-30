@@ -511,17 +511,6 @@ export class PosService {
       throw new ForbiddenException('Sucursal no autorizada')
 
     const [categories, products, openRegister, company] = await Promise.all([
-      // Company — for print headers
-      db.company.findFirst({
-        where: { id: companyId, tenantId },
-        select: {
-          id: true, name: true, tradeName: true,
-          nit: true, nrc: true, phone: true, email: true,
-          address: true, actividadEconomica: true, codActividad: true,
-          esGranContribuyente: true,
-        },
-      }),
-
       // Categories — lightweight, all active
       db.category.findMany({
         where: { tenantId, companyId, isActive: true },
@@ -555,6 +544,17 @@ export class PosService {
         include: {
           openedBy: { select: { id: true, name: true } },
           _count: { select: { sales: true } },
+        },
+      }),
+
+      // Company — for print headers (last so destructuring order matches)
+      db.company.findFirst({
+        where: { id: companyId, tenantId },
+        select: {
+          id: true, name: true, comercialName: true,
+          nit: true, nrc: true, phone: true, email: true,
+          address: true, actividadEconomica: true,
+          esGranContribuyente: true,
         },
       }),
     ])
