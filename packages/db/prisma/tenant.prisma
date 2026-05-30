@@ -118,6 +118,7 @@ model Company {
   expenseCategories  ExpenseCategory[]
   expenses           Expense[]
   employees          Employee[]
+  employeeCargos     EmployeeCargo[]
   payrollPeriods     PayrollPeriod[]
   auditLogs          AuditLog[]
   inventoryMovements InventoryMovement[]
@@ -660,10 +661,30 @@ model Employee {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  payrollItems PayrollItem[]
+  cargoId         String?
+  cargo           EmployeeCargo? @relation(fields: [cargoId], references: [id])
+  payrollItems    PayrollItem[]
 
   @@index([tenantId, companyId])
   @@index([tenantId, companyId, branchId])
+}
+
+model EmployeeCargo {
+  id          String     @id @default(cuid())
+  tenantId    String
+  companyId   String
+  company     Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  nombre      String
+  descripcion String?
+  activo      Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  employees   Employee[]
+
+  @@unique([tenantId, companyId, nombre])
+  @@index([tenantId, companyId])
+  @@map("employee_cargos")
 }
 
 model PayrollPeriod {

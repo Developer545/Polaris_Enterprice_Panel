@@ -1,5 +1,9 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common'
-import { EmployeesService, CreateEmployeeSchema, UpdateEmployeeSchema } from './employees.service'
+import {
+  EmployeesService,
+  CreateEmployeeSchema, UpdateEmployeeSchema,
+  CreateCargoSchema, UpdateCargoSchema,
+} from './employees.service'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
 import { CurrentUser } from '../../../common/decorators/current-user.decorator'
@@ -15,6 +19,44 @@ import { z } from 'zod'
 export class EmployeesController {
   constructor(private readonly svc: EmployeesService) {}
 
+  // ── Cargos (must come before :id routes to avoid param collision) ─────────────
+
+  @Get('cargos')
+  @RequirePermissions(PERMISSIONS.EMPLOYEES_VIEW)
+  listCargos(
+    @CurrentUser() user: JwtAccessPayload,
+    @Query('companyId') companyId?: string,
+  ) {
+    return this.svc.listCargos(companyId ?? user.companyId, user)
+  }
+
+  @Post('cargos')
+  @RequirePermissions(PERMISSIONS.EMPLOYEES_CREATE)
+  createCargo(
+    @Body(new ZodValidationPipe(CreateCargoSchema)) dto: z.infer<typeof CreateCargoSchema>,
+    @CurrentUser() user: JwtAccessPayload,
+  ) {
+    return this.svc.createCargo(dto, user)
+  }
+
+  @Put('cargos/:id')
+  @RequirePermissions(PERMISSIONS.EMPLOYEES_EDIT)
+  updateCargo(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(UpdateCargoSchema)) dto: z.infer<typeof UpdateCargoSchema>,
+    @CurrentUser() user: JwtAccessPayload,
+  ) {
+    return this.svc.updateCargo(id, dto, user)
+  }
+
+  @Delete('cargos/:id')
+  @RequirePermissions(PERMISSIONS.EMPLOYEES_DELETE)
+  deleteCargo(@Param('id') id: string, @CurrentUser() user: JwtAccessPayload) {
+    return this.svc.deleteCargo(id, user)
+  }
+
+  // ── Employees CRUD ───────────────────────────────────────────────────────────
+
   @Get()
   @RequirePermissions(PERMISSIONS.EMPLOYEES_VIEW)
   findAll(
@@ -24,6 +66,12 @@ export class EmployeesController {
     @Query('search') search?: string,
   ) {
     return this.svc.findAll(companyId ?? user.companyId, user, branchId, search)
+  }
+
+  @Get(':id/analytics')
+  @RequirePermissions(PERMISSIONS.EMPLOYEES_VIEW)
+  getAnalytics(@Param('id') id: string, @CurrentUser() user: JwtAccessPayload) {
+    return this.svc.getAnalytics(id, user)
   }
 
   @Get(':id')

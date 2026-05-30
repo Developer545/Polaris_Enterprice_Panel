@@ -1,51 +1,60 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Layout, Avatar, Dropdown, Typography, theme as antTheme, Select, Segmented, Space, Tooltip } from 'antd'
+import { Layout, Avatar, Dropdown, Typography, theme as antTheme, Select, Space, Tooltip, DatePicker } from 'antd'
 import { LogoutOutlined, ShopOutlined, ReloadOutlined } from '@ant-design/icons'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
+import dayjs, { type Dayjs } from 'dayjs'
 
 const { Header, Content } = Layout
 const { Text } = Typography
+const { RangePicker } = DatePicker
 
-// ── Contexto owner (period + branch) exportado via localStorage + evento ──────
-export const OWNER_PERIOD_KEY  = 'owner_period'
-export const OWNER_BRANCH_KEY  = 'owner_branch'
+export const OWNER_FROM_KEY   = 'owner_from'
+export const OWNER_TO_KEY     = 'owner_to'
+export const OWNER_BRANCH_KEY = 'owner_branch'
+
+// Default range: current month start → today
+function defaultFrom() { return dayjs().startOf('month').format('YYYY-MM-DD') }
+function defaultTo()   { return dayjs().format('YYYY-MM-DD') }
 
 export default function OwnerLayout({ children }: { children: React.ReactNode }) {
   const router      = useRouter()
-  const pathname    = usePathname()
   const { token }   = antTheme.useToken()
   const queryClient = useQueryClient()
 
-  const [period,       setPeriodState]  = useState<string>('today')
-  const [branchFilter, setBranchState]  = useState<string>('all')
+  const [from,         setFromState]   = useState<string>(defaultFrom())
+  const [to,           setToState]     = useState<string>(defaultTo())
+  const [branchFilter, setBranchState] = useState<string>('all')
 
-  // ── Protección: si no es owner, redirigir al dashboard normal ────────────────
+  // Protección: si no es owner, redirigir al dashboard normal
   useEffect(() => {
     const can = localStorage.getItem('canViewAllBranches')
     if (can !== '1') router.replace('/')
   }, [router])
 
-  // ── Restaurar período/sucursal desde localStorage ─────────────────────────
+  // Restaurar filtros desde localStorage
   useEffect(() => {
-    setPeriodState(localStorage.getItem(OWNER_PERIOD_KEY)  ?? 'today')
-    setBranchState(localStorage.getItem(OWNER_BRANCH_KEY)  ?? 'all')
+    setFromState(localStorage.getItem(OWNER_FROM_KEY)   ?? defaultFrom())
+    setToState(localStorage.getItem(OWNER_TO_KEY)       ?? defaultTo())
+    setBranchState(localStorage.getItem(OWNER_BRANCH_KEY) ?? 'all')
   }, [])
 
-  function setPeriod(v: string) {
-    localStorage.setItem(OWNER_PERIOD_KEY, v)
-    setPeriodState(v)
-    window.dispatchEvent(new CustomEvent('owner-filter-change', { detail: { period: v, branchFilter } }))
+  function setRange(f: string, t: string) {
+    localStorage.setItem(OWNER_FROM_KEY, f)
+    localStorage.setItem(OWNER_TO_KEY, t)
+    setFromState(f)
+    setToState(t)
+    window.dispatchEvent(new CustomEvent('owner-filter-change', { detail: { from: f, to: t, branchFilter } }))
   }
+
   function setBranch(v: string) {
     localStorage.setItem(OWNER_BRANCH_KEY, v)
     setBranchState(v)
-    window.dispatchEvent(new CustomEvent('owner-filter-change', { detail: { period, branchFilter: v } }))
+    window.dispatchEvent(new CustomEvent('owner-filter-change', { detail: { from, to, branchFilter: v } }))
   }
 
-  // ── Datos usuario y sucursales disponibles ────────────────────────────────
   const companyId = typeof window !== 'undefined' ? localStorage.getItem('companyId') ?? '' : ''
 
   const { data: me } = useQuery({
@@ -54,6 +63,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
     staleTime: 5 * 60_000,
   })
 
+  // Obtener sucursales desde consolidated (carga rápida, period=today)
   const { data: dashData } = useQuery({
     queryKey: ['dashboard-consolidated', companyId, 'today'],
     queryFn: () => api.get('/api/dashboard/consolidated', { params: { companyId, period: 'today' } }).then(r => r.data),
@@ -95,8 +105,9 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
         zIndex: 100,
         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
         gap: 16,
+        height: 64,
       }}>
-        {/* Logo + nombre sistema */}
+        {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <div style={{
             width: 34, height: 34, borderRadius: 9,
@@ -124,18 +135,21 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
               ...branches.map(b => ({ value: b.branchId, label: b.branchName })),
             ]}
           />
-          <Segmented
-            value={period}
-            onChange={v => setPeriod(v as string)}
-            options={[
-              { label: 'Hoy',  value: 'today' },
-              { label: 'Mes',  value: 'month' },
-            ]}
+          <RangePicker
+            value={[dayjs(from), dayjs(to)]}
+            onChange={(dates: [Dayjs | null, Dayjs | null] | null) => {
+              if (dates && dates[0] && dates[1]) {
+                setRange(dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD'))
+              }
+            }}
+            format="DD/MM/YYYY"
+            allowClear={false}
+            style={{ borderRadius: 8 }}
           />
           <Tooltip title="Actualizar datos">
             <ReloadOutlined
               style={{ fontSize: 16, cursor: 'pointer', color: token.colorTextSecondary }}
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['dashboard-consolidated'] })}
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['owner-extended'] })}
             />
           </Tooltip>
         </Space>

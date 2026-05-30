@@ -22,4 +22,33 @@ export class DashboardController {
   ) {
     return this.svc.getConsolidated(companyId ?? user.companyId, user, period ?? 'today')
   }
+
+  /**
+   * Extended owner dashboard with free date range.
+   * Returns: panel KPIs + evolution + gastos por categoría + CxP + planilla.
+   */
+  @Get('extended')
+  @RequirePermissions(PERMISSIONS.BRANCH_VIEW_ALL)
+  getExtended(
+    @CurrentUser() user: JwtAccessPayload,
+    @Query('companyId') companyId?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('branchId') branchId?: string,
+  ) {
+    const now = new Date()
+    const fromDate = from
+      ? new Date(from + 'T00:00:00.000Z')
+      : new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
+    const toDate = to
+      ? new Date(to + 'T23:59:59.999Z')
+      : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
+    return this.svc.getExtended(
+      companyId ?? user.companyId,
+      user,
+      fromDate,
+      toDate,
+      branchId && branchId !== 'all' ? branchId : undefined,
+    )
+  }
 }
