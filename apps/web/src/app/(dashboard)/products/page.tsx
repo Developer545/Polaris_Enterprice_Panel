@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import {
   Table, Button, Tag, Input, Typography, Modal, Form, Select, InputNumber,
   App, Row, Col, Switch, Avatar, Divider, Card, Space, Tooltip, Drawer,
@@ -73,6 +73,8 @@ export default function ProductsPage() {
   const [search, setSearch]       = useState('')
   const [catFilter, setCatFilter] = useState<string | undefined>()
   const [onlyLow, setOnlyLow]     = useState(false)
+  const [page, setPage]           = useState(1)
+  const PAGE_LIMIT                = 50
   const [editProd, setEditProd]   = useState<any>(null)
   const [prodForm] = Form.useForm()
   const fraccionable = Form.useWatch('fraccionable', prodForm)
@@ -106,13 +108,26 @@ export default function ProductsPage() {
     enabled: !!companyId,
   })
 
-  const { data: products = [], isLoading } = useQuery<any[]>({
-    queryKey: ['products', companyId],
-    queryFn: () => api.get('/api/products', { params: { companyId } }).then(r => r.data),
+  const { data: productsResp, isLoading } = useQuery<{ data: any[]; total: number; page: number; limit: number }>({
+    queryKey: ['products', companyId, page, search, catFilter, onlyLow],
+    queryFn: () =>
+      api.get('/api/products', {
+        params: {
+          companyId,
+          page, limit: PAGE_LIMIT,
+          search: search || undefined,
+          categoryId: catFilter || undefined,
+          lowStock: onlyLow || undefined,
+        },
+      }).then(r => r.data),
     enabled: !!companyId,
+    placeholderData: (prev) => prev, // keep previous data visible while loading new page
   })
 
-  // ── KPI ──────────────────────────────────────────────────────────────────
+  const products  = productsResp?.data  ?? []
+  const totalProds = productsResp?.total ?? 0
+
+  // ── KPI (current page — approximate; full stats in owner dashboard) ───────
   const valorInventario = products.reduce(
     (a, p) => a + (p.trackStock ? Number(p.stock ?? 0) * Number(p.cost ?? 0) : 0), 0,
   )
@@ -120,14 +135,7 @@ export default function ProductsPage() {
     p => p.trackStock && Number(p.stock ?? 0) <= Number(p.minStock ?? 0),
   ).length
 
-  const filtered = useMemo(() => products.filter(p => {
-    if (search && !p.name.toLowerCase().includes(search.toLowerCase()) &&
-        !p.sku?.toLowerCase().includes(search.toLowerCase()) &&
-        !p.barcode?.toLowerCase().includes(search.toLowerCase())) return false
-    if (catFilter && p.categoryId !== catFilter) return false
-    if (onlyLow && !(p.trackStock && Number(p.stock ?? 0) <= Number(p.minStock ?? 0))) return false
-    return true
-  }), [products, search, catFilter, onlyLow])
+  const filtered = products // filtering is now server-side
 
   // ── Mutations — productos ─────────────────────────────────────────────────
   const saveProd = useMutation({
@@ -355,11 +363,11 @@ export default function ProductsPage() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between', alignItems: 'center' }}>
           <Space wrap size={8}>
             <Input prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
-              placeholder="Buscar nombre, SKU, código..." value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar nombre, SKU, código..." value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               allowClear style={{ width: 240, borderRadius: 8 }} />
-            <Select placeholder="Categoría" allowClear value={catFilter} onChange={setCatFilter}
+            <Select placeholder="Categoría" allowClear value={catFilter} onChange={v => { setCatFilter(v); setPage(1) }}
               style={{ width: 160 }} options={categories.map(c => ({ value: c.id, label: c.name }))} />
-            <Button icon={<WarningOutlined />} type={onlyLow ? 'primary' : 'default'} onClick={() => setOnlyLow(v => !v)}
+            <Button icon={<WarningOutlined />} type={onlyLow ? 'primary' : 'default'} onClick={() => { setOnlyLow(v => !v); setPage(1) }}
               style={onlyLow ? { background: token.colorError, borderColor: token.colorError, color: '#fff', borderRadius: 8 } : { borderRadius: 8 }}>
               Stock bajo{stockBajoCount > 0 && (
                 <span style={{ marginLeft: 6, background: onlyLow ? 'rgba(255,255,255,0.3)' : token.colorError, color: '#fff', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 700 }}>
@@ -381,7 +389,15 @@ export default function ProductsPage() {
       <Card size="small" style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }} styles={{ body: { padding: 0 } }}>
         <Table size="small" columns={columns} dataSource={filtered} rowKey="id" loading={isLoading}
           scroll={{ x: 900 }}
-          pagination={{ pageSize: 20, showSizeChanger: false, showTotal: t => `${t} productos`, style: { padding: '8px 16px' } }}
+          pagination={{
+            current: page,
+            pageSize: PAGE_LIMIT,
+            total: totalProds,
+            showSizeChanger: false,
+            showTotal: t => `${t} productos`,
+            onChange: (p) => { setPage(p) },
+            style: { padding: '8px 16px' },
+          }}
           style={{ borderRadius: 12, overflow: 'hidden' }}
           locale={{ emptyText: onlyLow ? 'Sin productos con stock bajo' : 'Sin productos registrados' }}
         />

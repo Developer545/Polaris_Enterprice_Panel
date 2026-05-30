@@ -499,6 +499,65 @@ export class PosService {
     return { totalSales, countSales, activeClients, totalExpenses, last7Days }
   }
 
+  /**
+   * Bootstrap — returns categories + products (first 100) + open register in ONE round-trip.
+   * Replaces 3 separate requests on POS page load.
+   */
+  async bootstrap(companyId: string, branchId: string, user: JwtAccessPayload) {
+    const { tenantId, dbUrl } = getCurrentTenant()
+    const db = this.clientFactory.getClient(dbUrl)
+    this.assertCompanyAccess(user, companyId)
+    if (branchId && !user.branchIds.includes(branchId) && !user.canViewAllBranches)
+      throw new ForbiddenException('Sucursal no autorizada')
+
+    const [categories, products, openRegister] = await Promise.all([
+      // Categories — lightweight, all active
+      db.category.findMany({
+        where: { tenantId, companyId, isActive: true },
+        select: { id: true, name: true, color: true },
+        orderBy: { name: 'asc' },
+      }),
+
+      // Products — active, first 100 ordered by name (POS initial grid)
+      db.service.findMany({
+        where: { tenantId, companyId, isActive: true },
+        select: {
+          id: true, name: true, sku: true, barcode: true,
+          price: true, cost: true, emoji: true, imageUrl: true,
+          tipoItem: true, uniMedida: true,
+          trackStock: true, stock: true, minStock: true,
+          categoryId: true,
+          category: { select: { id: true, name: true, color: true } },
+          branchInventories: {
+            where: { tenantId, branchId },
+            select: { stock: true, minStock: true },
+            take: 1,
+          },
+        },
+        orderBy: { name: 'asc' },
+        take: 100,
+      }),
+
+      // Open cash register for this branch
+      db.cashRegister.findFirst({
+        where: { tenantId, companyId, branchId, closedAt: null },
+        include: {
+          openedBy: { select: { id: true, name: true } },
+          _count: { select: { sales: true } },
+        },
+      }),
+    ])
+
+    // Resolve branch stock
+    const resolvedProducts = products.map(({ branchInventories, ...p }) => ({
+      ...p,
+      stock: branchInventories?.[0]?.stock ?? p.stock,
+      minStock: branchInventories?.[0]?.minStock ?? p.minStock,
+    }))
+
+    return { categories, products: resolvedProducts, openRegister }
+  }
+
   async voidSale(id: string, reason: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()

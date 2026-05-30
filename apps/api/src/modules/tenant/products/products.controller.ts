@@ -22,8 +22,18 @@ export class ProductsController {
     @Query('search') search?: string,
     @Query('categoryId') categoryId?: string,
     @Query('lowStock') lowStock?: string,
+    @Query('branchId') branchId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.svc.findAll(companyId, user, search, categoryId, lowStock === 'true')
+    return this.svc.findAll(
+      companyId, user,
+      search, categoryId,
+      lowStock === 'true',
+      branchId,
+      page ? +page : 1,
+      limit ? Math.min(+limit, 200) : 50,
+    )
   }
 
   @Get(':id')

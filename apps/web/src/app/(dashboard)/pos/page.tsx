@@ -88,32 +88,43 @@ export default function PosPage() {
 
   const { companyId, branchId } = useAppContext()
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories', companyId],
-    queryFn: () => api.get('/api/categories', { params: { companyId } }).then(r => r.data),
-    enabled: !!companyId,
+  // ── Bootstrap: categorías + productos iniciales (100) + caja abierta en 1 request ──
+  const { data: bootstrap, isLoading: bootstrapLoading } = useQuery({
+    queryKey: ['pos-bootstrap', companyId, branchId],
+    queryFn: () =>
+      api.get('/api/pos/bootstrap', { params: { companyId, branchId } }).then(r => r.data),
+    enabled: !!companyId && !!branchId,
+    staleTime: 60_000,
   })
 
-  const { data: products = [], isFetching: searchingProducts } = useQuery({
+  const categories: any[]  = bootstrap?.categories  ?? []
+  const openRegister: any  = bootstrap?.openRegister ?? null
+
+  // ── Products: usa iniciales del bootstrap ó búsqueda/filtro reactiva ──
+  const hasFilter = !!deferredProductSearch || !!selectedCategory
+  const { data: filteredProducts = [], isFetching: searchingProducts } = useQuery({
     queryKey: ['products-search', companyId, branchId, deferredProductSearch, selectedCategory],
-    queryFn: () => api.get('/api/products', {
-      params: { companyId, branchId, search: deferredProductSearch || undefined, categoryId: selectedCategory || undefined },
-    }).then(r => r.data),
-    enabled: !!companyId && !!branchId,
+    queryFn: () =>
+      api.get('/api/products', {
+        params: {
+          companyId, branchId,
+          search: deferredProductSearch || undefined,
+          categoryId: selectedCategory || undefined,
+          limit: 100,
+        },
+      }).then(r => r.data?.data ?? r.data),
+    enabled: !!companyId && !!branchId && hasFilter,
     staleTime: 30_000,
   })
 
+  const products = hasFilter ? filteredProducts : (bootstrap?.products ?? [])
+
+  // ── Clients search (user-triggered, ≥2 chars) ──
   const { data: clientResults = [], isFetching: searchingClients } = useQuery({
     queryKey: ['clients-search', companyId, deferredClientSearch],
     queryFn: () => api.get('/api/clients', { params: { companyId, search: deferredClientSearch } }).then(r => r.data),
     enabled: !!companyId && deferredClientSearch.length >= 2 && clientMode === 'registrado',
     staleTime: 30_000,
-  })
-
-  const { data: openRegister } = useQuery({
-    queryKey: ['open-register', branchId],
-    queryFn: () => api.get(`/api/cash-registers/open/${branchId}`).then(r => r.data),
-    enabled: !!branchId,
   })
 
   // When tipoDte changes to CCF, force registrado mode

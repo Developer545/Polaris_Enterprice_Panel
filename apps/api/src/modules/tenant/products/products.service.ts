@@ -63,58 +63,61 @@ export class ProductsService {
     categoryId?: string,
     lowStock?: boolean,
     branchId?: string,
+    page = 1,
+    limit = 50,
   ) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     this.assertCompanyAccess(user, companyId)
     this.assertBranchAccess(user, branchId)
 
-    const activeBranchCount = branchId
-      ? await db.branch.count({ where: { tenantId, companyId, isActive: true } })
-      : 0
-    const products = await db.service.findMany({
-      where: {
-        tenantId,
-        companyId,
-        isActive: true,
-        ...(categoryId ? { categoryId } : {}),
-        ...(search ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { sku: { contains: search, mode: 'insensitive' } },
-            { barcode: { contains: search } },
-          ],
-        } : {}),
-        ...(!branchId && lowStock ? { trackStock: true, stock: { lte: db.service.fields.minStock } } : {}),
-      },
-      include: {
-        category: { select: { id: true, name: true, color: true } },
-        saleUnit:  { select: { id: true, name: true, symbol: true } },
-        ...(branchId ? {
-          branchInventories: {
-            where: { tenantId, branchId },
-            select: { stock: true, minStock: true },
-            take: 1,
-          },
-        } : {}),
-      },
-      orderBy: { name: 'asc' },
-    })
+    const where = {
+      tenantId,
+      companyId,
+      isActive: true,
+      ...(categoryId ? { categoryId } : {}),
+      ...(search ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' as const } },
+          { sku: { contains: search, mode: 'insensitive' as const } },
+          { barcode: { contains: search } },
+        ],
+      } : {}),
+      ...(!branchId && lowStock ? { trackStock: true } : {}),
+    }
 
-    if (!branchId) return products
+    const include = {
+      category: { select: { id: true, name: true, color: true } },
+      saleUnit:  { select: { id: true, name: true, symbol: true } },
+      ...(branchId ? {
+        branchInventories: {
+          where: { tenantId, branchId },
+          select: { stock: true, minStock: true },
+          take: 1,
+        },
+      } : {}),
+    }
 
-    const mapped = (products as any[]).map(({ branchInventories, ...product }) => {
-      const branchStock = branchInventories?.[0]
-      return {
-        ...product,
-        stock: branchStock?.stock ?? (activeBranchCount <= 1 ? product.stock : 0),
-        minStock: branchStock?.minStock ?? product.minStock,
-      }
-    })
+    const skip = (page - 1) * limit
 
-    return lowStock
-      ? mapped.filter((product) => product.trackStock && Number(product.stock ?? 0) <= Number(product.minStock ?? 0))
+    const [products, total] = await Promise.all([
+      db.service.findMany({ where, include, orderBy: { name: 'asc' }, skip, take: limit }),
+      db.service.count({ where }),
+    ])
+
+    const mapped = branchId
+      ? (products as any[]).map(({ branchInventories, ...p }) => ({
+          ...p,
+          stock:    branchInventories?.[0]?.stock    ?? p.stock,
+          minStock: branchInventories?.[0]?.minStock ?? p.minStock,
+        }))
+      : products
+
+    const filtered = (!branchId && lowStock)
+      ? (mapped as any[]).filter(p => p.trackStock && Number(p.stock ?? 0) <= Number(p.minStock ?? 0))
       : mapped
+
+    return { data: filtered, total, page, limit }
   }
 
   async findOne(id: string, user: JwtAccessPayload) {

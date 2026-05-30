@@ -14,6 +14,16 @@ import { z } from 'zod'
 export class PosController {
   constructor(private readonly svc: PosService) {}
 
+  @Get('bootstrap')
+  @RequirePermissions(PERMISSIONS.POS_CREATE)
+  bootstrap(
+    @Query('companyId') companyId: string,
+    @Query('branchId') branchId: string,
+    @CurrentUser() user: JwtAccessPayload,
+  ) {
+    return this.svc.bootstrap(companyId, branchId, user)
+  }
+
   @Get('stats')
   @RequirePermissions(PERMISSIONS.SALES_VIEW)
   getStats(
