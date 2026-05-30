@@ -2,16 +2,24 @@
 import { useState } from 'react'
 import {
   Table, Button, Typography, Modal, Form, Input, InputNumber, App,
-  Row, Col, Card, Statistic, Space, Tooltip, Popconfirm, Avatar, Divider, Badge, theme,
+  Row, Col, Card, Statistic, Space, Tooltip, Popconfirm, Avatar, Divider, Badge, theme, Select,
 } from 'antd'
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined,
   BankOutlined, SearchOutlined, PhoneOutlined, MailOutlined,
-  UserOutlined, CalendarOutlined,
+  UserOutlined, CalendarOutlined, EnvironmentOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
+
+const TIPO_DOC_OPTIONS = [
+  { value: '36', label: '36 — NIT' },
+  { value: '13', label: '13 — DUI' },
+  { value: '03', label: '03 — Pasaporte' },
+  { value: '02', label: '02 — Carnet de Residente' },
+  { value: '37', label: '37 — Otro' },
+]
 
 const { Title, Text } = Typography
 
@@ -35,6 +43,35 @@ export default function SuppliersPage() {
   const [search, setSearch] = useState('')
   const [form] = Form.useForm()
   const { companyId } = useAppContext()
+
+  // Cascading geo selects
+  const selectedDept = Form.useWatch('departamentoCod', form)
+  const selectedMuni = Form.useWatch('municipioCod', form)
+
+  const { data: departamentos = [] } = useQuery({
+    queryKey: ['catalogs', 'departamentos'],
+    queryFn: () => api.get('/api/catalogs/departamentos').then(r => r.data),
+    staleTime: 5 * 60_000,
+  })
+  const { data: municipios = [] } = useQuery({
+    queryKey: ['catalogs', 'municipios', selectedDept],
+    queryFn: () => api.get(`/api/catalogs/departamentos/${selectedDept}/municipios`).then(r => r.data),
+    enabled: !!selectedDept,
+    staleTime: 5 * 60_000,
+  })
+  const { data: distritos = [] } = useQuery({
+    queryKey: ['catalogs', 'distritos', selectedDept, selectedMuni],
+    queryFn: () => api.get(`/api/catalogs/departamentos/${selectedDept}/distritos`, {
+      params: selectedMuni ? { municipioCod: selectedMuni } : {},
+    }).then(r => r.data),
+    enabled: !!selectedDept,
+    staleTime: 5 * 60_000,
+  })
+  const { data: actividades = [] } = useQuery({
+    queryKey: ['catalogs', 'actividades'],
+    queryFn: () => api.get('/api/catalogs/actividades').then(r => r.data),
+    staleTime: 5 * 60_000,
+  })
 
   const { data = [], isLoading, refetch } = useQuery({
     queryKey: ['suppliers', companyId],
@@ -284,7 +321,8 @@ export default function SuppliersPage() {
       >
         <Form form={form} layout="vertical" onFinish={saveMutation.mutate} requiredMark={false}>
 
-          <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Datos de la empresa</Text>
+          {/* ── Identificación fiscal ───────────────────────────────────── */}
+          <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Identificación fiscal</Text>
           <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
           <Row gutter={16}>
             <Col span={16}>
@@ -300,18 +338,98 @@ export default function SuppliersPage() {
                 </Space.Compact>
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col span={8}>
+              <Form.Item name="tipoDocumento" label={LBL('Tipo documento')} style={MB}>
+                <Select placeholder="NIT / DUI..." options={TIPO_DOC_OPTIONS} allowClear style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
               <Form.Item name="nit" label={LBL('NIT')} style={MB}>
                 <Input placeholder="0000-000000-000-0" style={INP_STYLE} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col span={8}>
               <Form.Item name="nrc" label={LBL('NRC')} style={MB}>
                 <Input placeholder="000000-0" style={INP_STYLE} />
               </Form.Item>
             </Col>
+            <Col span={14}>
+              <Form.Item name="actividadEconomicaCodigo" label={LBL('Actividad económica')} style={MB}>
+                <Select
+                  showSearch
+                  placeholder="Seleccionar actividad..."
+                  optionFilterProp="label"
+                  allowClear
+                  style={{ borderRadius: 8 }}
+                  options={actividades.map((a: any) => ({ value: a.codigo, label: `${a.codigo} — ${a.nombre}` }))}
+                  onChange={(_val, opt: any) => {
+                    const label = opt?.label?.split(' — ')[1] ?? ''
+                    form.setFieldValue('actividadEconomica', label)
+                  }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={10}>
+              <Form.Item name="actividadEconomica" label={LBL('Descripción actividad')} style={MB}>
+                <Input style={INP_STYLE} placeholder="Se llena automático" />
+              </Form.Item>
+            </Col>
           </Row>
 
+          {/* ── Ubicación fiscal (DTE) ──────────────────────────────────── */}
+          <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <EnvironmentOutlined style={{ marginRight: 4 }} />Ubicación fiscal (DTE)
+          </Text>
+          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item name="departamentoCod" label={LBL('Departamento')} style={MB}>
+                <Select
+                  showSearch
+                  placeholder="Departamento"
+                  optionFilterProp="label"
+                  allowClear
+                  style={{ borderRadius: 8 }}
+                  options={departamentos.map((d: any) => ({ value: d.codigo, label: d.nombre }))}
+                  onChange={() => { form.setFieldValue('municipioCod', undefined); form.setFieldValue('distritoCod', undefined) }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="municipioCod" label={LBL('Municipio')} style={MB}>
+                <Select
+                  showSearch
+                  placeholder="Municipio"
+                  optionFilterProp="label"
+                  allowClear
+                  disabled={!selectedDept}
+                  style={{ borderRadius: 8 }}
+                  options={municipios.map((m: any) => ({ value: m.codigo, label: m.nombre }))}
+                  onChange={() => form.setFieldValue('distritoCod', undefined)}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="distritoCod" label={LBL('Distrito')} style={MB}>
+                <Select
+                  showSearch
+                  placeholder="Distrito"
+                  optionFilterProp="label"
+                  allowClear
+                  disabled={!selectedDept}
+                  style={{ borderRadius: 8 }}
+                  options={distritos.map((d: any) => ({ value: d.codigo, label: d.nombre }))}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Form.Item name="address" label={LBL('Dirección')} style={MB}>
+                <Input style={INP_STYLE} placeholder="Calle, colonia, número..." />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* ── Contacto ────────────────────────────────────────────────── */}
           <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Contacto</Text>
           <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
           <Row gutter={16}>
@@ -328,11 +446,6 @@ export default function SuppliersPage() {
             <Col span={12}>
               <Form.Item name="email" label={LBL('Correo electrónico')} rules={[{ type: 'email', message: 'Email inválido' }]} style={MB}>
                 <Input prefix={<MailOutlined style={{ color: '#ccc' }} />} style={INP_STYLE} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="address" label={LBL('Dirección')} style={MB}>
-                <Input style={INP_STYLE} />
               </Form.Item>
             </Col>
             <Col span={24}>

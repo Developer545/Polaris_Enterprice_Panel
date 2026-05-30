@@ -514,8 +514,12 @@ model Supplier {
   email                    String?
   phone                    String?
   address                  String?
+  departamentoCod          String?
+  municipioCod             String?
+  distritoCod              String?
   nit                      String?
   nrc                      String?
+  tipoDocumento            String?
   actividadEconomica       String?
   actividadEconomicaCodigo String?
   paymentTermDays          Int      @default(30)
@@ -647,6 +651,9 @@ model Employee {
   email           String?
   phone           String?
   address         String?
+  departamentoCod String?
+  municipioCod    String?
+  distritoCod     String?
   position        String         // Cargo
   department      String?
   salary          Decimal        @db.Decimal(10, 2)

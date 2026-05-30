@@ -24,12 +24,22 @@ export const CreateActividadSchema = z.object({
 })
 export const UpdateActividadSchema = CreateActividadSchema.partial()
 
+export const CreateDistritoSchema = z.object({
+  codigo: z.string().min(1).max(10),
+  nombre: z.string().min(2),
+  departamentoCod: z.string().min(1),
+  municipioCod: z.string().optional(),
+})
+export const UpdateDistritoSchema = CreateDistritoSchema.partial().omit({ departamentoCod: true, municipioCod: true })
+
 export type CreateDepartamentoDto = z.infer<typeof CreateDepartamentoSchema>
 export type UpdateDepartamentoDto = z.infer<typeof UpdateDepartamentoSchema>
 export type CreateMunicipioDto = z.infer<typeof CreateMunicipioSchema>
 export type UpdateMunicipioDto = z.infer<typeof UpdateMunicipioSchema>
 export type CreateActividadDto = z.infer<typeof CreateActividadSchema>
 export type UpdateActividadDto = z.infer<typeof UpdateActividadSchema>
+export type CreateDistritoDto = z.infer<typeof CreateDistritoSchema>
+export type UpdateDistritoDto = z.infer<typeof UpdateDistritoSchema>
 
 // ── Service ───────────────────────────────────────────────────────────────────
 
@@ -134,5 +144,46 @@ export class CatalogsAdminService {
   async toggleActividad(id: string) {
     const row = await this.findActividad(id)
     return this.getDb().actividadEconomica.update({ where: { id }, data: { isActive: !row.isActive } })
+  }
+
+  // ── Distritos ───────────────────────────────────────────────────────────
+
+  async findAllDistritos(departamentoCod?: string, municipioCod?: string) {
+    return this.getDb().distrito.findMany({
+      where: {
+        ...(departamentoCod ? { departamentoCod } : {}),
+        ...(municipioCod ? { municipioCod } : {}),
+      },
+      include: {
+        departamento: { select: { nombre: true, codigo: true } },
+      },
+      orderBy: [{ departamentoCod: 'asc' }, { nombre: 'asc' }],
+    })
+  }
+
+  async findDistrito(id: string) {
+    const row = await this.getDb().distrito.findUnique({ where: { id } })
+    if (!row) throw new NotFoundException('Distrito no encontrado')
+    return row
+  }
+
+  async createDistrito(dto: CreateDistritoDto) {
+    const dept = await this.getDb().departamento.findUnique({ where: { codigo: dto.departamentoCod } })
+    if (!dept) throw new NotFoundException(`Departamento ${dto.departamentoCod} no encontrado`)
+    const existing = await this.getDb().distrito.findUnique({
+      where: { departamentoCod_codigo: { departamentoCod: dto.departamentoCod, codigo: dto.codigo } },
+    })
+    if (existing) throw new ConflictException(`Ya existe un distrito con código ${dto.codigo} en ese departamento`)
+    return this.getDb().distrito.create({ data: dto })
+  }
+
+  async updateDistrito(id: string, dto: UpdateDistritoDto) {
+    await this.findDistrito(id)
+    return this.getDb().distrito.update({ where: { id }, data: dto })
+  }
+
+  async toggleDistrito(id: string) {
+    const row = await this.findDistrito(id)
+    return this.getDb().distrito.update({ where: { id }, data: { isActive: !row.isActive } })
   }
 }

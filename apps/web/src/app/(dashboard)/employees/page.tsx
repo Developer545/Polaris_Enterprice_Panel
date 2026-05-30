@@ -62,6 +62,30 @@ export default function EmployeesPage() {
   const [cargoForm] = Form.useForm()
   const PRIMARY = token.colorPrimary
 
+  // ── Geo cascading ────────────────────────────────────────────────────────────
+  const selectedDept = Form.useWatch('departamentoCod', form)
+  const selectedMuni = Form.useWatch('municipioCod', form)
+
+  const { data: departamentos = [] } = useQuery({
+    queryKey: ['catalogs', 'departamentos'],
+    queryFn: () => api.get('/api/catalogs/departamentos').then(r => r.data),
+    staleTime: 5 * 60_000,
+  })
+  const { data: municipios = [] } = useQuery({
+    queryKey: ['catalogs', 'municipios', selectedDept],
+    queryFn: () => api.get(`/api/catalogs/departamentos/${selectedDept}/municipios`).then(r => r.data),
+    enabled: !!selectedDept,
+    staleTime: 5 * 60_000,
+  })
+  const { data: distritos = [] } = useQuery({
+    queryKey: ['catalogs', 'distritos', selectedDept, selectedMuni],
+    queryFn: () => api.get(`/api/catalogs/departamentos/${selectedDept}/distritos`, {
+      params: selectedMuni ? { municipioCod: selectedMuni } : {},
+    }).then(r => r.data),
+    enabled: !!selectedDept,
+    staleTime: 5 * 60_000,
+  })
+
   // ── Queries ──────────────────────────────────────────────────────────────────
   const { data: employees = [], isLoading: empLoading } = useQuery({
     queryKey: ['employees', companyId],
@@ -295,6 +319,34 @@ export default function EmployeesPage() {
         <Col span={24}>
           <Form.Item name="address" label={<FL text="Dirección" />} style={{ marginBottom: 14 }}>
             <Input style={{ borderRadius: 8 }} />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item name="departamentoCod" label={<FL text="Departamento" />} style={{ marginBottom: 14 }}>
+            <Select
+              showSearch placeholder="Depto." optionFilterProp="label" allowClear style={{ borderRadius: 8 }}
+              options={departamentos.map((d: any) => ({ value: d.codigo, label: d.nombre }))}
+              onChange={() => { form.setFieldValue('municipioCod', undefined); form.setFieldValue('distritoCod', undefined) }}
+            />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item name="municipioCod" label={<FL text="Municipio" />} style={{ marginBottom: 14 }}>
+            <Select
+              showSearch placeholder="Municipio" optionFilterProp="label" allowClear
+              disabled={!selectedDept} style={{ borderRadius: 8 }}
+              options={municipios.map((m: any) => ({ value: m.codigo, label: m.nombre }))}
+              onChange={() => form.setFieldValue('distritoCod', undefined)}
+            />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item name="distritoCod" label={<FL text="Distrito" />} style={{ marginBottom: 14 }}>
+            <Select
+              showSearch placeholder="Distrito" optionFilterProp="label" allowClear
+              disabled={!selectedDept} style={{ borderRadius: 8 }}
+              options={distritos.map((d: any) => ({ value: d.codigo, label: d.nombre }))}
+            />
           </Form.Item>
         </Col>
         <Col span={8}>

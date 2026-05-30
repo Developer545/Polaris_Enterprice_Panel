@@ -7,9 +7,11 @@ import {
   CreateDepartamentoSchema, UpdateDepartamentoSchema,
   CreateMunicipioSchema, UpdateMunicipioSchema,
   CreateActividadSchema, UpdateActividadSchema,
+  CreateDistritoSchema, UpdateDistritoSchema,
   type CreateDepartamentoDto, type UpdateDepartamentoDto,
   type CreateMunicipioDto, type UpdateMunicipioDto,
   type CreateActividadDto, type UpdateActividadDto,
+  type CreateDistritoDto, type UpdateDistritoDto,
 } from './catalogs-admin.service'
 import { AdminJwtGuard } from '../../../common/guards/admin-jwt.guard'
 import { AdminRolesGuard } from '../../../common/guards/admin-roles.guard'
@@ -126,5 +128,43 @@ export class CatalogsAdminController {
   @RequireAdminRoles('SUPER_ADMIN')
   toggleActividad(@Param('id') id: string) {
     return this.svc.toggleActividad(id)
+  }
+
+  // ── Distritos ───────────────────────────────────────────────────────────
+
+  @Get('distritos')
+  findAllDistritos(
+    @Query('departamentoCod') departamentoCod?: string,
+    @Query('municipioCod') municipioCod?: string,
+  ) {
+    return this.svc.findAllDistritos(departamentoCod, municipioCod)
+  }
+
+  @Get('distritos/:id')
+  findDistrito(@Param('id') id: string) {
+    return this.svc.findDistrito(id)
+  }
+
+  @Post('distritos')
+  @RequireAdminRoles('SUPER_ADMIN')
+  createDistrito(
+    @Body(new ZodValidationPipe(CreateDistritoSchema)) dto: CreateDistritoDto,
+  ) {
+    return this.svc.createDistrito(dto)
+  }
+
+  @Put('distritos/:id')
+  @RequireAdminRoles('SUPER_ADMIN')
+  updateDistrito(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(UpdateDistritoSchema)) dto: UpdateDistritoDto,
+  ) {
+    return this.svc.updateDistrito(id, dto)
+  }
+
+  @Patch('distritos/:id/toggle')
+  @RequireAdminRoles('SUPER_ADMIN')
+  toggleDistrito(@Param('id') id: string) {
+    return this.svc.toggleDistrito(id)
   }
 }

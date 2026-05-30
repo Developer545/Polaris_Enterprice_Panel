@@ -1,8 +1,9 @@
 'use client'
 import { Card, Tabs, Typography, App } from 'antd'
-import { GlobalOutlined, EnvironmentOutlined, ApartmentOutlined } from '@ant-design/icons'
+import { GlobalOutlined, EnvironmentOutlined, ApartmentOutlined, PushpinOutlined } from '@ant-design/icons'
 import DepartamentosTab from './tabs/DepartamentosTab'
 import MunicipiosTab from './tabs/MunicipiosTab'
+import DistritosTab from './tabs/DistritosTab'
 import ActividadesTab from './tabs/ActividadesTab'
 
 export default function CatalogsPage() {
@@ -12,7 +13,7 @@ export default function CatalogsPage() {
         <div style={{ marginBottom: 20 }}>
           <Typography.Title level={4} style={{ margin: 0 }}>Catálogos Ministerio de Hacienda</Typography.Title>
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-            Gestiona departamentos, municipios y actividades económicas — datos consumidos por todos los tenants
+            Gestiona departamentos, municipios, distritos y actividades económicas — datos consumidos por todos los tenants
           </Typography.Text>
         </div>
 
@@ -31,6 +32,11 @@ export default function CatalogsPage() {
                 key: 'municipios',
                 label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><EnvironmentOutlined /> Municipios</span>,
                 children: <MunicipiosTab />,
+              },
+              {
+                key: 'distritos',
+                label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><PushpinOutlined /> Distritos</span>,
+                children: <DistritosTab />,
               },
               {
                 key: 'actividades',
