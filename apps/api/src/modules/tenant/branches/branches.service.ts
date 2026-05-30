@@ -12,6 +12,7 @@ export const CreateBranchSchema = z.object({
   municipioCod: z.string().optional().nullable(),
   distritoCod: z.string().optional().nullable(),
   phone: z.string().optional(),
+  tipoEstablecimiento: z.string().optional().nullable(),
   codEstableMH: z.string().length(4, 'Código MH debe tener 4 caracteres').optional(),
   codPuntoVentaMH: z.string().length(4, 'Código punto venta debe tener 4 caracteres').optional(),
 })

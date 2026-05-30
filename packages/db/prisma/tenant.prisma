@@ -89,6 +89,8 @@ model Company {
   distritoCod              String?
   phone                    String?
   email                    String?
+  giro                     String?     // Descripción del giro comercial (DTE)
+  tipoDocumento            String?     // CAT-022: '36'=NIT, '13'=DUI (persona natural)
   esGranContribuyente      Boolean     @default(false)
   sujetoRetencionIva1      Boolean     @default(true)
   // DTE — Hacienda credentials (AES-256 encrypted)
@@ -139,8 +141,9 @@ model Branch {
   distritoCod     String?
   phone           String?
   // DTE — Point of sale codes
-  codEstableMH    String?
-  codPuntoVentaMH String?
+  tipoEstablecimiento String?  // CAT-009: '01'=Matriz, '02'=Sucursal, '07'=Fijo, etc.
+  codEstableMH        String?
+  codPuntoVentaMH     String?
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

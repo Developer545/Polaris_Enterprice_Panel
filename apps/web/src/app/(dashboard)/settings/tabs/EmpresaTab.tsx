@@ -66,7 +66,9 @@ export default function EmpresaTab({ companyId }: Props) {
         comercialName: company.comercialName,
         nit: company.nit,
         nrc: company.nrc,
+        tipoDocumento: company.tipoDocumento,
         actividadEconomicaCodigo: company.actividadEconomicaCodigo,
+        giro: company.giro,
         departamentoCod: company.departamentoCod,
         municipioCod: company.municipioCod,
         distritoCod: company.distritoCod,
@@ -118,6 +120,20 @@ export default function EmpresaTab({ companyId }: Props) {
               <Input placeholder="Nombre comercial (opcional)" style={INP} />
             </Form.Item>
           </Col>
+          <Col xs={24} md={6}>
+            <Form.Item label={LBL('Tipo Documento')} name="tipoDocumento" style={MB}>
+              <Select
+                placeholder="NIT / DUI"
+                allowClear
+                style={{ borderRadius: 8 }}
+                options={[
+                  { value: '36', label: '36 — NIT' },
+                  { value: '13', label: '13 — DUI' },
+                  { value: '03', label: '03 — Pasaporte' },
+                ]}
+              />
+            </Form.Item>
+          </Col>
           <Col xs={24} md={8}>
             <Form.Item label={LBL('NIT')} name="nit" style={MB}>
               <Input placeholder="0614-010101-001-1" style={INP} />
@@ -140,6 +156,12 @@ export default function EmpresaTab({ companyId }: Props) {
                   label: `${a.codigo} — ${a.nombre}`,
                 }))}
               />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={16}>
+            <Form.Item label={LBL('Giro comercial (DTE)')} name="giro" style={MB}
+              extra={<Text type="secondary" style={{ fontSize: 11 }}>Descripción del giro — aparece en el JSON DTE cuando difiere de la actividad</Text>}>
+              <Input placeholder="Venta de ropa y accesorios" style={INP} />
             </Form.Item>
           </Col>
           <Col xs={24}>

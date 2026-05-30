@@ -83,6 +83,7 @@ export default function SucursalesTab({ companyId }: Props) {
       departamentoCod: record.departamentoCod,
       municipioCod: record.municipioCod,
       distritoCod: record.distritoCod,
+      tipoEstablecimiento: record.tipoEstablecimiento,
       codEstableMH: record.codEstableMH, codPuntoVentaMH: record.codPuntoVentaMH,
       isActive: record.isActive,
     })
@@ -235,13 +236,30 @@ export default function SucursalesTab({ companyId }: Props) {
           <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
 
           <Row gutter={16}>
-            <Col span={12}>
+            <Col span={8}>
+              <Form.Item label={LBL('Tipo Establecimiento')} name="tipoEstablecimiento" style={MB}
+                extra={<Text type="secondary" style={{ fontSize: 11 }}>CAT-009 MH</Text>}>
+                <Select
+                  placeholder="Seleccionar tipo"
+                  allowClear
+                  style={{ borderRadius: 8 }}
+                  options={[
+                    { value: '01', label: '01 — Matriz' },
+                    { value: '02', label: '02 — Sucursal' },
+                    { value: '04', label: '04 — Bodega' },
+                    { value: '07', label: '07 — Fijo' },
+                    { value: '20', label: '20 — Otro' },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
               <Form.Item label={LBL('Código Establecimiento MH')} name="codEstableMH"
                 extra={<Text type="secondary" style={{ fontSize: 11 }}>4 caracteres (ej. M001)</Text>} style={MB}>
                 <Input placeholder="M001" maxLength={4} style={INP} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col span={8}>
               <Form.Item label={LBL('Código Punto de Venta MH')} name="codPuntoVentaMH"
                 extra={<Text type="secondary" style={{ fontSize: 11 }}>4 caracteres (ej. P001)</Text>} style={MB}>
                 <Input placeholder="P001" maxLength={4} style={INP} />

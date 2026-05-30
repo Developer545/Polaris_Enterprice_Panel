@@ -16,6 +16,8 @@ export const UpdateCompanySchema = z.object({
   departamentoCod: z.string().optional().nullable(),
   municipioCod: z.string().optional().nullable(),
   distritoCod: z.string().optional().nullable(),
+  giro: z.string().optional().nullable(),
+  tipoDocumento: z.string().optional().nullable(),
   phone: z.string().optional(),
   email: z.string().email().optional(),
   esGranContribuyente: z.boolean().optional(),

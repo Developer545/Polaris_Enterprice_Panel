@@ -223,9 +223,19 @@ export const CAT_013_MUNICIPIOS: Record<string, Record<string, string>> = {
 }
 
 /**
- * Municipios por departamento — CAT-012 Hacienda El Salvador
- * Clave: { [departamentoCod]: { [municipioCod]: nombre } }
- * Estos son los únicos códigos aceptados por el API de firma DTE.
+ * Municipios reales por departamento — 231 municipios de El Salvador.
+ * Clave: { [departamentoCod (2 dígitos)]: { [municipioCod (2 dígitos)]: nombre } }
+ *
+ * IMPORTANTE — diferencia con CAT_013_MUNICIPIOS:
+ *  • MUNICIPIOS     → catálogo completo (231 municipios). Usado como seed inicial para
+ *                     la base de datos admin. Los selects UI del cliente consumen los datos
+ *                     de BD (GET /api/catalogs/departamentos/:cod/municipios), NO este objeto.
+ *  • CAT_013_MUNICIPIOS → 44 zonas fiscales MH. Los códigos de zona son los que van en el
+ *                     campo `municipio` del JSON DTE (estructura direccion{}). No son
+ *                     nombres de municipios reales sino regiones geográficas de tributación.
+ *
+ * @deprecated Para mostrar municipios en la UI, usar la BD (servicio de catálogos).
+ *             Para generar el JSON DTE, usar CAT_013_MUNICIPIOS o getZona().
  */
 export const MUNICIPIOS: Record<string, Record<string, string>> = {
   '01': { // Ahuachapán — 12 municipios
