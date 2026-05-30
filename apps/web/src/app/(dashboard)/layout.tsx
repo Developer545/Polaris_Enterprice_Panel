@@ -121,6 +121,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter()
   const { token } = antTheme.useToken()
 
+  // Si es owner, redirigir al panel ejecutivo (evita que lleguen a la vista de sucursal)
+  useEffect(() => {
+    const can = localStorage.getItem('canViewAllBranches')
+    if (can === '1') { router.replace('/owner'); return }
+  }, [router])
+
   // Auto-open group that has the active route
   useEffect(() => {
     const activeGroup = getActiveGroup(pathname)
@@ -133,6 +139,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     staleTime: 5 * 60_000,
     retry: 1,
   })
+
+  // Fallback: si el query de /me confirma owner (sesiones sin canViewAllBranches en localStorage)
+  useEffect(() => {
+    if (user?.role?.permissions?.['branches.view_all'] === true) {
+      localStorage.setItem('canViewAllBranches', '1')
+      router.replace('/owner')
+    }
+  }, [user, router])
 
   const { data: tenantInfo } = useQuery({
     queryKey: ['tenant-info'],
