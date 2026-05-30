@@ -60,16 +60,19 @@ export default function LoginPage() {
         localStorage.removeItem(SAVED_KEY)
       }
       localStorage.setItem('companyId', values.companyId)
+      const perms: Record<string, boolean> = res.data?.user?.permissions ?? {}
+      const isOwner = perms['branches.view_all'] === true
       if (res.data?.user) {
-        localStorage.setItem('userId',      res.data.user.id)
-        localStorage.setItem('userName',    res.data.user.name)
-        localStorage.setItem('userEmail',   res.data.user.email)
-        localStorage.setItem('roleId',      res.data.user.roleId)
-        localStorage.setItem('branchIds',   JSON.stringify(res.data.user.branchIds ?? []))
-        localStorage.setItem('permissions', JSON.stringify(res.data.user.permissions ?? {}))
+        localStorage.setItem('userId',             res.data.user.id)
+        localStorage.setItem('userName',           res.data.user.name)
+        localStorage.setItem('userEmail',          res.data.user.email)
+        localStorage.setItem('roleId',             res.data.user.roleId)
+        localStorage.setItem('branchIds',          JSON.stringify(res.data.user.branchIds ?? []))
+        localStorage.setItem('permissions',        JSON.stringify(perms))
+        localStorage.setItem('canViewAllBranches', isOwner ? '1' : '0')
       }
       document.cookie = `pos_session=1; path=/; max-age=${7 * 24 * 3600}; SameSite=Lax`
-      router.push('/')
+      router.push(isOwner ? '/owner' : '/')
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Credenciales inválidas')
     } finally {
