@@ -12,11 +12,11 @@ interface LoginForm { companyId: string; email: string; password: string; rememb
 const SAVED_KEY = 'pos_saved_credentials'
 
 const LEAVES = [
-  { w: 90,  h: 55,  top: '6%',  left: '3%',   color: 'rgba(82,183,136,0.3)',  rotate: 25,  borderRadius: '60% 40% 70% 30% / 50% 60% 40% 50%' },
-  { w: 70,  h: 45,  top: '12%', right: '4%',   color: 'rgba(116,198,157,0.25)',rotate: -40, borderRadius: '40% 60% 30% 70% / 60% 40% 50% 50%' },
-  { w: 110, h: 65,  top: '70%', left: '2%',    color: 'rgba(149,213,178,0.3)', rotate: 60,  borderRadius: '70% 30% 60% 40% / 40% 60% 50% 50%' },
-  { w: 80,  h: 50,  top: '78%', right: '3%',   color: 'rgba(82,183,136,0.2)',  rotate: -20, borderRadius: '50% 50% 40% 60% / 60% 40% 60% 40%' },
-  { w: 60,  h: 38,  top: '42%', left: '1%',    color: 'rgba(149,213,178,0.25)',rotate: 80,  borderRadius: '40% 60% 50% 50% / 50% 50% 60% 40%' },
+  { w: 90,  h: 55,  top: '6%',  left: '3%',   color: 'var(--lp-a30)',  rotate: 25,  borderRadius: '60% 40% 70% 30% / 50% 60% 40% 50%' },
+  { w: 70,  h: 45,  top: '12%', right: '4%',   color: 'var(--lp-a25)', rotate: -40, borderRadius: '40% 60% 30% 70% / 60% 40% 50% 50%' },
+  { w: 110, h: 65,  top: '70%', left: '2%',    color: 'var(--lp-a30)', rotate: 60,  borderRadius: '70% 30% 60% 40% / 40% 60% 50% 50%' },
+  { w: 80,  h: 50,  top: '78%', right: '3%',   color: 'var(--lp-a20)', rotate: -20, borderRadius: '50% 50% 40% 60% / 60% 40% 60% 40%' },
+  { w: 60,  h: 38,  top: '42%', left: '1%',    color: 'var(--lp-a25)', rotate: 80,  borderRadius: '40% 60% 50% 50% / 50% 50% 60% 40%' },
 ]
 
 const FEATURES = [
@@ -93,18 +93,18 @@ export default function LoginSpring() {
         .spring-input .ant-input-affix-wrapper,
         .spring-input .ant-input {
           background: #F0FFF4 !important;
-          border-color: #95D5B2 !important;
+          border-color: var(--lp-3) !important;
           border-radius: 12px !important;
           color: #1B4332 !important;
         }
         .spring-input .ant-input-affix-wrapper:focus,
         .spring-input .ant-input-affix-wrapper-focused {
-          border-color: #52B788 !important;
-          box-shadow: 0 0 0 3px rgba(82,183,136,0.15) !important;
+          border-color: var(--lp-1) !important;
+          box-shadow: 0 0 0 3px var(--lp-a15) !important;
         }
-        .spring-input .ant-input::placeholder { color: #95D5B2 !important; }
-        .spring-input .ant-input-password-icon { color: #95D5B2 !important; }
-        .spring-input .anticon:not(.ant-input-password-icon) { color: #52B788 !important; }
+        .spring-input .ant-input::placeholder { color: var(--lp-3) !important; }
+        .spring-input .ant-input-password-icon { color: var(--lp-3) !important; }
+        .spring-input .anticon:not(.ant-input-password-icon) { color: var(--lp-1) !important; }
         .spring-input .ant-form-item-label > label {
           color: #2D6A4F !important;
           font-weight: 600 !important;
@@ -114,16 +114,16 @@ export default function LoginSpring() {
         .spring-input .ant-input-affix-wrapper .ant-input { background: transparent !important; }
         .spring-checkbox .ant-checkbox-inner {
           background: #F0FFF4 !important;
-          border-color: #95D5B2 !important;
+          border-color: var(--lp-3) !important;
           border-radius: 5px !important;
         }
         .spring-checkbox .ant-checkbox-checked .ant-checkbox-inner {
-          background: #52B788 !important;
-          border-color: #52B788 !important;
+          background: var(--lp-1) !important;
+          border-color: var(--lp-1) !important;
         }
         .spring-checkbox span:last-child { color: #2D6A4F !important; font-size: 13px !important; }
         .spring-btn:hover {
-          box-shadow: 0 8px 24px rgba(82,183,136,0.55) !important;
+          box-shadow: 0 8px 24px var(--lp-a55) !important;
           transform: translateY(-1px) !important;
         }
       `}</style>
@@ -154,7 +154,7 @@ export default function LoginSpring() {
           maxWidth: 860,
           borderRadius: 24,
           overflow: 'hidden',
-          boxShadow: '0 16px 64px rgba(82,183,136,0.18), 0 4px 16px rgba(82,183,136,0.1)',
+          boxShadow: '0 16px 64px var(--lp-a15), 0 4px 16px var(--lp-a10)',
           display: 'flex',
           position: 'relative',
           zIndex: 1,
@@ -165,7 +165,7 @@ export default function LoginSpring() {
         <div
           style={{
             flex: '0 0 340px',
-            background: 'linear-gradient(150deg, #52B788 0%, #74C69D 50%, #95D5B2 100%)',
+            background: 'linear-gradient(150deg, var(--lp-1) 0%, var(--lp-2) 50%, var(--lp-3) 100%)',
             padding: '48px 36px',
             display: 'flex',
             flexDirection: 'column',
@@ -240,7 +240,7 @@ export default function LoginSpring() {
             >
               Bienvenida de nuevo
             </Typography.Title>
-            <Typography.Text style={{ color: '#52B788', fontSize: 14 }}>
+            <Typography.Text style={{ color: 'var(--lp-1)', fontSize: 14 }}>
               Inicia sesión para continuar
             </Typography.Text>
           </div>
@@ -290,8 +290,8 @@ export default function LoginSpring() {
                 fontSize: 15,
                 border: 'none',
                 transition: 'all 0.2s',
-                background: 'linear-gradient(135deg, #52B788 0%, #40916C 100%)',
-                boxShadow: '0 4px 16px rgba(82,183,136,0.4)',
+                background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-4) 100%)',
+                boxShadow: '0 4px 16px var(--lp-a40)',
                 color: '#FFFFFF',
               }}
             >

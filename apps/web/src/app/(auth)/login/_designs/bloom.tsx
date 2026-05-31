@@ -18,9 +18,9 @@ const SAVED_KEY = 'pos_saved_credentials'
 
 // Colores pastel base
 const V1 = '#C9B8E8' // violeta claro
-const V2 = '#9B8EC4' // violeta medio
+const V2 = 'var(--lp-1)' // violeta medio → accent principal
 const P1 = '#F8C8D4' // rosado claro
-const P2 = '#E879A8' // rosado medio
+const P2 = '#E879A8' // rosado medio (error — kept as-is)
 const O1 = '#FFD4A3' // naranja pastel
 
 export default function LoginBloom() {
@@ -100,7 +100,7 @@ export default function LoginBloom() {
         .bloom-input .ant-input-affix-wrapper:hover,
         .bloom-input .ant-input-affix-wrapper-focused {
           border-color: ${V2} !important;
-          box-shadow: 0 0 0 3px rgba(155,142,196,0.15) !important;
+          box-shadow: 0 0 0 3px var(--lp-a15) !important;
         }
         .bloom-input .ant-input-affix-wrapper .ant-input {
           background: transparent !important;
@@ -115,7 +115,7 @@ export default function LoginBloom() {
         .bloom-checkbox .ant-checkbox-inner { border-color: ${V1} !important; border-radius: 5px !important; }
         .bloom-checkbox .ant-checkbox-checked .ant-checkbox-inner { background: ${V2} !important; border-color: ${V2} !important; }
         .bloom-checkbox span { color: #8b7ab5 !important; font-size: 13px !important; }
-        .bloom-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 10px 28px rgba(155,142,196,0.45) !important; }
+        .bloom-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 10px 28px var(--lp-a50) !important; }
         .bloom-btn:active { transform: translateY(0) !important; }
       `}</style>
 
@@ -155,7 +155,7 @@ export default function LoginBloom() {
                 width: 48, height: 48, borderRadius: 14,
                 background: 'rgba(255,255,255,0.9)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 16px rgba(155,142,196,0.35)',
+                boxShadow: '0 4px 16px var(--lp-a35)',
               }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M12 2L13.6 9.8L22 12L13.6 14.2L12 22L10.4 14.2L2 12L10.4 9.8Z"
@@ -252,8 +252,8 @@ export default function LoginBloom() {
                 className="bloom-btn"
                 style={{
                   height: 50, borderRadius: 12, fontWeight: 700, fontSize: 15, border: 'none',
-                  background: `linear-gradient(135deg, ${V2} 0%, ${P2} 100%)`,
-                  boxShadow: `0 6px 20px rgba(155,142,196,0.4)`,
+                  background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-2) 100%)',
+                  boxShadow: '0 6px 20px var(--lp-a40)',
                   transition: 'all 0.2s',
                 }}
               >

@@ -87,27 +87,27 @@ export default function LoginForge() {
           width: 100%;
           max-width: 420px;
           background: rgba(20,10,0,0.85);
-          border: 1px solid rgba(255,100,0,0.2);
-          border-top: 3px solid #FF6B1A;
+          border: 1px solid var(--lp-a20);
+          border-top: 3px solid var(--lp-1);
           border-radius: 16px;
           padding: 40px 36px 36px;
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           box-shadow:
             0 24px 64px rgba(0,0,0,0.7),
-            0 0 60px rgba(255,80,0,0.06),
-            inset 0 1px 0 rgba(255,120,0,0.08);
+            0 0 60px var(--lp-a10),
+            inset 0 1px 0 var(--lp-a10);
         }
         .forge-logo {
           width: 52px;
           height: 52px;
           border-radius: 10px;
-          background: linear-gradient(135deg, #FF6B1A 0%, #FF4500 100%);
+          background: linear-gradient(135deg, var(--lp-1) 0%, var(--lp-4) 100%);
           display: flex;
           align-items: center;
           justify-content: center;
           margin-bottom: 24px;
-          box-shadow: 0 8px 28px rgba(255,107,26,0.4), 0 0 0 1px rgba(255,150,80,0.2);
+          box-shadow: 0 8px 28px var(--lp-a40), 0 0 0 1px var(--lp-a20);
           flex-shrink: 0;
         }
         .forge-title {
@@ -131,16 +131,16 @@ export default function LoginForge() {
         }
         .forge-input .ant-input-affix-wrapper,
         .forge-input .ant-input-password {
-          background: rgba(255,80,0,0.06) !important;
-          border: 1px solid rgba(255,100,0,0.2) !important;
+          background: var(--lp-a10) !important;
+          border: 1px solid var(--lp-a20) !important;
           border-radius: 10px !important;
         }
         .forge-input .ant-input-affix-wrapper:hover,
         .forge-input .ant-input-password:hover,
         .forge-input .ant-input-affix-wrapper:focus,
         .forge-input .ant-input-affix-wrapper-focused {
-          border-color: rgba(255,107,26,0.6) !important;
-          box-shadow: 0 0 0 2px rgba(255,107,26,0.15) !important;
+          border-color: var(--lp-a60) !important;
+          box-shadow: 0 0 0 2px var(--lp-a20) !important;
         }
         .forge-input .ant-input {
           background: transparent !important;
@@ -151,14 +151,14 @@ export default function LoginForge() {
           color: rgba(255,200,150,0.35) !important;
         }
         .forge-input .ant-input-prefix {
-          color: #FF8C42 !important;
+          color: var(--lp-2) !important;
           margin-right: 8px;
         }
         .forge-input .ant-input-password-icon {
-          color: rgba(255,150,80,0.4) !important;
+          color: var(--lp-a40) !important;
         }
         .forge-input .ant-input-password-icon:hover {
-          color: #FF8C42 !important;
+          color: var(--lp-2) !important;
         }
         .forge-input .ant-form-item-explain-error {
           color: #FF4757 !important;
@@ -169,21 +169,21 @@ export default function LoginForge() {
           font-size: 13px !important;
         }
         .forge-checkbox .ant-checkbox-inner {
-          background: rgba(255,80,0,0.06) !important;
-          border-color: rgba(255,100,0,0.3) !important;
+          background: var(--lp-a10) !important;
+          border-color: var(--lp-a30) !important;
           border-radius: 4px !important;
         }
         .forge-checkbox .ant-checkbox-checked .ant-checkbox-inner {
-          background: #FF6B1A !important;
-          border-color: #FF6B1A !important;
+          background: var(--lp-1) !important;
+          border-color: var(--lp-1) !important;
         }
         .forge-btn.ant-btn-primary {
-          background: linear-gradient(135deg, #FF6B1A 0%, #FF4500 100%) !important;
-          box-shadow: 0 8px 24px rgba(255,107,26,0.45) !important;
+          background: linear-gradient(135deg, var(--lp-1) 0%, var(--lp-4) 100%) !important;
+          box-shadow: 0 8px 24px var(--lp-a40) !important;
         }
         .forge-btn.ant-btn-primary:hover {
-          background: linear-gradient(135deg, #FF8533 0%, #FF5A1F 100%) !important;
-          box-shadow: 0 12px 32px rgba(255,107,26,0.6) !important;
+          background: linear-gradient(135deg, var(--lp-2) 0%, var(--lp-1) 100%) !important;
+          box-shadow: 0 12px 32px var(--lp-a60) !important;
           transform: translateY(-1px);
         }
         .forge-btn.ant-btn-primary:active {
@@ -201,22 +201,22 @@ export default function LoginForge() {
         {/* Ember glow blobs at four corners */}
         <div className="forge-ember" style={{
           width: 480, height: 480,
-          background: 'rgba(255,80,0,0.12)',
+          background: 'var(--lp-a10)',
           top: -140, left: -100,
         }} />
         <div className="forge-ember" style={{
           width: 400, height: 400,
-          background: 'rgba(255,140,0,0.08)',
+          background: 'var(--lp-a10)',
           top: -80, right: -80,
         }} />
         <div className="forge-ember" style={{
           width: 440, height: 440,
-          background: 'rgba(200,40,0,0.10)',
+          background: 'var(--lp-a10)',
           bottom: -120, left: -60,
         }} />
         <div className="forge-ember" style={{
           width: 360, height: 360,
-          background: 'rgba(255,100,0,0.06)',
+          background: 'var(--lp-a10)',
           bottom: -100, right: -80,
         }} />
 

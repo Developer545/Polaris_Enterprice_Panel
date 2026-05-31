@@ -28,7 +28,6 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
     return DEFAULT_APPEARANCE
   })
 
-  // Aplica CSS vars al :root en cada cambio
   useEffect(() => {
     applyAppearance(appearance)
   }, [appearance])

@@ -86,20 +86,20 @@ export default function LoginVelvet() {
         .velvet-input .ant-input-affix-wrapper,
         .velvet-input .ant-input {
           background: rgba(255,255,255,0.06) !important;
-          border-color: rgba(212,170,120,0.25) !important;
+          border-color: var(--lp-a25) !important;
           border-radius: 12px !important;
           color: #F5E6D0 !important;
         }
         .velvet-input .ant-input-affix-wrapper:focus,
         .velvet-input .ant-input-affix-wrapper-focused {
-          border-color: rgba(212,170,120,0.7) !important;
-          box-shadow: 0 0 0 3px rgba(212,170,120,0.15) !important;
+          border-color: var(--lp-a70) !important;
+          box-shadow: 0 0 0 3px var(--lp-a15) !important;
         }
         .velvet-input .ant-input::placeholder { color: rgba(245,230,208,0.3) !important; }
-        .velvet-input .ant-input-password-icon { color: rgba(212,170,120,0.5) !important; }
-        .velvet-input .anticon:not(.ant-input-password-icon) { color: #D4AA70 !important; }
+        .velvet-input .ant-input-password-icon { color: var(--lp-a50) !important; }
+        .velvet-input .anticon:not(.ant-input-password-icon) { color: var(--lp-1) !important; }
         .velvet-input .ant-form-item-label > label {
-          color: rgba(212,170,120,0.8) !important;
+          color: var(--lp-a70) !important;
           font-weight: 500 !important;
           font-size: 13px !important;
         }
@@ -107,18 +107,18 @@ export default function LoginVelvet() {
         .velvet-input .ant-input-affix-wrapper .ant-input { background: transparent !important; }
         .velvet-checkbox .ant-checkbox-inner {
           background: rgba(255,255,255,0.05) !important;
-          border-color: rgba(212,170,120,0.35) !important;
+          border-color: var(--lp-a35) !important;
         }
         .velvet-checkbox .ant-checkbox-checked .ant-checkbox-inner {
-          background: linear-gradient(135deg, #D4AA70, #C08090) !important;
-          border-color: #D4AA70 !important;
+          background: linear-gradient(135deg, var(--lp-1), var(--lp-2)) !important;
+          border-color: var(--lp-1) !important;
         }
         .velvet-checkbox span:last-child {
           color: rgba(245,230,208,0.6) !important;
           font-size: 13px !important;
         }
         .velvet-btn:hover {
-          box-shadow: 0 8px 28px rgba(212,170,120,0.5) !important;
+          box-shadow: 0 8px 28px var(--lp-a50) !important;
           transform: translateY(-1px) !important;
         }
       `}</style>
@@ -151,7 +151,7 @@ export default function LoginVelvet() {
           background: 'rgba(255,255,255,0.05)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(212,170,120,0.25)',
+          border: '1px solid var(--lp-a25)',
           borderRadius: 20,
           padding: '40px 40px 32px',
           position: 'relative',
@@ -167,10 +167,10 @@ export default function LoginVelvet() {
               justifyContent: 'center',
               width: 56,
               height: 56,
-              background: 'linear-gradient(135deg, #D4AA70 0%, #C08090 100%)',
+              background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-2) 100%)',
               borderRadius: 16,
               marginBottom: 16,
-              boxShadow: '0 4px 20px rgba(212,170,120,0.4)',
+              boxShadow: '0 4px 20px var(--lp-a40)',
             }}
           >
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
@@ -190,9 +190,9 @@ export default function LoginVelvet() {
 
         {/* Decorative divider */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
-          <div style={{ flex: 1, height: 1, background: 'rgba(212,170,120,0.2)' }} />
-          <span style={{ color: 'rgba(212,170,120,0.5)', fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase' }}>Polaris POS</span>
-          <div style={{ flex: 1, height: 1, background: 'rgba(212,170,120,0.2)' }} />
+          <div style={{ flex: 1, height: 1, background: 'var(--lp-a20)' }} />
+          <span style={{ color: 'var(--lp-a50)', fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase' }}>Polaris POS</span>
+          <div style={{ flex: 1, height: 1, background: 'var(--lp-a20)' }} />
         </div>
 
         {/* Error */}
@@ -240,8 +240,8 @@ export default function LoginVelvet() {
               fontSize: 15,
               border: 'none',
               transition: 'all 0.2s',
-              background: 'linear-gradient(135deg, #D4AA70 0%, #C08090 100%)',
-              boxShadow: '0 4px 20px rgba(212,170,120,0.35)',
+              background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-2) 100%)',
+              boxShadow: '0 4px 20px var(--lp-a35)',
               color: '#1A0025',
             }}
           >
@@ -249,7 +249,7 @@ export default function LoginVelvet() {
           </Button>
         </Form>
 
-        <p style={{ textAlign: 'center', marginTop: 24, marginBottom: 0, color: 'rgba(212,170,120,0.35)', fontSize: 12, letterSpacing: '0.03em' }}>
+        <p style={{ textAlign: 'center', marginTop: 24, marginBottom: 0, color: 'var(--lp-a35)', fontSize: 12, letterSpacing: '0.03em' }}>
           © {new Date().getFullYear()} Polaris POS · Todos los derechos reservados
         </p>
       </div>

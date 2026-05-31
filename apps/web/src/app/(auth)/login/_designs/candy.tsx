@@ -90,20 +90,20 @@ export default function LoginCandy() {
         .candy-input .ant-input-affix-wrapper,
         .candy-input .ant-input {
           background: #FFF5F8 !important;
-          border-color: #FFB3C6 !important;
+          border-color: var(--lp-2) !important;
           border-radius: 16px !important;
           color: #3D1A26 !important;
         }
         .candy-input .ant-input-affix-wrapper:focus,
         .candy-input .ant-input-affix-wrapper-focused {
-          border-color: #FF4081 !important;
-          box-shadow: 0 0 0 3px rgba(255,64,129,0.12) !important;
+          border-color: var(--lp-4) !important;
+          box-shadow: 0 0 0 3px var(--lp-a1a) !important;
         }
-        .candy-input .ant-input::placeholder { color: #FFAAC0 !important; }
-        .candy-input .ant-input-password-icon { color: #FFB3C6 !important; }
-        .candy-input .anticon:not(.ant-input-password-icon) { color: #FF85A1 !important; }
+        .candy-input .ant-input::placeholder { color: var(--lp-2) !important; }
+        .candy-input .ant-input-password-icon { color: var(--lp-2) !important; }
+        .candy-input .anticon:not(.ant-input-password-icon) { color: var(--lp-1) !important; }
         .candy-input .ant-form-item-label > label {
-          color: #CC4477 !important;
+          color: var(--lp-4) !important;
           font-weight: 600 !important;
           font-size: 13px !important;
         }
@@ -111,16 +111,16 @@ export default function LoginCandy() {
         .candy-input .ant-input-affix-wrapper .ant-input { background: transparent !important; }
         .candy-checkbox .ant-checkbox-inner {
           background: #FFF0F5 !important;
-          border-color: #FFB3C6 !important;
+          border-color: var(--lp-2) !important;
           border-radius: 6px !important;
         }
         .candy-checkbox .ant-checkbox-checked .ant-checkbox-inner {
-          background: linear-gradient(135deg, #FF85A1, #FF4081) !important;
-          border-color: #FF85A1 !important;
+          background: linear-gradient(135deg, var(--lp-1), var(--lp-4)) !important;
+          border-color: var(--lp-1) !important;
         }
-        .candy-checkbox span:last-child { color: #CC4477 !important; font-size: 13px !important; }
+        .candy-checkbox span:last-child { color: var(--lp-4) !important; font-size: 13px !important; }
         .candy-btn:hover {
-          box-shadow: 0 8px 28px rgba(255,64,129,0.5) !important;
+          box-shadow: 0 8px 28px var(--lp-a80) !important;
           transform: translateY(-2px) !important;
         }
       `}</style>
@@ -151,7 +151,7 @@ export default function LoginCandy() {
           maxWidth: 440,
           background: '#FFFFFF',
           borderRadius: 28,
-          boxShadow: '0 8px 40px rgba(255,100,150,0.15), 0 2px 8px rgba(255,133,161,0.1)',
+          boxShadow: '0 8px 40px var(--lp-a26), 0 2px 8px var(--lp-a1a)',
           overflow: 'hidden',
           position: 'relative',
           zIndex: 1,
@@ -161,7 +161,7 @@ export default function LoginCandy() {
         <div
           style={{
             height: 5,
-            background: 'linear-gradient(90deg, #FF85A1 0%, #85C1FF 50%, #85FFB5 100%)',
+            background: 'linear-gradient(90deg, var(--lp-1) 0%, #85C1FF 50%, #85FFB5 100%)',
           }}
         />
 
@@ -175,10 +175,10 @@ export default function LoginCandy() {
                 justifyContent: 'center',
                 width: 56,
                 height: 56,
-                background: 'linear-gradient(135deg, #FF85A1 0%, #85C1FF 100%)',
+                background: 'linear-gradient(135deg, var(--lp-1) 0%, #85C1FF 100%)',
                 borderRadius: 18,
                 marginBottom: 16,
-                boxShadow: '0 4px 16px rgba(255,133,161,0.4)',
+                boxShadow: '0 4px 16px var(--lp-a66)',
               }}
             >
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
@@ -188,7 +188,7 @@ export default function LoginCandy() {
             </div>
             <Typography.Title
               level={3}
-              style={{ margin: 0, color: '#FF4081', fontWeight: 800, fontSize: 22 }}
+              style={{ margin: 0, color: 'var(--lp-4)', fontWeight: 800, fontSize: 22 }}
             >
               ¡Hola de nuevo! 🌸
             </Typography.Title>
@@ -205,7 +205,7 @@ export default function LoginCandy() {
               showIcon
               closable
               onClose={() => setError(null)}
-              style={{ marginBottom: 20, borderRadius: 12, borderColor: '#FFB3C6' }}
+              style={{ marginBottom: 20, borderRadius: 12, borderColor: 'var(--lp-2)' }}
             />
           )}
 
@@ -242,16 +242,16 @@ export default function LoginCandy() {
                 fontSize: 15,
                 border: 'none',
                 transition: 'all 0.2s',
-                background: 'linear-gradient(135deg, #FF6B9D 0%, #FF4081 100%)',
-                boxShadow: '0 4px 16px rgba(255,64,129,0.4)',
-                color: '#FFFFFF',
+                background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-4) 100%)',
+                boxShadow: '0 4px 16px var(--lp-a66)',
+                color: 'var(--lp-text)',
               }}
             >
               Iniciar sesión
             </Button>
           </Form>
 
-          <p style={{ textAlign: 'center', marginTop: 24, marginBottom: 0, color: '#FFAAC0', fontSize: 12 }}>
+          <p style={{ textAlign: 'center', marginTop: 24, marginBottom: 0, color: 'var(--lp-2)', fontSize: 12 }}>
             © {new Date().getFullYear()} Polaris POS · Todos los derechos reservados
           </p>
         </div>

@@ -24,6 +24,18 @@ export function applyPolarisTheme(theme: PolarisTheme): void {
     root.style.setProperty(key, value)
   }
   root.setAttribute('data-theme', theme.id)
+
+  // Apply login palette from theme color — unless user has a customPrimary override
+  // Import lazily to avoid circular deps
+  import('./appearance').then(({ applyLoginPalette, APPEARANCE_STORAGE_KEY }) => {
+    try {
+      const saved = localStorage.getItem(APPEARANCE_STORAGE_KEY)
+      const customPrimary = saved ? JSON.parse(saved)?.customPrimary : null
+      if (!customPrimary) applyLoginPalette(theme.colorPrimary)
+    } catch {
+      applyLoginPalette(theme.colorPrimary)
+    }
+  })
 }
 
 export function getThemeById(id: string): PolarisTheme {

@@ -102,23 +102,23 @@ export default function LoginAurora() {
         }
         .aurora-input .ant-input-affix-wrapper:hover,
         .aurora-input .ant-input-affix-wrapper-focused {
-          border-color: #fb923c !important;
-          box-shadow: 0 0 0 3px rgba(251,146,60,0.15) !important;
+          border-color: var(--lp-1) !important;
+          box-shadow: 0 0 0 3px var(--lp-a15) !important;
         }
         .aurora-input .ant-input-affix-wrapper .ant-input {
           background: transparent !important;
           height: auto !important;
           color: #3b1f6e !important;
         }
-        .aurora-input .ant-input-prefix { color: #fb923c !important; margin-right: 10px; }
-        .aurora-input .ant-input-password-icon { color: #fb923c !important; }
+        .aurora-input .ant-input-prefix { color: var(--lp-1) !important; margin-right: 10px; }
+        .aurora-input .ant-input-password-icon { color: var(--lp-1) !important; }
         .aurora-input .ant-input::placeholder { color: #fdba74 !important; }
         .aurora-input .ant-form-item-label > label { color: #7c5fc4 !important; font-size: 12px !important; font-weight: 600 !important; letter-spacing: 0.04em !important; text-transform: uppercase; }
         .aurora-input .ant-form-item-explain-error { color: #e879a8 !important; font-size: 12px !important; }
         .aurora-checkbox .ant-checkbox-inner { border-color: #ffd4a3 !important; border-radius: 5px !important; }
-        .aurora-checkbox .ant-checkbox-checked .ant-checkbox-inner { background: #fb923c !important; border-color: #fb923c !important; }
+        .aurora-checkbox .ant-checkbox-checked .ant-checkbox-inner { background: var(--lp-1) !important; border-color: var(--lp-1) !important; }
         .aurora-checkbox span { color: #9b8ec4 !important; font-size: 13px !important; }
-        .aurora-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 12px 32px rgba(251,146,60,0.45) !important; opacity: 0.95; }
+        .aurora-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 12px 32px var(--lp-a50) !important; opacity: 0.95; }
         .aurora-btn:active { transform: translateY(0) !important; }
       `}</style>
 
@@ -183,15 +183,15 @@ export default function LoginAurora() {
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               background: 'rgba(255,255,255,0.85)',
-              border: '1px solid rgba(251,146,60,0.3)',
+              border: '1px solid var(--lp-a30)',
               borderRadius: 20, padding: '6px 16px',
               backdropFilter: 'blur(10px)',
-              boxShadow: '0 2px 12px rgba(251,146,60,0.15)',
+              boxShadow: '0 2px 12px var(--lp-a15)',
             }}>
               <div style={{
                 width: 7, height: 7, borderRadius: '50%',
-                background: '#fb923c',
-                boxShadow: '0 0 6px #fb923c',
+                background: 'var(--lp-1)',
+                boxShadow: '0 0 6px var(--lp-1)',
                 animation: 'pulse 2s ease-in-out infinite',
               }} />
               <span style={{ color: '#9b8ec4', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
@@ -207,7 +207,7 @@ export default function LoginAurora() {
             borderRadius: 24,
             boxShadow: '0 4px 24px rgba(155,142,196,0.18), 0 1px 4px rgba(0,0,0,0.04)',
             border: '1px solid rgba(201,184,232,0.35)',
-            borderTop: '4px solid #fb923c',
+            borderTop: '4px solid var(--lp-1)',
             padding: '40px 44px',
             animation: 'fadeUp 0.6s ease 0.1s both',
           }}>
@@ -215,9 +215,9 @@ export default function LoginAurora() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
               <div style={{
                 width: 50, height: 50, borderRadius: 14, flexShrink: 0,
-                background: 'linear-gradient(135deg, #fb923c 0%, #c084fc 100%)',
+                background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-2) 100%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 6px 18px rgba(251,146,60,0.35)',
+                boxShadow: '0 6px 18px var(--lp-a35)',
               }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M12 2L13.6 9.8L22 12L13.6 14.2L12 22L10.4 14.2L2 12L10.4 9.8Z" fill="white" />
@@ -235,7 +235,7 @@ export default function LoginAurora() {
 
             {error && (
               <Alert message={error} type="error" showIcon closable onClose={() => setError(null)}
-                style={{ marginBottom: 20, borderRadius: 10, fontSize: 13, background: '#fff8f0', border: '1px solid #fb923c40' }}
+                style={{ marginBottom: 20, borderRadius: 10, fontSize: 13, background: '#fff8f0', border: '1px solid var(--lp-a25)' }}
               />
             )}
 
@@ -262,8 +262,8 @@ export default function LoginAurora() {
                 className="aurora-btn"
                 style={{
                   height: 52, borderRadius: 14, fontWeight: 700, fontSize: 15, border: 'none',
-                  background: 'linear-gradient(135deg, #fb923c 0%, #c084fc 100%)',
-                  boxShadow: '0 6px 20px rgba(251,146,60,0.35)',
+                  background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-2) 100%)',
+                  boxShadow: '0 6px 20px var(--lp-a35)',
                   transition: 'all 0.2s',
                 }}
               >

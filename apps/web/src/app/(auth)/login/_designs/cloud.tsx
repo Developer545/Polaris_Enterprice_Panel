@@ -98,24 +98,24 @@ export default function LoginCloud() {
         }
         .cloud-input .ant-input-affix-wrapper:hover,
         .cloud-input .ant-input-affix-wrapper-focused {
-          border-color: #9b8ec4 !important;
+          border-color: var(--lp-1) !important;
           background: rgba(255,255,255,0.9) !important;
-          box-shadow: 0 0 0 3px rgba(155,142,196,0.2) !important;
+          box-shadow: 0 0 0 3px var(--lp-a20) !important;
         }
         .cloud-input .ant-input-affix-wrapper .ant-input {
           background: transparent !important;
           height: auto !important;
           color: #3b1f6e !important;
         }
-        .cloud-input .ant-input-prefix { color: #9b8ec4 !important; margin-right: 10px; }
-        .cloud-input .ant-input-password-icon { color: #9b8ec4 !important; }
+        .cloud-input .ant-input-prefix { color: var(--lp-1) !important; margin-right: 10px; }
+        .cloud-input .ant-input-password-icon { color: var(--lp-1) !important; }
         .cloud-input .ant-input::placeholder { color: #c4b5fd !important; }
         .cloud-input .ant-form-item-label > label { color: #6b5b9e !important; font-size: 12px !important; font-weight: 600 !important; letter-spacing: 0.04em !important; text-transform: uppercase; }
         .cloud-input .ant-form-item-explain-error { color: #e879a8 !important; font-size: 12px !important; }
         .cloud-checkbox .ant-checkbox-inner { border-color: #c9b8e8 !important; border-radius: 5px !important; background: rgba(255,255,255,0.7) !important; }
-        .cloud-checkbox .ant-checkbox-checked .ant-checkbox-inner { background: #9b8ec4 !important; border-color: #9b8ec4 !important; }
+        .cloud-checkbox .ant-checkbox-checked .ant-checkbox-inner { background: var(--lp-1) !important; border-color: var(--lp-1) !important; }
         .cloud-checkbox span { color: #8b7ab5 !important; font-size: 13px !important; }
-        .cloud-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 12px 32px rgba(232,121,168,0.45) !important; }
+        .cloud-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 12px 32px var(--lp-a50) !important; }
         .cloud-btn:active { transform: translateY(0) !important; }
       `}</style>
 
@@ -166,9 +166,9 @@ export default function LoginCloud() {
             {/* Logo */}
             <div style={{
               width: 60, height: 60, borderRadius: 18, margin: '0 auto 16px',
-              background: 'linear-gradient(135deg, #9b8ec4 0%, #e879a8 100%)',
+              background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-2) 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 8px 24px rgba(155,142,196,0.4)',
+              boxShadow: '0 8px 24px var(--lp-a40)',
               animation: 'floatCloud 5s ease-in-out infinite',
             }}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
@@ -212,8 +212,8 @@ export default function LoginCloud() {
               className="cloud-btn"
               style={{
                 height: 52, borderRadius: 14, fontWeight: 700, fontSize: 15, border: 'none',
-                background: 'linear-gradient(135deg, #9b8ec4 0%, #e879a8 100%)',
-                boxShadow: '0 6px 20px rgba(232,121,168,0.35)',
+                background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-2) 100%)',
+                boxShadow: '0 6px 20px var(--lp-a35)',
                 transition: 'all 0.2s',
               }}
             >

@@ -68,8 +68,8 @@ export default function LoginNexus() {
           min-height: 100vh;
           background-color: #030610;
           background-image:
-            linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+            linear-gradient(var(--lp-a10) 1px, transparent 1px),
+            linear-gradient(90deg, var(--lp-a10) 1px, transparent 1px);
           background-size: 40px 40px;
           display: flex;
           align-items: center;
@@ -90,47 +90,47 @@ export default function LoginNexus() {
           width: 100%;
           max-width: 420px;
           background: rgba(0,20,40,0.7);
-          border: 1px solid rgba(0,245,255,0.2);
-          border-top: 2px solid #00F5FF;
+          border: 1px solid var(--lp-a20);
+          border-top: 2px solid var(--lp-1);
           border-radius: 12px;
           padding: 40px 36px 36px;
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           box-shadow:
-            0 0 20px rgba(0,245,255,0.2),
-            inset 0 0 40px rgba(0,245,255,0.02),
+            0 0 20px var(--lp-a20),
+            inset 0 0 40px var(--lp-a10),
             0 32px 80px rgba(0,0,0,0.7);
         }
         .nexus-logo {
           width: 52px;
           height: 52px;
           border-radius: 12px;
-          background: rgba(0,245,255,0.1);
-          border: 1px solid rgba(0,245,255,0.4);
+          background: var(--lp-a10);
+          border: 1px solid var(--lp-a40);
           display: flex;
           align-items: center;
           justify-content: center;
           margin-bottom: 24px;
-          box-shadow: 0 0 20px rgba(0,245,255,0.2), inset 0 0 12px rgba(0,245,255,0.05);
+          box-shadow: 0 0 20px var(--lp-a20), inset 0 0 12px var(--lp-a10);
           flex-shrink: 0;
         }
         .nexus-title {
-          color: #00F5FF !important;
+          color: var(--lp-1) !important;
           font-size: 24px !important;
           font-weight: 800 !important;
           margin-bottom: 4px !important;
           line-height: 1.2 !important;
-          text-shadow: 0 0 20px rgba(0,245,255,0.5) !important;
+          text-shadow: 0 0 20px var(--lp-a50) !important;
         }
         .nexus-subtitle {
-          color: rgba(0,245,255,0.5);
+          color: var(--lp-a50);
           font-size: 13px;
           margin-bottom: 32px;
           text-transform: uppercase;
           letter-spacing: 0.06em;
         }
         .nexus-input .ant-form-item-label > label {
-          color: rgba(0,245,255,0.6) !important;
+          color: var(--lp-a60) !important;
           font-size: 10px !important;
           font-weight: 700 !important;
           text-transform: uppercase !important;
@@ -138,16 +138,16 @@ export default function LoginNexus() {
         }
         .nexus-input .ant-input-affix-wrapper,
         .nexus-input .ant-input-password {
-          background: rgba(0,245,255,0.04) !important;
-          border: 1px solid rgba(0,245,255,0.15) !important;
+          background: var(--lp-a10) !important;
+          border: 1px solid var(--lp-a10) !important;
           border-radius: 8px !important;
         }
         .nexus-input .ant-input-affix-wrapper:hover,
         .nexus-input .ant-input-password:hover,
         .nexus-input .ant-input-affix-wrapper:focus,
         .nexus-input .ant-input-affix-wrapper-focused {
-          border-color: rgba(0,245,255,0.5) !important;
-          box-shadow: 0 0 0 2px rgba(0,245,255,0.1), 0 0 12px rgba(0,245,255,0.1) !important;
+          border-color: var(--lp-a50) !important;
+          box-shadow: 0 0 0 2px var(--lp-a10), 0 0 12px var(--lp-a10) !important;
         }
         .nexus-input .ant-input {
           background: transparent !important;
@@ -155,47 +155,47 @@ export default function LoginNexus() {
           font-size: 14px !important;
         }
         .nexus-input .ant-input::placeholder {
-          color: rgba(0,245,255,0.25) !important;
+          color: var(--lp-a20) !important;
         }
         .nexus-input .ant-input-prefix {
-          color: #00F5FF !important;
+          color: var(--lp-1) !important;
           margin-right: 8px;
         }
         .nexus-input .ant-input-password-icon {
-          color: rgba(0,245,255,0.3) !important;
+          color: var(--lp-a30) !important;
         }
         .nexus-input .ant-input-password-icon:hover {
-          color: #00F5FF !important;
+          color: var(--lp-1) !important;
         }
         .nexus-input .ant-form-item-explain-error {
           color: #FF4757 !important;
           font-size: 12px !important;
         }
         .nexus-checkbox .ant-checkbox-wrapper {
-          color: rgba(0,245,255,0.55) !important;
+          color: var(--lp-a50) !important;
           font-size: 13px !important;
         }
         .nexus-checkbox .ant-checkbox-inner {
-          background: rgba(0,245,255,0.04) !important;
-          border-color: rgba(0,245,255,0.2) !important;
+          background: var(--lp-a10) !important;
+          border-color: var(--lp-a20) !important;
           border-radius: 4px !important;
         }
         .nexus-checkbox .ant-checkbox-checked .ant-checkbox-inner {
-          background: rgba(0,245,255,0.8) !important;
-          border-color: #00F5FF !important;
+          background: var(--lp-a70) !important;
+          border-color: var(--lp-1) !important;
         }
         .nexus-checkbox .ant-checkbox-checked .ant-checkbox-inner::after {
           border-color: #030610 !important;
         }
         .nexus-btn.ant-btn-primary {
-          background: linear-gradient(135deg, rgba(0,245,255,0.85) 0%, rgba(0,150,200,0.95) 100%) !important;
+          background: linear-gradient(135deg, var(--lp-a70) 0%, var(--lp-4) 100%) !important;
           color: #030610 !important;
-          box-shadow: 0 0 20px rgba(0,245,255,0.4), 0 8px 24px rgba(0,245,255,0.25) !important;
+          box-shadow: 0 0 20px var(--lp-a40), 0 8px 24px var(--lp-a20) !important;
           font-weight: 800 !important;
         }
         .nexus-btn.ant-btn-primary:hover {
-          background: linear-gradient(135deg, rgba(0,255,255,0.95) 0%, rgba(0,180,220,1) 100%) !important;
-          box-shadow: 0 0 30px rgba(0,245,255,0.55), 0 12px 32px rgba(0,245,255,0.35) !important;
+          background: linear-gradient(135deg, var(--lp-1) 0%, var(--lp-3) 100%) !important;
+          box-shadow: 0 0 30px var(--lp-a50), 0 12px 32px var(--lp-a30) !important;
           transform: translateY(-1px);
           color: #030610 !important;
         }
@@ -208,7 +208,7 @@ export default function LoginNexus() {
         .nexus-footer {
           margin-top: 24px;
           text-align: center;
-          color: rgba(0,245,255,0.2);
+          color: var(--lp-a20);
           font-size: 12px;
           letter-spacing: 0.04em;
         }
@@ -218,7 +218,7 @@ export default function LoginNexus() {
         {/* Neon glow blobs */}
         <div className="nexus-blob" style={{
           width: 520, height: 520,
-          background: 'rgba(0,245,255,0.12)',
+          background: 'var(--lp-a10)',
           top: -160, left: -120,
         }} />
         <div className="nexus-blob" style={{
@@ -238,14 +238,14 @@ export default function LoginNexus() {
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
               <path
                 d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2Z"
-                stroke="#00F5FF"
+                stroke="var(--lp-1)"
                 strokeWidth="1.5"
-                fill="rgba(0,245,255,0.08)"
+                fill="var(--lp-a10)"
               />
               <path
                 d="M12 6L17 8.5V13.5L12 16L7 13.5V8.5L12 6Z"
-                fill="rgba(0,245,255,0.3)"
-                stroke="#00F5FF"
+                fill="var(--lp-a30)"
+                stroke="var(--lp-1)"
                 strokeWidth="0.75"
               />
             </svg>

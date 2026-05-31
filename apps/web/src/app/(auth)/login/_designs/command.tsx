@@ -117,13 +117,13 @@ export default function LoginCommand() {
           font-size: 22px;
           font-family: 'Courier New', monospace;
           font-weight: 700;
-          color: #3FB950;
+          color: var(--lp-1);
           line-height: 1;
         }
         .command-logo-name {
           font-size: 13px;
           font-family: 'Courier New', monospace;
-          color: #58A6FF;
+          color: var(--lp-2);
           letter-spacing: 0.05em;
         }
         .command-prompt-row {
@@ -133,7 +133,7 @@ export default function LoginCommand() {
           margin-bottom: 6px;
         }
         .command-prompt-sign {
-          color: #3FB950;
+          color: var(--lp-1);
           font-family: 'Courier New', monospace;
           font-size: 16px;
           font-weight: 700;
@@ -161,7 +161,7 @@ export default function LoginCommand() {
         }
         .command-input .ant-form-item-label > label::before {
           content: '> ' !important;
-          color: #3FB950 !important;
+          color: var(--lp-1) !important;
           font-family: 'Courier New', monospace !important;
           margin-right: 0 !important;
         }
@@ -175,8 +175,8 @@ export default function LoginCommand() {
         .command-input .ant-input-password:hover,
         .command-input .ant-input-affix-wrapper:focus,
         .command-input .ant-input-affix-wrapper-focused {
-          border-color: #58A6FF !important;
-          box-shadow: 0 0 0 2px rgba(88,166,255,0.12) !important;
+          border-color: var(--lp-2) !important;
+          box-shadow: 0 0 0 2px var(--lp-a10) !important;
         }
         .command-input .ant-input {
           background: #0D1117 !important;
@@ -189,14 +189,14 @@ export default function LoginCommand() {
           font-family: 'Courier New', monospace !important;
         }
         .command-input .ant-input-prefix {
-          color: #3FB950 !important;
+          color: var(--lp-1) !important;
           margin-right: 8px;
         }
         .command-input .ant-input-password-icon {
           color: #484F58 !important;
         }
         .command-input .ant-input-password-icon:hover {
-          color: #3FB950 !important;
+          color: var(--lp-1) !important;
         }
         .command-input .ant-form-item-explain-error {
           color: #F85149 !important;
@@ -214,11 +214,11 @@ export default function LoginCommand() {
           border-radius: 3px !important;
         }
         .command-checkbox .ant-checkbox-checked .ant-checkbox-inner {
-          background: #238636 !important;
-          border-color: #238636 !important;
+          background: var(--lp-4) !important;
+          border-color: var(--lp-4) !important;
         }
         .command-btn.ant-btn-primary {
-          background: #238636 !important;
+          background: var(--lp-4) !important;
           border: none !important;
           border-radius: 6px !important;
           font-family: 'Courier New', monospace !important;
@@ -226,11 +226,11 @@ export default function LoginCommand() {
           letter-spacing: 0.03em !important;
         }
         .command-btn.ant-btn-primary:hover {
-          background: #2EA043 !important;
-          box-shadow: 0 4px 16px rgba(46,160,67,0.3) !important;
+          background: var(--lp-1) !important;
+          box-shadow: 0 4px 16px var(--lp-a30) !important;
         }
         .command-btn.ant-btn-primary:active {
-          background: #1A7F37 !important;
+          background: var(--lp-4) !important;
         }
         .command-footer {
           margin-top: 20px;
@@ -239,7 +239,7 @@ export default function LoginCommand() {
           font-size: 11px;
           font-family: 'Courier New', monospace;
         }
-        .command-footer span { color: #3FB950; }
+        .command-footer span { color: var(--lp-1); }
       `}</style>
 
       <div className="command-wrap">

@@ -89,7 +89,7 @@ export default function LoginCarbon() {
           max-width: 420px;
           background: #111118;
           border: 1px solid #1E1E2E;
-          border-left: 3px solid #2563EB;
+          border-left: 3px solid var(--lp-1);
           border-radius: 16px;
           padding: 40px 36px 36px;
           box-shadow: 0 24px 64px rgba(0,0,0,0.6);
@@ -98,12 +98,12 @@ export default function LoginCarbon() {
           width: 52px;
           height: 52px;
           border-radius: 8px;
-          background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+          background: linear-gradient(135deg, var(--lp-1) 0%, var(--lp-4) 100%);
           display: flex;
           align-items: center;
           justify-content: center;
           margin-bottom: 24px;
-          box-shadow: 0 8px 24px rgba(37,99,235,0.35);
+          box-shadow: 0 8px 24px var(--lp-a35);
         }
         .carbon-title {
           color: #E2E8F0 !important;
@@ -135,8 +135,8 @@ export default function LoginCarbon() {
         .carbon-input .ant-input-password:focus,
         .carbon-input .ant-input-affix-wrapper:hover,
         .carbon-input .ant-input-password:hover {
-          border-color: #2563EB !important;
-          box-shadow: 0 0 0 2px rgba(37,99,235,0.15) !important;
+          border-color: var(--lp-1) !important;
+          box-shadow: 0 0 0 2px var(--lp-a15) !important;
         }
         .carbon-input .ant-input {
           background: #0D0D15 !important;
@@ -147,14 +147,14 @@ export default function LoginCarbon() {
           color: #334155 !important;
         }
         .carbon-input .ant-input-prefix {
-          color: #3B82F6 !important;
+          color: var(--lp-2) !important;
           margin-right: 8px;
         }
         .carbon-input .ant-input-password-icon {
           color: #334155 !important;
         }
         .carbon-input .ant-input-password-icon:hover {
-          color: #3B82F6 !important;
+          color: var(--lp-2) !important;
         }
         .carbon-input .ant-form-item-explain-error {
           color: #EF4444 !important;
@@ -170,16 +170,16 @@ export default function LoginCarbon() {
           border-radius: 4px !important;
         }
         .carbon-checkbox .ant-checkbox-checked .ant-checkbox-inner {
-          background: #2563EB !important;
-          border-color: #2563EB !important;
+          background: var(--lp-1) !important;
+          border-color: var(--lp-1) !important;
         }
         .carbon-btn.ant-btn-primary {
-          background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
-          box-shadow: 0 8px 24px rgba(37,99,235,0.4) !important;
+          background: linear-gradient(135deg, var(--lp-1) 0%, var(--lp-4) 100%) !important;
+          box-shadow: 0 8px 24px var(--lp-a40) !important;
         }
         .carbon-btn.ant-btn-primary:hover {
-          background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important;
-          box-shadow: 0 12px 32px rgba(37,99,235,0.55) !important;
+          background: linear-gradient(135deg, var(--lp-2) 0%, var(--lp-1) 100%) !important;
+          box-shadow: 0 12px 32px var(--lp-a55) !important;
           transform: translateY(-1px);
         }
         .carbon-btn.ant-btn-primary:active {

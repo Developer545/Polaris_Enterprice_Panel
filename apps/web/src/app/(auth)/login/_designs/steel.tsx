@@ -103,12 +103,12 @@ export default function LoginSteel() {
           width: 64px;
           height: 64px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #2A6CA8 0%, #1E3A5F 100%);
+          background: linear-gradient(135deg, var(--lp-2) 0%, var(--lp-4) 100%);
           display: flex;
           align-items: center;
           justify-content: center;
           margin-bottom: 28px;
-          box-shadow: 0 8px 32px rgba(30,58,95,0.5), 0 0 0 1px rgba(100,180,255,0.15);
+          box-shadow: 0 8px 32px var(--lp-a50), 0 0 0 1px var(--lp-a10);
           flex-shrink: 0;
         }
         .steel-left-title {
@@ -134,7 +134,7 @@ export default function LoginSteel() {
           width: 6px;
           height: 6px;
           border-radius: 50%;
-          background: #3B82F6;
+          background: var(--lp-2);
           flex-shrink: 0;
         }
         .steel-bullet-text {
@@ -151,7 +151,7 @@ export default function LoginSteel() {
           align-items: center;
           justify-content: center;
           padding: 48px 40px;
-          border-left: 4px solid #1E3A5F;
+          border-left: 4px solid var(--lp-4);
         }
         .steel-form-box {
           width: 100%;
@@ -164,7 +164,7 @@ export default function LoginSteel() {
           margin-bottom: 4px !important;
         }
         .steel-form-sub {
-          color: #1E3A5F;
+          color: var(--lp-4);
           font-size: 13px;
           font-weight: 500;
           margin-bottom: 28px;
@@ -188,8 +188,8 @@ export default function LoginSteel() {
         .steel-input .ant-input-password:hover,
         .steel-input .ant-input-affix-wrapper:focus,
         .steel-input .ant-input-affix-wrapper-focused {
-          border-color: #1E3A5F !important;
-          box-shadow: 0 0 0 2px rgba(30,58,95,0.12) !important;
+          border-color: var(--lp-4) !important;
+          box-shadow: 0 0 0 2px var(--lp-a10) !important;
         }
         .steel-input .ant-input {
           background: #F1F5F9 !important;
@@ -200,14 +200,14 @@ export default function LoginSteel() {
           color: #94A3B8 !important;
         }
         .steel-input .ant-input-prefix {
-          color: #3B82F6 !important;
+          color: var(--lp-2) !important;
           margin-right: 8px;
         }
         .steel-input .ant-input-password-icon {
           color: #94A3B8 !important;
         }
         .steel-input .ant-input-password-icon:hover {
-          color: #1E3A5F !important;
+          color: var(--lp-4) !important;
         }
         .steel-input .ant-form-item-explain-error {
           color: #DC2626 !important;
@@ -223,16 +223,16 @@ export default function LoginSteel() {
           border-radius: 4px !important;
         }
         .steel-checkbox .ant-checkbox-checked .ant-checkbox-inner {
-          background: #1E3A5F !important;
-          border-color: #1E3A5F !important;
+          background: var(--lp-4) !important;
+          border-color: var(--lp-4) !important;
         }
         .steel-btn.ant-btn-primary {
-          background: linear-gradient(135deg, #1E3A5F 0%, #2563EB 100%) !important;
-          box-shadow: 0 6px 20px rgba(30,58,95,0.35) !important;
+          background: linear-gradient(135deg, var(--lp-4) 0%, var(--lp-1) 100%) !important;
+          box-shadow: 0 6px 20px var(--lp-a30) !important;
         }
         .steel-btn.ant-btn-primary:hover {
-          background: linear-gradient(135deg, #2A4D7A 0%, #3B82F6 100%) !important;
-          box-shadow: 0 10px 28px rgba(30,58,95,0.45) !important;
+          background: linear-gradient(135deg, var(--lp-3) 0%, var(--lp-2) 100%) !important;
+          box-shadow: 0 10px 28px var(--lp-a40) !important;
           transform: translateY(-1px);
         }
         .steel-btn.ant-btn-primary:active {

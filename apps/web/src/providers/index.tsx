@@ -36,7 +36,7 @@ function AntConfigProvider({ children }: { children: ReactNode }) {
   const { theme }      = usePolarisTheme()
   const { appearance } = useAppearance()
 
-  const aptTokens   = getAntTokens(appearance)
+  const aptTokens    = getAntTokens(appearance)
   const colorPrimary = appearance.customPrimary ?? theme.colorPrimary
 
   const activeTheme = {
@@ -58,9 +58,7 @@ function AntConfigProvider({ children }: { children: ReactNode }) {
         headerBg:   theme.vars['--bg-page'],
         rowHoverBg: theme.vars['--sidebar-item-hover-bg'],
       },
-      Card:   { colorBorderSecondary: theme.vars['--sidebar-border'] },
-      Button: { borderRadius: aptTokens.borderRadius },
-      Input:  { borderRadius: aptTokens.borderRadius },
+      Card: { colorBorderSecondary: theme.vars['--sidebar-border'] },
     },
   }
 
@@ -88,9 +86,11 @@ export function Providers({ children }: { children: ReactNode }) {
       }),
   )
 
+  // AppearanceProvider is outer so its useEffect fires AFTER ThemeProvider's,
+  // letting customPrimary override theme colors correctly.
   return (
-    <ThemeProvider>
-      <AppearanceProvider>
+    <AppearanceProvider>
+      <ThemeProvider>
         <AntdStyleInjector>
           <QueryClientProvider client={queryClient}>
             <AntConfigProvider>
@@ -98,7 +98,7 @@ export function Providers({ children }: { children: ReactNode }) {
             </AntConfigProvider>
           </QueryClientProvider>
         </AntdStyleInjector>
-      </AppearanceProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </AppearanceProvider>
   )
 }

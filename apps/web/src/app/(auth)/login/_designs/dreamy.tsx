@@ -96,18 +96,18 @@ export default function LoginDreamy() {
         .dreamy-input .ant-input-affix-wrapper,
         .dreamy-input .ant-input {
           background: rgba(255,255,255,0.07) !important;
-          border-color: rgba(168,85,247,0.3) !important;
+          border-color: var(--lp-a4d) !important;
           border-radius: 12px !important;
           color: #F3E8FF !important;
         }
         .dreamy-input .ant-input-affix-wrapper:focus,
         .dreamy-input .ant-input-affix-wrapper-focused {
-          border-color: rgba(168,85,247,0.7) !important;
-          box-shadow: 0 0 0 3px rgba(168,85,247,0.2) !important;
+          border-color: var(--lp-a8c) !important;
+          box-shadow: 0 0 0 3px var(--lp-a33) !important;
         }
         .dreamy-input .ant-input::placeholder { color: rgba(243,232,255,0.35) !important; }
         .dreamy-input .ant-input-password-icon { color: rgba(243,232,255,0.5) !important; }
-        .dreamy-input .anticon:not(.ant-input-password-icon) { color: #A855F7 !important; }
+        .dreamy-input .anticon:not(.ant-input-password-icon) { color: var(--lp-1) !important; }
         .dreamy-input .ant-form-item-label > label {
           color: rgba(243,232,255,0.7) !important;
           font-weight: 500 !important;
@@ -119,15 +119,15 @@ export default function LoginDreamy() {
         }
         .dreamy-checkbox .ant-checkbox-inner {
           background: rgba(255,255,255,0.07) !important;
-          border-color: rgba(168,85,247,0.4) !important;
+          border-color: var(--lp-a66) !important;
         }
         .dreamy-checkbox .ant-checkbox-checked .ant-checkbox-inner {
-          background: #A855F7 !important;
-          border-color: #A855F7 !important;
+          background: var(--lp-1) !important;
+          border-color: var(--lp-1) !important;
         }
         .dreamy-checkbox span:last-child { color: rgba(243,232,255,0.65) !important; font-size: 13px !important; }
         .dreamy-btn:hover {
-          box-shadow: 0 8px 28px rgba(168,85,247,0.6) !important;
+          box-shadow: 0 8px 28px var(--lp-a80) !important;
           transform: translateY(-1px) !important;
         }
       `}</style>
@@ -152,9 +152,9 @@ export default function LoginDreamy() {
       ))}
 
       {/* Blurred blobs */}
-      <div style={{ position: 'absolute', top: '10%', left: '15%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(168,85,247,0.25), transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: '15%', right: '10%', width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(236,72,153,0.2), transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', top: '55%', left: '5%', width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.15), transparent 70%)', filter: 'blur(30px)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '10%', left: '15%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, var(--lp-a40), transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '15%', right: '10%', width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, var(--lp-a33), transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '55%', left: '5%', width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, var(--lp-a26), transparent 70%)', filter: 'blur(30px)', pointerEvents: 'none' }} />
 
       {/* Glassmorphism card */}
       <div
@@ -180,10 +180,10 @@ export default function LoginDreamy() {
               justifyContent: 'center',
               width: 56,
               height: 56,
-              background: 'linear-gradient(135deg, #A855F7 0%, #EC4899 100%)',
+              background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-2) 100%)',
               borderRadius: 16,
               marginBottom: 16,
-              boxShadow: '0 4px 20px rgba(168,85,247,0.45)',
+              boxShadow: '0 4px 20px var(--lp-a59)',
             }}
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
@@ -249,9 +249,9 @@ export default function LoginDreamy() {
               fontSize: 15,
               border: 'none',
               transition: 'all 0.2s',
-              background: 'linear-gradient(135deg, #A855F7 0%, #EC4899 100%)',
-              boxShadow: '0 4px 20px rgba(168,85,247,0.45)',
-              color: '#FFFFFF',
+              background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-2) 100%)',
+              boxShadow: '0 4px 20px var(--lp-a59)',
+              color: 'var(--lp-text)',
             }}
           >
             Iniciar sesión

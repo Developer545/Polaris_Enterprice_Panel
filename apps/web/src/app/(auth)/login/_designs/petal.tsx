@@ -59,12 +59,12 @@ export default function LoginPetal() {
   }
 
   const petals = [
-    { w: 80, h: 40, top: '8%', left: '5%', rotate: 25, color: 'rgba(244,160,181,0.35)' },
-    { w: 60, h: 30, top: '15%', right: '8%', rotate: -40, color: 'rgba(200,114,154,0.3)' },
+    { w: 80, h: 40, top: '8%', left: '5%', rotate: 25, color: 'var(--lp-a40)' },
+    { w: 60, h: 30, top: '15%', right: '8%', rotate: -40, color: 'var(--lp-a4d)' },
     { w: 100, h: 50, top: '72%', left: '3%', rotate: 60, color: 'rgba(216,180,220,0.3)' },
-    { w: 70, h: 35, top: '80%', right: '6%', rotate: -20, color: 'rgba(244,194,208,0.4)' },
-    { w: 55, h: 28, top: '40%', left: '2%', rotate: 80, color: 'rgba(200,114,154,0.2)' },
-    { w: 90, h: 45, top: '55%', right: '3%', rotate: 15, color: 'rgba(244,160,181,0.25)' },
+    { w: 70, h: 35, top: '80%', right: '6%', rotate: -20, color: 'var(--lp-a66)' },
+    { w: 55, h: 28, top: '40%', left: '2%', rotate: 80, color: 'var(--lp-a33)' },
+    { w: 90, h: 45, top: '55%', right: '3%', rotate: 15, color: 'var(--lp-a40)' },
   ]
 
   return (
@@ -107,8 +107,8 @@ export default function LoginPetal() {
           maxWidth: 440,
           background: '#FFFFFF',
           borderRadius: 24,
-          borderTop: '4px solid #F4A0B5',
-          boxShadow: '0 12px 60px rgba(200,114,154,0.18), 0 2px 12px rgba(244,160,181,0.12)',
+          borderTop: '4px solid var(--lp-1)',
+          boxShadow: '0 12px 60px var(--lp-a26), 0 2px 12px var(--lp-a1a)',
           padding: '40px 40px 32px',
           position: 'relative',
           zIndex: 1,
@@ -123,10 +123,10 @@ export default function LoginPetal() {
               justifyContent: 'center',
               width: 56,
               height: 56,
-              background: 'linear-gradient(135deg, #F4A0B5 0%, #C8729A 100%)',
+              background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-4) 100%)',
               borderRadius: 16,
               marginBottom: 16,
-              boxShadow: '0 4px 16px rgba(200,114,154,0.35)',
+              boxShadow: '0 4px 16px var(--lp-a59)',
             }}
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
@@ -142,7 +142,7 @@ export default function LoginPetal() {
           >
             Bienvenida de nuevo
           </Typography.Title>
-          <Typography.Text style={{ color: '#C8729A', fontSize: 14, marginTop: 4, display: 'block' }}>
+          <Typography.Text style={{ color: 'var(--lp-4)', fontSize: 14, marginTop: 4, display: 'block' }}>
             Inicia sesión en tu cuenta
           </Typography.Text>
         </div>
@@ -155,7 +155,7 @@ export default function LoginPetal() {
             showIcon
             closable
             onClose={() => setError(null)}
-            style={{ marginBottom: 20, borderRadius: 10, borderColor: '#F4A0B5' }}
+            style={{ marginBottom: 20, borderRadius: 10, borderColor: 'var(--lp-1)' }}
           />
         )}
 
@@ -166,23 +166,23 @@ export default function LoginPetal() {
           .petal-input .ant-input-affix-wrapper,
           .petal-input .ant-input {
             background: #FFF5F8 !important;
-            border-color: #F4C2D0 !important;
+            border-color: var(--lp-2) !important;
             border-radius: 12px !important;
             color: #4A1A30 !important;
           }
           .petal-input .ant-input-affix-wrapper:focus,
           .petal-input .ant-input-affix-wrapper-focused {
-            border-color: #C8729A !important;
-            box-shadow: 0 0 0 3px rgba(200,114,154,0.15) !important;
+            border-color: var(--lp-4) !important;
+            box-shadow: 0 0 0 3px var(--lp-a26) !important;
           }
-          .petal-input .ant-input::placeholder { color: #D4A0B5 !important; }
-          .petal-input .anticon { color: #C8729A !important; }
-          .petal-input .ant-form-item-label > label { color: #A0527A !important; font-weight: 500 !important; font-size: 13px !important; }
+          .petal-input .ant-input::placeholder { color: var(--lp-2) !important; }
+          .petal-input .anticon { color: var(--lp-4) !important; }
+          .petal-input .ant-form-item-label > label { color: var(--lp-4) !important; font-weight: 500 !important; font-size: 13px !important; }
           .petal-input .ant-form-item-explain-error { color: #E8406B !important; }
-          .petal-checkbox .ant-checkbox-inner { border-color: #F4C2D0 !important; background: #FFF5F8 !important; }
-          .petal-checkbox .ant-checkbox-checked .ant-checkbox-inner { background: #C8729A !important; border-color: #C8729A !important; }
-          .petal-checkbox span:last-child { color: #A0527A !important; font-size: 13px !important; }
-          .petal-btn:hover { box-shadow: 0 8px 24px rgba(200,114,154,0.55) !important; transform: translateY(-1px) !important; }
+          .petal-checkbox .ant-checkbox-inner { border-color: var(--lp-2) !important; background: #FFF5F8 !important; }
+          .petal-checkbox .ant-checkbox-checked .ant-checkbox-inner { background: var(--lp-4) !important; border-color: var(--lp-4) !important; }
+          .petal-checkbox span:last-child { color: var(--lp-4) !important; font-size: 13px !important; }
+          .petal-btn:hover { box-shadow: 0 8px 24px var(--lp-a8c) !important; transform: translateY(-1px) !important; }
         `}</style>
 
         <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false} className="petal-input">
@@ -218,9 +218,9 @@ export default function LoginPetal() {
               fontSize: 15,
               border: 'none',
               transition: 'all 0.2s',
-              background: 'linear-gradient(135deg, #F4A0B5 0%, #C8729A 100%)',
-              boxShadow: '0 4px 16px rgba(200,114,154,0.4)',
-              color: '#FFFFFF',
+              background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-4) 100%)',
+              boxShadow: '0 4px 16px var(--lp-a66)',
+              color: 'var(--lp-text)',
             }}
           >
             Iniciar sesión

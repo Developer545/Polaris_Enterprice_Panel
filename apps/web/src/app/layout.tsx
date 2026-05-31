@@ -22,27 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" suppressHydrationWarning className={fontClasses}>
       <head>
-        {/* Anti-FOUC: applies appearance CSS vars before React hydration */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){
-  try{
-    var s=localStorage.getItem('polaris-appearance');
-    if(s){
-      var a=JSON.parse(s);
-      var root=document.documentElement;
-      var fmap={'Inter':'var(--font-inter)','Roboto':'var(--font-roboto)','Poppins':'var(--font-poppins)','Nunito':'var(--font-nunito)','IBM Plex Sans':'var(--font-ibm-plex-sans)'};
-      if(a.fontFamily&&fmap[a.fontFamily]) root.style.setProperty('--font-family',fmap[a.fontFamily]);
-      if(a.fontSize)     root.style.setProperty('--font-size-base',a.fontSize+'px');
-      if(a.borderRadius) root.style.setProperty('--border-radius-base',a.borderRadius+'px');
-      if(a.density)      root.setAttribute('data-density',a.density);
-      if(a.customPrimary){root.style.setProperty('--brand-primary',a.customPrimary);root.style.setProperty('--brand-primary-light',a.customPrimary+'22');}
-    }
-  }catch(e){}
-})();`,
-          }}
-        />
-        {/* Anti-FOUC: applies theme CSS vars before React hydration */}
+        {/* Anti-FOUC #1: applies theme CSS vars before React hydration */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){
@@ -79,6 +59,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     for(var k in vars){root.style.setProperty(k,vars[k]);}
     root.setAttribute('data-theme',id);
   }catch(e){}
+})();`,
+          }}
+        />
+        {/* Anti-FOUC #2: appearance override (font + customPrimary login palette) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+  function h2hsl(h){var r=parseInt(h.slice(1,3),16)/255,g=parseInt(h.slice(3,5),16)/255,b=parseInt(h.slice(5,7),16)/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),hh=0,s=0,l=(mx+mn)/2;if(mx!==mn){var d=mx-mn;s=l>0.5?d/(2-mx-mn):d/(mx+mn);switch(mx){case r:hh=((g-b)/d+(g<b?6:0))/6;break;case g:hh=((b-r)/d+2)/6;break;case b:hh=((r-g)/d+4)/6;break;}}return[Math.round(hh*360),Math.round(s*100),Math.round(l*100)];}
+  function hsl2h(h,s,l){s/=100;l/=100;var a=s*Math.min(l,1-l);function f(n){var k=(n+h/30)%12,c=l-a*Math.max(Math.min(k-3,9-k,1),-1);return Math.round(255*c).toString(16).padStart(2,'0');}return'#'+f(0)+f(8)+f(4);}
+  function ah(hex,p){return hex+Math.round(255*p).toString(16).padStart(2,'0');}
+  function applyLP(hex){var hsl=h2hsl(hex),h=hsl[0],s=Math.max(hsl[1],50),l=hsl[2],lp1=hsl2h(h,s,Math.min(Math.max(l,45),62)),lp2=hsl2h(h,Math.max(s-10,30),70),lp3=hsl2h(h,Math.max(s-20,20),84),lp4=hsl2h(h,Math.min(s+5,100),36),r=parseInt(lp1.slice(1,3),16),g=parseInt(lp1.slice(3,5),16),b=parseInt(lp1.slice(5,7),16),lum=(0.299*r+0.587*g+0.114*b)/255,root=document.documentElement;root.style.setProperty('--lp-1',lp1);root.style.setProperty('--lp-2',lp2);root.style.setProperty('--lp-3',lp3);root.style.setProperty('--lp-4',lp4);root.style.setProperty('--lp-text',lum>0.55?'#1a1a2e':'#ffffff');root.style.setProperty('--lp-a10',ah(lp1,0.10));root.style.setProperty('--lp-a15',ah(lp1,0.15));root.style.setProperty('--lp-a20',ah(lp1,0.20));root.style.setProperty('--lp-a25',ah(lp1,0.25));root.style.setProperty('--lp-a30',ah(lp1,0.30));root.style.setProperty('--lp-a35',ah(lp1,0.35));root.style.setProperty('--lp-a40',ah(lp1,0.40));root.style.setProperty('--lp-a50',ah(lp1,0.50));root.style.setProperty('--lp-a55',ah(lp1,0.55));root.style.setProperty('--lp-a70',ah(lp1,0.70));}
+  try{
+    var s=localStorage.getItem('polaris-appearance');
+    if(s){var a=JSON.parse(s),root=document.documentElement,fmap={'Inter':'var(--font-inter)','Roboto':'var(--font-roboto)','Poppins':'var(--font-poppins)','Nunito':'var(--font-nunito)','IBM Plex Sans':'var(--font-ibm-plex-sans)'};if(a.fontFamily&&fmap[a.fontFamily])root.style.setProperty('--font-family',fmap[a.fontFamily]);if(a.customPrimary){root.style.setProperty('--brand-primary',a.customPrimary);root.style.setProperty('--brand-primary-light',a.customPrimary+'22');applyLP(a.customPrimary);}else{var tid=localStorage.getItem('polaris-theme-id')||'polaris-blue';var tmap={'polaris-blue':'#2563eb','emerald':'#059669','amber':'#f47920','slate':'#475569','violet':'#7c3aed','rose':'#e11d48','teal':'#0d9488','sky':'#0284c7','gold':'#d97706','dark-blue':'#3b82f6','dark-green':'#10b981','dark-amber':'#f97316','obsidian':'#6366f1','dark-violet':'#a855f7','crimson':'#ef4444','dark-teal':'#14b8a6','midnight':'#60a5fa','dark-rose':'#f472b6','dark-gold':'#eab308','sakura':'#db2777','lavender':'#9b8ec4','peach':'#fb923c'};applyLP(tmap[tid]||'#2563eb');}}}catch(e){applyLP('#2563eb');}
 })();`,
           }}
         />
