@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useAppearance } from '@/context/AppearanceContext'
 import { PRESET_COLORS, PRESET_TEXT_COLORS, FONT_OPTIONS } from '@/config/appearance'
 import { getClient } from '@pos-dte/shared-api'
@@ -17,11 +17,11 @@ import Steel   from './_designs/steel'
 import Forge   from './_designs/forge'
 import Nexus   from './_designs/nexus'
 
-const DESIGNS = {
+const DESIGNS: Record<string, React.ComponentType<{ companyId?: string }>> = {
   aurora: Aurora, bloom: Bloom, cloud: Cloud,
   petal: Petal, dreamy: Dreamy, candy: Candy, velvet: Velvet, spring: Spring,
   carbon: Carbon, command: Command, steel: Steel, forge: Forge, nexus: Nexus,
-} as const
+}
 type DesignKey = keyof typeof DESIGNS
 
 const GROUPS: { label: string; keys: DesignKey[] }[] = [
@@ -507,7 +507,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <Active />
+      <Active companyId={companyInput} />
 
       {/* ── Branding overlay (logo empresa) ── */}
       {branding?.logoUrl && (

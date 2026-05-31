@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
-import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined } from '@ant-design/icons'
+import { UserOutlined, LockOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
 
@@ -19,7 +19,7 @@ const BUBBLES = [
   { size: 110, top: '20%', left: '45%',  color: 'var(--lp-a15)', blur: 20 },
 ]
 
-export default function LoginCandy() {
+export default function LoginCandy({ companyId: propCompanyId = '' }: { companyId?: string }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +34,7 @@ export default function LoginCandy() {
       const saved = localStorage.getItem(SAVED_KEY)
       if (saved) form.setFieldsValue({ ...JSON.parse(saved), remember: true })
     } catch {}
-    if (local) form.setFieldsValue({ companyId: 'local' })
+    const cid = local ? 'local' : propCompanyId || (()=>{try{return localStorage.getItem('companyId')??''}catch{return ''}})(); if (cid) form.setFieldsValue({ companyId: cid })
   }, [form])
 
   async function onFinish(values: LoginForm) {
@@ -206,13 +206,7 @@ export default function LoginCandy() {
           )}
 
           <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false} className="candy-input">
-            {isLocal ? (
-              <Form.Item name="companyId" hidden><Input /></Form.Item>
-            ) : (
-              <Form.Item name="companyId" label="ID de empresa" rules={[{ required: true, message: 'Requerido' }]} style={{ marginBottom: 16 }}>
-                <Input prefix={<ShopOutlined />} placeholder="company-id" size="large" />
-              </Form.Item>
-            )}
+            <Form.Item name="companyId" hidden><Input /></Form.Item>
             <Form.Item name="email" label="Correo electrónico" rules={[{ required: true, type: 'email', message: 'Correo inválido' }]} style={{ marginBottom: 16 }}>
               <Input prefix={<UserOutlined />} placeholder="usuario@empresa.com" autoComplete="email" size="large" />
             </Form.Item>
