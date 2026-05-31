@@ -103,9 +103,24 @@ export class SuppliersService {
   async remove(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const supplier = await db.supplier.findFirst({ where: { id, tenantId, companyId: user.companyId } })
+    const supplier = await db.supplier.findFirst({
+      where: { id, tenantId, companyId: user.companyId },
+      select: {
+        id: true,
+        _count: { select: { purchaseOrders: true } },
+      },
+    })
     if (!supplier) throw new NotFoundException('Proveedor no encontrado')
-    await db.supplier.update({ where: { id }, data: { isActive: false } })
+
+    const ordersCount = (supplier as any)._count.purchaseOrders as number
+
+    if (ordersCount > 0) {
+      // Proveedor con historial de compras: suspender (soft delete) — conserva integridad histórica
+      await db.supplier.update({ where: { id }, data: { isActive: false } })
+    } else {
+      // Sin órdenes de compra: eliminar físicamente
+      await db.supplier.delete({ where: { id } })
+    }
     return { ok: true }
   }
 }

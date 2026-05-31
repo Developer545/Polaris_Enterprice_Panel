@@ -203,8 +203,22 @@ export class ProductsService {
   async remove(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const product = await db.service.findFirst({ where: { id, tenantId, companyId: user.companyId } })
+    const product = await db.service.findFirst({
+      where: { id, tenantId, companyId: user.companyId },
+      select: {
+        id: true,
+        _count: { select: { saleItems: true, purchaseOrderItems: true, inventoryMovements: true } },
+      },
+    })
     if (!product) throw new NotFoundException('Producto/servicio no encontrado')
+
+    if ((product as any)._count.saleItems > 0)
+      throw new ConflictException('El producto tiene ventas registradas y no puede eliminarse.')
+    if ((product as any)._count.purchaseOrderItems > 0)
+      throw new ConflictException('El producto tiene órdenes de compra y no puede eliminarse.')
+    if ((product as any)._count.inventoryMovements > 0)
+      throw new ConflictException('El producto tiene movimientos de inventario y no puede eliminarse.')
+
     await db.service.update({ where: { id }, data: { isActive: false } })
     return { ok: true }
   }

@@ -69,15 +69,17 @@ export class CategoriesService {
     const db = this.getDb()
     const cat = await db.category.findFirst({
       where: { id, tenantId, companyId: user.companyId },
-      include: { _count: { select: { services: true } } },
+      select: {
+        id: true,
+        _count: { select: { services: true } },
+      },
     })
     if (!cat) throw new NotFoundException('Categoría no encontrada')
-    if ((cat as any)._count.services > 0) {
-      // Soft delete if has products
-      await db.category.update({ where: { id }, data: { isActive: false } })
-    } else {
-      await db.category.delete({ where: { id } })
-    }
+
+    if ((cat as any)._count.services > 0)
+      throw new ConflictException('La categoría tiene productos/servicios asignados. Reasígnalos antes de eliminar.')
+
+    await db.category.delete({ where: { id } })
     return { ok: true }
   }
 }

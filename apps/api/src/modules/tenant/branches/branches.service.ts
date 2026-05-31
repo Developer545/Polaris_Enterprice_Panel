@@ -117,8 +117,25 @@ export class BranchesService {
   async remove(id: string, user: JwtAccessPayload) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
-    const branch = await db.branch.findFirst({ where: { id, tenantId, companyId: user.companyId } })
+    const branch = await db.branch.findFirst({
+      where: { id, tenantId, companyId: user.companyId },
+      select: {
+        id: true,
+        _count: { select: { cashRegisters: true, sales: true } },
+      },
+    })
     if (!branch) throw new NotFoundException('Sucursal no encontrada')
+
+    // Verificar cajas abiertas (closedAt IS NULL significa caja abierta)
+    const openCashRegisters = await db.cashRegister.count({
+      where: { branchId: id, tenantId, closedAt: null },
+    })
+    if (openCashRegisters > 0)
+      throw new ConflictException('La sucursal tiene cajas abiertas. Ciérrelas antes de eliminar.')
+
+    if ((branch as any)._count.sales > 0)
+      throw new ConflictException('La sucursal tiene ventas registradas y no puede eliminarse.')
+
     await db.branch.update({ where: { id }, data: { isActive: false } })
     return { ok: true }
   }

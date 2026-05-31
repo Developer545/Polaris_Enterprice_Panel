@@ -120,9 +120,22 @@ export class ClientsService {
     const db = this.getDb()
     const client = await db.client.findFirst({
       where: { id, tenantId, companyId: user.companyId, ...buildBranchWhere(user) },
+      select: {
+        id: true,
+        _count: { select: { sales: true } },
+      },
     })
     if (!client) throw new NotFoundException('Cliente no encontrado')
-    await db.client.update({ where: { id }, data: { isActive: false } })
+
+    const salesCount = (client as any)._count.sales as number
+
+    if (salesCount > 0) {
+      // Cliente con historial de ventas: suspender (soft delete) — comportamiento correcto
+      await db.client.update({ where: { id }, data: { isActive: false } })
+    } else {
+      // Sin ventas: eliminar físicamente
+      await db.client.delete({ where: { id } })
+    }
     return { ok: true }
   }
 
