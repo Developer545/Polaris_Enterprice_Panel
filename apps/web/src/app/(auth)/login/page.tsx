@@ -136,117 +136,307 @@ export default function LoginPage() {
   if (!ready) return null
   const Active = DESIGNS[active]
 
-  // ── Paso 1: pantalla de empresa ────────────────────────────────────────────
+  // ── Paso 1: EnterpriseGate — split layout premium ─────────────────────────
   if (step === 'company') {
     return (
       <>
-        <div style={{
-          minHeight: '100vh',
-          background: '#0a0a0f',
-          backgroundImage: 'radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.08) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(168,85,247,0.06) 0%, transparent 50%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: 'Inter, system-ui, sans-serif',
-        }}>
-          <div style={{
-            width: '100%', maxWidth: 400,
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderTop: '2px solid rgba(99,102,241,0.5)',
-            borderRadius: 16,
-            padding: '44px 40px 40px',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
-          }}>
-            {/* Icono */}
-            <div style={{
-              width: 52, height: 52, borderRadius: 14,
-              background: 'rgba(99,102,241,0.12)',
-              border: '1px solid rgba(99,102,241,0.25)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: 24,
-            }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="rgba(129,140,248,1)" strokeWidth="1.5" fill="rgba(99,102,241,0.15)"/>
-                <path d="M9 22V12h6v10" stroke="rgba(129,140,248,1)" strokeWidth="1.5"/>
-              </svg>
-            </div>
+        <style>{`
+          @keyframes eg-spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+          }
+          @keyframes eg-fade-in {
+            from { opacity: 0; transform: translateY(4px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+          .eg-wrap {
+            display: flex;
+            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          }
+          .eg-left {
+            width: 45%;
+            background: #08090E;
+            padding: 48px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+          }
+          .eg-right {
+            flex: 1;
+            background: #FAFAFA;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 24px;
+          }
+          .eg-dot-grid {
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px);
+            background-size: 28px 28px;
+            opacity: 0.03;
+            pointer-events: none;
+          }
+          .eg-input:focus {
+            border-color: #111827 !important;
+            box-shadow: 0 0 0 3px rgba(17,24,39,0.06) !important;
+            outline: none;
+          }
+          .eg-btn {
+            width: 100%;
+            height: 48px;
+            background: #111827;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: inherit;
+          }
+          .eg-btn:hover:not(:disabled) {
+            background: #1F2937;
+          }
+          .eg-btn:disabled {
+            background: #9CA3AF;
+            cursor: not-allowed;
+          }
+          .eg-error {
+            animation: eg-fade-in 0.18s ease;
+          }
+          @media (max-width: 768px) {
+            .eg-left { display: none; }
+          }
+        `}</style>
 
-            <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 6, letterSpacing: '-0.02em' }}>
-              Bienvenido
-            </div>
-            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, marginBottom: 32 }}>
-              Ingresa el ID de tu empresa para continuar
-            </div>
+        <div className="eg-wrap">
 
-            <form onSubmit={handleCompanySubmit}>
-              <label style={{ display: 'block', color: 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
-                ID de empresa
-              </label>
-              <input
-                type="text"
-                value={companyInput}
-                onChange={e => setCompanyInput(e.target.value)}
-                placeholder="ej. garcia-market"
-                autoFocus
-                autoComplete="off"
-                style={{
-                  width: '100%', padding: '12px 14px', borderRadius: 8,
-                  background: 'rgba(255,255,255,0.05)',
-                  border: brandingError ? '1px solid rgba(255,71,87,0.5)' : '1px solid rgba(255,255,255,0.1)',
-                  color: '#fff', fontSize: 14, outline: 'none',
-                  boxSizing: 'border-box', marginBottom: 8,
-                  transition: 'border-color 0.15s',
-                }}
-                onFocus={e => { if (!brandingError) e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)' }}
-                onBlur={e => { if (!brandingError) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
-              />
+          {/* ── Panel izquierdo: branding ─────────────────────────────────────── */}
+          <div className="eg-left">
+            {/* Decoración: grid de puntos */}
+            <div className="eg-dot-grid" />
 
-              {brandingError && (
-                <div style={{ color: '#ff6b6b', fontSize: 12, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#ff6b6b" strokeWidth="2"/><path d="M12 8v4M12 16h.01" stroke="#ff6b6b" strokeWidth="2" strokeLinecap="round"/></svg>
-                  {brandingError}
+            {/* Contenido superior */}
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              {/* Logo + nombre */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 40 }}>
+                {/* Hexágono SVG Polaris */}
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M20 3L35.5885 12V28L20 37L4.41154 28V12L20 3Z"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.9)"
+                    strokeWidth="1.5"
+                  />
+                  <circle cx="20" cy="20" r="4" fill="rgba(255,255,255,0.9)" />
+                  <line x1="20" y1="20" x2="20" y2="12" stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" />
+                  <line x1="20" y1="20" x2="26.9" y2="24" stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" />
+                  <line x1="20" y1="20" x2="13.1" y2="24" stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" />
+                </svg>
+                <div>
+                  <div style={{ color: '#FFFFFF', fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                    Polaris Enterprise
+                  </div>
+                  <div style={{ color: '#6B7280', fontSize: 12, marginTop: 2 }}>
+                    Sistema ERP para El Salvador
+                  </div>
                 </div>
-              )}
+              </div>
 
-              <button
-                type="submit"
-                disabled={brandingLoad || !companyInput.trim()}
-                style={{
-                  width: '100%', padding: '13px 0', borderRadius: 8, border: 'none',
-                  background: brandingLoad || !companyInput.trim()
-                    ? 'rgba(99,102,241,0.3)'
-                    : 'linear-gradient(135deg, rgba(99,102,241,0.9) 0%, rgba(139,92,246,0.9) 100%)',
-                  color: '#fff', fontSize: 14, fontWeight: 700, cursor: brandingLoad || !companyInput.trim() ? 'not-allowed' : 'pointer',
-                  marginTop: 4,
-                  boxShadow: brandingLoad || !companyInput.trim() ? 'none' : '0 0 24px rgba(99,102,241,0.35)',
-                  transition: 'all 0.15s',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                }}
-              >
-                {brandingLoad ? (
-                  <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 0.8s linear infinite' }}>
-                      <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="3"/>
-                      <path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" strokeWidth="3" strokeLinecap="round"/>
+              {/* Separador */}
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', marginBottom: 36 }} />
+
+              {/* Feature rows */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {[
+                  'Facturación DTE certificada MH',
+                  'Multi-sucursal y multi-usuario',
+                  'Planilla ISSS · AFP · Renta',
+                  'Inventario y punto de venta',
+                ].map((text) => (
+                  <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                      <path d="M8 1L13.196 4V10L8 13L2.804 10V4L8 1Z" stroke="#6366f1" strokeWidth="1.2" fill="rgba(99,102,241,0.12)" />
+                      <circle cx="8" cy="8" r="1.5" fill="#6366f1" />
                     </svg>
-                    Verificando...
-                  </>
-                ) : (
-                  <>
-                    Continuar
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </>
-                )}
-              </button>
-            </form>
+                    <span style={{ color: '#9CA3AF', fontSize: 13.5, lineHeight: 1.4 }}>{text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-            <div style={{ marginTop: 24, textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 11 }}>
-              ¿No tienes un ID? Contacta al administrador de tu empresa
+            {/* Footer izquierdo */}
+            <div style={{ position: 'relative', zIndex: 1, color: '#374151', fontSize: 11 }}>
+              © 2025 Speeddan System
             </div>
           </div>
+
+          {/* ── Panel derecho: formulario ─────────────────────────────────────── */}
+          <div className="eg-right">
+            <div style={{ width: '100%', maxWidth: 380 }}>
+
+              {/* Badge */}
+              <div style={{ marginBottom: 24 }}>
+                <span style={{
+                  display: 'inline-block',
+                  border: '1px solid #E5E7EB',
+                  color: '#6B7280',
+                  fontSize: 11,
+                  borderRadius: 99,
+                  padding: '3px 10px',
+                  background: '#FFFFFF',
+                  letterSpacing: '0.01em',
+                }}>
+                  ERP El Salvador
+                </span>
+              </div>
+
+              {/* Título */}
+              <h1 style={{
+                margin: 0,
+                color: '#111827',
+                fontSize: 32,
+                fontWeight: 700,
+                letterSpacing: '-0.5px',
+                lineHeight: 1.15,
+                fontFamily: 'inherit',
+              }}>
+                Bienvenido
+              </h1>
+
+              {/* Subtítulo */}
+              <p style={{
+                margin: '8px 0 0',
+                color: '#6B7280',
+                fontSize: 14,
+                lineHeight: 1.5,
+              }}>
+                Ingresa el ID de tu empresa para continuar
+              </p>
+
+              {/* Separador */}
+              <div style={{ marginTop: 32 }} />
+
+              {/* Formulario */}
+              <form onSubmit={handleCompanySubmit}>
+                {/* Label */}
+                <label style={{
+                  display: 'block',
+                  color: '#9CA3AF',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  marginBottom: 8,
+                  fontFamily: 'inherit',
+                }}>
+                  ID de empresa
+                </label>
+
+                {/* Input nativo */}
+                <input
+                  className="eg-input"
+                  type="text"
+                  value={companyInput}
+                  onChange={e => setCompanyInput(e.target.value)}
+                  placeholder="ej: garcia-market"
+                  autoFocus
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    height: 48,
+                    border: brandingError ? '1.5px solid #DC2626' : '1.5px solid #E5E7EB',
+                    borderRadius: 10,
+                    padding: '0 16px',
+                    fontSize: 15,
+                    color: '#111827',
+                    background: '#FFFFFF',
+                    boxSizing: 'border-box',
+                    fontFamily: 'inherit',
+                    transition: 'border-color 0.15s',
+                  }}
+                />
+
+                {/* Error */}
+                {brandingError && (
+                  <div className="eg-error" style={{
+                    marginTop: 8,
+                    color: '#DC2626',
+                    fontSize: 13,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    lineHeight: 1.4,
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                      <circle cx="12" cy="12" r="10" stroke="#DC2626" strokeWidth="2" />
+                      <path d="M12 8v4M12 16h.01" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                    {brandingError}
+                  </div>
+                )}
+
+                {/* Botón */}
+                <button
+                  type="submit"
+                  className="eg-btn"
+                  disabled={brandingLoad || !companyInput.trim()}
+                  style={{ marginTop: brandingError ? 16 : 20 }}
+                >
+                  {brandingLoad ? (
+                    <>
+                      <svg
+                        width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        style={{ animation: 'eg-spin 0.75s linear infinite', flexShrink: 0 }}
+                      >
+                        <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" />
+                        <path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
+                      </svg>
+                      Verificando...
+                    </>
+                  ) : (
+                    'Continuar'
+                  )}
+                </button>
+              </form>
+
+              {/* Hint */}
+              <p style={{
+                marginTop: 20,
+                color: '#9CA3AF',
+                fontSize: 13,
+                textAlign: 'center',
+                cursor: 'default',
+                userSelect: 'none',
+              }}>
+                ¿No tienes acceso? Contacta a tu proveedor
+              </p>
+
+              {/* Footer derecho */}
+              <p style={{
+                marginTop: 40,
+                color: '#D1D5DB',
+                fontSize: 12,
+                textAlign: 'center',
+              }}>
+                © 2025 Polaris Enterprise · Speeddan System
+              </p>
+            </div>
+          </div>
+
         </div>
-        <style>{`
-          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        `}</style>
       </>
     )
   }
