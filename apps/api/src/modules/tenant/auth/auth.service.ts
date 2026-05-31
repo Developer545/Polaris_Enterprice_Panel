@@ -2,6 +2,8 @@ import {
   Injectable,
   UnauthorizedException,
   ForbiddenException,
+  NotFoundException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
@@ -131,6 +133,25 @@ export class AuthService {
     }
 
     return this.clientFactory.getClient(this.getTenantDbUrl(tenant))
+  }
+
+  async getBranding(companyId: string) {
+    if (!companyId) throw new BadRequestException('companyId es requerido')
+
+    const { db } = await this.resolveTenantForCompany(companyId)
+
+    const company = await db.company.findFirst({
+      where: { id: companyId },
+      select: { id: true, name: true, logoUrl: true },
+    })
+
+    if (!company) throw new NotFoundException('Empresa no encontrada')
+
+    return {
+      companyId: company.id,
+      name: company.name,
+      logoUrl: company.logoUrl ?? null,
+    }
   }
 
   async login(dto: LoginDto, reply: FastifyReply) {
