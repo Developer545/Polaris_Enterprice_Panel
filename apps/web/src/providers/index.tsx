@@ -7,15 +7,8 @@ import { useServerInsertedHTML } from 'next/navigation'
 import esES from 'antd/locale/es_ES'
 import { useState, useRef, type ReactNode } from 'react'
 import { ThemeProvider, usePolarisTheme } from '../context/ThemeContext'
-
-const baseTokens = {
-  colorLink:      '#2383e2',
-  borderRadius:   6,
-  borderRadiusLG: 8,
-  fontFamily:     "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-  fontSize:       14,
-  controlHeight:  34,
-}
+import { AppearanceProvider, useAppearance } from '../context/AppearanceContext'
+import { getAntTokens } from '../config/appearance'
 
 // SSR style extractor — eliminates FOUC by injecting Ant Design styles into the HTML
 // before client hydration. Works without @ant-design/nextjs-registry.
@@ -38,16 +31,20 @@ function AntdStyleInjector({ children }: { children: ReactNode }) {
   )
 }
 
-/** Inner component: reads the active Polaris theme and configures Ant Design accordingly. */
+/** Inner component: reads the active Polaris theme + appearance and configures Ant Design. */
 function AntConfigProvider({ children }: { children: ReactNode }) {
-  const { theme } = usePolarisTheme()
+  const { theme }      = usePolarisTheme()
+  const { appearance } = useAppearance()
+
+  const aptTokens   = getAntTokens(appearance)
+  const colorPrimary = appearance.customPrimary ?? theme.colorPrimary
 
   const activeTheme = {
     algorithm: theme.isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
     token: {
-      ...baseTokens,
-      colorPrimary:         theme.colorPrimary,
-      colorLink:            theme.colorPrimary,
+      colorLink:            colorPrimary,
+      ...aptTokens,
+      colorPrimary,
       colorBgLayout:        theme.vars['--bg-page'],
       colorBgContainer:     theme.vars['--bg-surface'],
       colorText:            theme.vars['--text-primary'],
@@ -61,9 +58,9 @@ function AntConfigProvider({ children }: { children: ReactNode }) {
         headerBg:   theme.vars['--bg-page'],
         rowHoverBg: theme.vars['--sidebar-item-hover-bg'],
       },
-      Card:  { colorBorderSecondary: theme.vars['--sidebar-border'] },
-      Button: { borderRadius: 6 },
-      Input:  { borderRadius: 6 },
+      Card:   { colorBorderSecondary: theme.vars['--sidebar-border'] },
+      Button: { borderRadius: aptTokens.borderRadius },
+      Input:  { borderRadius: aptTokens.borderRadius },
     },
   }
 
@@ -93,13 +90,15 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <ThemeProvider>
-      <AntdStyleInjector>
-        <QueryClientProvider client={queryClient}>
-          <AntConfigProvider>
-            {children}
-          </AntConfigProvider>
-        </QueryClientProvider>
-      </AntdStyleInjector>
+      <AppearanceProvider>
+        <AntdStyleInjector>
+          <QueryClientProvider client={queryClient}>
+            <AntConfigProvider>
+              {children}
+            </AntConfigProvider>
+          </QueryClientProvider>
+        </AntdStyleInjector>
+      </AppearanceProvider>
     </ThemeProvider>
   )
 }

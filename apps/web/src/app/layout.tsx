@@ -1,6 +1,14 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from '../providers'
+import { Inter, Roboto, Poppins, Nunito, IBM_Plex_Sans } from 'next/font/google'
+
+// All appearance fonts loaded at build time — CSS vars exposed for runtime switching
+const inter       = Inter({ subsets: ['latin'], weight: ['300','400','500','600','700'], variable: '--font-inter',        display: 'swap' })
+const roboto      = Roboto({ subsets: ['latin'], weight: ['300','400','500','700'],      variable: '--font-roboto',       display: 'swap' })
+const poppins     = Poppins({ subsets: ['latin'], weight: ['300','400','500','600','700'], variable: '--font-poppins',    display: 'swap' })
+const nunito      = Nunito({ subsets: ['latin'], weight: ['300','400','500','600','700'], variable: '--font-nunito',      display: 'swap' })
+const ibmPlexSans = IBM_Plex_Sans({ subsets: ['latin'], weight: ['300','400','500','600','700'], variable: '--font-ibm-plex-sans', display: 'swap' })
 
 export const metadata: Metadata = {
   title: 'Polaris Enterprise',
@@ -9,9 +17,31 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3011'
+  const fontClasses = [inter.variable, roboto.variable, poppins.variable, nunito.variable, ibmPlexSans.variable].join(' ')
+
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning className={fontClasses}>
       <head>
+        {/* Anti-FOUC: applies appearance CSS vars before React hydration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+  try{
+    var s=localStorage.getItem('polaris-appearance');
+    if(s){
+      var a=JSON.parse(s);
+      var root=document.documentElement;
+      var fmap={'Inter':'var(--font-inter)','Roboto':'var(--font-roboto)','Poppins':'var(--font-poppins)','Nunito':'var(--font-nunito)','IBM Plex Sans':'var(--font-ibm-plex-sans)'};
+      if(a.fontFamily&&fmap[a.fontFamily]) root.style.setProperty('--font-family',fmap[a.fontFamily]);
+      if(a.fontSize)     root.style.setProperty('--font-size-base',a.fontSize+'px');
+      if(a.borderRadius) root.style.setProperty('--border-radius-base',a.borderRadius+'px');
+      if(a.density)      root.setAttribute('data-density',a.density);
+      if(a.customPrimary){root.style.setProperty('--brand-primary',a.customPrimary);root.style.setProperty('--brand-primary-light',a.customPrimary+'22');}
+    }
+  }catch(e){}
+})();`,
+          }}
+        />
         {/* Anti-FOUC: applies theme CSS vars before React hydration */}
         <script
           dangerouslySetInnerHTML={{

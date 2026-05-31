@@ -2,6 +2,9 @@
 
 :root {
   /* Defaults for polaris-blue — overridden immediately by the anti-FOUC inline script */
+  --font-family:               var(--font-inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  --font-size-base:            14px;
+  --border-radius-base:        6px;
   --brand-primary:             #2563eb;
   --brand-primary-light:       #dbeafe;
   --sidebar-bg:                #f8f9fc;
@@ -23,7 +26,8 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: var(--font-size-base, 14px);
   background-color: var(--bg-page);
 }
 
