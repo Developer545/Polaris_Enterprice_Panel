@@ -42,9 +42,11 @@ export class PosController {
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('page') page?: string,
+    @Query('tipoDte') tipoDte?: string,
+    @Query('dteStatus') dteStatus?: string,
     @CurrentUser() user?: JwtAccessPayload,
   ) {
-    return this.svc.findSales(companyId, user!, branchId, from, to, page ? +page : 1)
+    return this.svc.findSales(companyId, user!, branchId, from, to, page ? +page : 1, 50, tipoDte, dteStatus)
   }
 
   @Get('sales/:id')

@@ -638,6 +638,8 @@ model AccountPayable {
   amountPaid      Decimal              @default(0) @db.Decimal(10, 2)
   dueDate         DateTime
   status          AccountPayableStatus @default(PENDING)
+  paymentMethod   String?              // 01=Efectivo, 02=Tarjeta, 03=Transferencia, etc.
+  reference       String?              // N° cheque, transferencia, voucher
   notes           String?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt

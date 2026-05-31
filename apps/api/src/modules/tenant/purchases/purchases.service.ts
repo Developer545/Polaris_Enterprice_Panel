@@ -36,6 +36,7 @@ export const ReceiveItemSchema = z.object({
 
 export const ReceivePurchaseOrderSchema = z.object({
   items: z.array(ReceiveItemSchema).min(1),
+  branchId: z.string().cuid(),
   createAccountPayable: z.boolean().default(true),
   dueDate: z.string().datetime().optional().nullable(),
 })
@@ -115,12 +116,28 @@ export class PurchasesService {
     const tax = 0
     const total = subtotal + tax
 
+    // Sequential order number: OC-YYYY-00001 per company
+    let resolvedOrderNumber = dto.orderNumber
+    if (!resolvedOrderNumber) {
+      const year = new Date().getFullYear()
+      const prefix = `OC-${year}-`
+      const latest = await db.purchaseOrder.findFirst({
+        where: { tenantId, companyId: dto.companyId, orderNumber: { startsWith: prefix } },
+        orderBy: { orderNumber: 'desc' },
+        select: { orderNumber: true },
+      })
+      const lastSeq = latest?.orderNumber
+        ? parseInt(latest.orderNumber.replace(prefix, ''), 10) || 0
+        : 0
+      resolvedOrderNumber = `${prefix}${String(lastSeq + 1).padStart(5, '0')}`
+    }
+
     return db.purchaseOrder.create({
       data: {
         tenantId,
         companyId: dto.companyId,
         supplierId: dto.supplierId,
-        orderNumber: dto.orderNumber ?? `OC-${Date.now()}`,
+        orderNumber: resolvedOrderNumber,
         expectedDate: dto.expectedDate ? new Date(dto.expectedDate) : null,
         notes: dto.notes,
         status: 'DRAFT',
@@ -198,11 +215,48 @@ export class PurchasesService {
         if (incomingQty > 0) {
           const product = await tx.service.findFirst({
             where: { id: item.productId, tenantId, companyId: order.companyId },
+            select: { id: true, trackStock: true, minStock: true },
           })
           if (product?.trackStock) {
+            // Update branch-level inventory
+            const branchInv = await tx.branchInventory.upsert({
+              where: { tenantId_branchId_productId: { tenantId, branchId: dto.branchId, productId: item.productId } },
+              create: {
+                tenantId,
+                companyId: order.companyId,
+                branchId: dto.branchId,
+                productId: item.productId,
+                stock: incomingQty,
+                minStock: product.minStock ?? 0,
+              },
+              update: { stock: { increment: incomingQty } },
+              select: { stock: true },
+            })
+            // Record kardex movement
+            await tx.inventoryMovement.create({
+              data: {
+                tenantId,
+                companyId: order.companyId,
+                branchId: dto.branchId,
+                productId: item.productId,
+                userId: user.sub,
+                type: 'IN',
+                quantity: new Decimal(incomingQty),
+                quantityBefore: new Decimal(Number(branchInv.stock) - incomingQty),
+                quantityAfter: new Decimal(Number(branchInv.stock)),
+                purchaseOrderId: id,
+                reference: order.orderNumber ?? id,
+                reason: 'Recepción de compra',
+              },
+            })
+            // Sync global product stock from sum of all branch stocks
+            const totals = await tx.branchInventory.aggregate({
+              where: { tenantId, companyId: order.companyId, productId: item.productId },
+              _sum: { stock: true },
+            })
             await tx.service.update({
               where: { id: item.productId },
-              data: { stock: { increment: incomingQty } },
+              data: { stock: totals._sum.stock ?? incomingQty },
             })
           }
         }

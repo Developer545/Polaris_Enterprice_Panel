@@ -80,12 +80,13 @@ export default function SalesPage() {
   const [emailLoading, setEmailLoading]     = useState(false)
 
   const params: Record<string, any> = { companyId, page }
-  if (dateRange?.[0]) params.from = dateRange[0].startOf('day').toISOString()
-  if (dateRange?.[1]) params.to   = dateRange[1].endOf('day').toISOString()
-  if (filterTipoDte)  params.tipoDte = filterTipoDte
+  if (dateRange?.[0]) params.from      = dateRange[0].startOf('day').toISOString()
+  if (dateRange?.[1]) params.to        = dateRange[1].endOf('day').toISOString()
+  if (filterTipoDte)  params.tipoDte   = filterTipoDte
+  if (filterStatus)   params.dteStatus = filterStatus
 
   const { data, isLoading } = useQuery({
-    queryKey: ['sales', companyId, page, dateRange, filterTipoDte],
+    queryKey: ['sales', companyId, page, dateRange, filterTipoDte, filterStatus],
     queryFn: () => api.get('/api/pos/sales', { params }).then(r => r.data),
     enabled: !!companyId,
   })

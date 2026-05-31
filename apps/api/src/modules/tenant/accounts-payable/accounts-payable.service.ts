@@ -20,8 +20,10 @@ export const CreateAccountPayableSchema = z.object({
 export const UpdateAccountPayableSchema = CreateAccountPayableSchema.partial().omit({ companyId: true })
 
 export const RegisterPaymentSchema = z.object({
-  amount: z.number().positive(),
-  notes: z.string().optional().nullable(),
+  amount:        z.number().positive(),
+  paymentMethod: z.string().length(2).default('01'),
+  reference:     z.string().optional().nullable(),
+  notes:         z.string().optional().nullable(),
 })
 
 export type CreateAccountPayableDto = z.infer<typeof CreateAccountPayableSchema>
@@ -161,9 +163,11 @@ export class AccountsPayableService {
     return db.accountPayable.update({
       where: { id },
       data: {
-        amountPaid: new Decimal(newPaid),
-        status: newStatus as never,
-        ...(dto.notes ? { notes: dto.notes } : {}),
+        amountPaid:    new Decimal(newPaid),
+        status:        newStatus as never,
+        paymentMethod: dto.paymentMethod ?? null,
+        ...(dto.reference ? { reference: dto.reference } : {}),
+        ...(dto.notes     ? { notes: dto.notes }         : {}),
       },
     })
   }

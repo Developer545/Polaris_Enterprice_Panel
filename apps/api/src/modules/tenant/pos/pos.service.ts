@@ -64,7 +64,17 @@ export class PosService {
     assertBranchAccess(user, branchId)
   }
 
-  async findSales(companyId: string, user: JwtAccessPayload, branchId?: string, from?: string, to?: string, page = 1, limit = 50) {
+  async findSales(
+    companyId: string,
+    user: JwtAccessPayload,
+    branchId?: string,
+    from?: string,
+    to?: string,
+    page = 1,
+    limit = 50,
+    tipoDte?: string,
+    dteStatus?: string,
+  ) {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     this.assertCompanyAccess(user, companyId)
@@ -80,6 +90,8 @@ export class PosService {
           ...(to ? { lte: new Date(to) } : {}),
         },
       } : {}),
+      ...(tipoDte  ? { tipoDte: tipoDte as any }                           : {}),
+      ...(dteStatus ? { dteDocument: { is: { status: dteStatus as any } } } : {}),
     }
 
     const [sales, total] = await Promise.all([

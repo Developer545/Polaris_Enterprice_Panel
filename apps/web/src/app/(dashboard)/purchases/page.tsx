@@ -37,7 +37,13 @@ export default function PurchasesPage() {
   const [receiveModal, setReceiveModal] = useState<any>(null)
   const [newForm] = Form.useForm()
   const [receiveForm] = Form.useForm()
-  const { companyId } = useAppContext()
+  const { companyId, branchId: defaultBranchId } = useAppContext()
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches', companyId],
+    queryFn: () => api.get('/api/branches', { params: { companyId } }).then(r => r.data),
+    enabled: !!companyId,
+  })
 
   const { data = [], isLoading, refetch } = useQuery({
     queryKey: ['purchases', companyId],
@@ -68,10 +74,14 @@ export default function PurchasesPage() {
   })
 
   const receiveMutation = useMutation({
-    mutationFn: ({ id, lines }: any) => api.post(`/api/purchases/${id}/receive`, { items: lines.map((l: any) => ({ itemId: l.id, receivedQty: l.received })) }),
+    mutationFn: ({ id, lines, branchId }: any) => api.post(`/api/purchases/${id}/receive`, {
+      branchId,
+      items: lines.map((l: any) => ({ itemId: l.id, receivedQty: l.received })),
+    }),
     onSuccess: () => {
       message.success('Recepción registrada')
       qc.invalidateQueries({ queryKey: ['purchases'] })
+      qc.invalidateQueries({ queryKey: ['inventory'] })
       setReceiveModal(null)
     },
     onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error'),
@@ -123,10 +133,11 @@ export default function PurchasesPage() {
               onClick={() => {
                 setReceiveModal(r)
                 receiveForm.setFieldsValue({
-                  lines: (r.lines ?? []).map((l: any) => ({
+                  branchId: defaultBranchId || undefined,
+                  lines: (r.items ?? r.lines ?? []).map((l: any) => ({
                     id: l.id,
                     productId: l.productId,
-                    productName: l.product?.name,
+                    productName: l.productName ?? l.product?.name,
                     ordered: l.quantity,
                     received: 0,
                   })),
@@ -337,9 +348,21 @@ export default function PurchasesPage() {
         <Form
           form={receiveForm}
           layout="vertical"
-          onFinish={(values) => receiveMutation.mutate({ id: receiveModal?.id, lines: values.lines })}
+          onFinish={(values) => receiveMutation.mutate({ id: receiveModal?.id, lines: values.lines, branchId: values.branchId })}
           requiredMark={false}
         >
+          <Form.Item
+            name="branchId"
+            label={LBL('Sucursal destino')}
+            style={{ marginBottom: 16 }}
+            rules={[{ required: true, message: 'Seleccione sucursal' }]}
+          >
+            <Select
+              placeholder="Seleccionar sucursal"
+              style={{ borderRadius: 8 }}
+              options={(branches as any[]).map((b: any) => ({ value: b.id, label: b.name }))}
+            />
+          </Form.Item>
           <Form.List name="lines">
             {(fields) => (
               <>

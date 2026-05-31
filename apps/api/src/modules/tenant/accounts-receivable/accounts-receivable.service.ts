@@ -141,8 +141,8 @@ export class AccountsReceivableService {
     this.assertCompanyAccess(user, companyId)
     await this.assertClientAccess(db, tenantId, companyId, clientId)
 
-    // Auto-mark overdue
-    await db.accountReceivable.updateMany({
+    // Auto-mark overdue: fire-and-forget — never block the read
+    void db.accountReceivable.updateMany({
       where: {
         tenantId,
         companyId,
@@ -151,7 +151,7 @@ export class AccountsReceivableService {
         dueDate: { lt: new Date() },
       },
       data: { status: 'OVERDUE' },
-    })
+    }).catch(() => { /* best-effort — no race condition on concurrent reads */ })
 
     return db.accountReceivable.findMany({
       where: {
