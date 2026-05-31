@@ -1,269 +1,57 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
-import { UserOutlined, LockOutlined, ArrowRightOutlined } from '@ant-design/icons'
-import { useRouter } from 'next/navigation'
-import { getClient, setTenantSlug } from '@pos-dte/shared-api'
+import { LoginSplitBase } from './_shared/LoginSplitBase'
 
-interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
-const SAVED_KEY = 'pos_saved_credentials'
+const FEATURES = ['Facturación DTE certificada MH','Multi-sucursal y multi-usuarios','Planilla ISSS · AFP · Renta ISR','Inventario y punto de venta','Reportes financieros en tiempo real']
 
-export default function LoginCarbon({ companyId: propCompanyId = '' }: { companyId?: string }) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [form] = Form.useForm<LoginForm>()
-  const [isLocal, setIsLocal] = useState(false)
-
-  useEffect(() => {
-    const local = typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    setIsLocal(local)
-    try {
-      const saved = localStorage.getItem(SAVED_KEY)
-      if (saved) form.setFieldsValue({ ...JSON.parse(saved), remember: true })
-    } catch {}
-    const cid = local ? 'local' : propCompanyId || (()=>{try{return localStorage.getItem('companyId')??''}catch{return ''}})(); if (cid) form.setFieldsValue({ companyId: cid })
-  }, [form])
-
-  async function onFinish(values: LoginForm) {
-    setLoading(true); setError(null)
-    try {
-      const res = await getClient().post('/api/auth/login', values)
-      if (res.data?.tenantSlug) setTenantSlug(res.data.tenantSlug)
-      if (values.remember) {
-        localStorage.setItem(SAVED_KEY, JSON.stringify({ companyId: values.companyId, email: values.email }))
-      } else {
-        localStorage.removeItem(SAVED_KEY)
-      }
-      localStorage.setItem('companyId', values.companyId)
-      const perms: Record<string, boolean> = res.data?.user?.permissions ?? {}
-      const isOwner = perms['branches.view_all'] === true
-      if (res.data?.user) {
-        localStorage.setItem('userId',             res.data.user.id)
-        localStorage.setItem('userName',           res.data.user.name)
-        localStorage.setItem('userEmail',          res.data.user.email)
-        localStorage.setItem('roleId',             res.data.user.roleId)
-        localStorage.setItem('branchIds',          JSON.stringify(res.data.user.branchIds ?? []))
-        localStorage.setItem('permissions',        JSON.stringify(perms))
-        localStorage.setItem('canViewAllBranches', isOwner ? '1' : '0')
-      }
-      document.cookie = `pos_session=1; path=/; max-age=${7 * 24 * 3600}; SameSite=Lax`
-      router.push(isOwner ? '/owner' : '/')
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Credenciales inválidas')
-    } finally { setLoading(false) }
-  }
+export default function LoginCarbon({ companyId }: { companyId?: string }) {
+  const accent = '#94A3B8'
 
   return (
-    <>
-      <style>{`
-        * { scrollbar-width: none; -ms-overflow-style: none; }
-        *::-webkit-scrollbar { display: none; }
-        html, body { margin: 0; padding: 0; overflow: hidden; }
-        .carbon-wrap {
-          min-height: 100vh;
-          background-color: var(--lp-dk-bg);
-          background-image: radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px);
-          background-size: 24px 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          overflow: hidden;
-          font-family: var(--font-family, Inter, sans-serif);
-        }
-        .carbon-blob {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(80px);
-          pointer-events: none;
-        }
-        .carbon-card {
-          position: relative;
-          z-index: 10;
-          width: 100%;
-          max-width: 420px;
-          background: var(--lp-dk-card);
-          border: 1px solid #1E1E2E;
-          border-left: 3px solid var(--lp-1);
-          border-radius: 16px;
-          padding: 40px 36px 36px;
-          box-shadow: 0 24px 64px rgba(0,0,0,0.6);
-        }
-        .carbon-logo {
-          width: 52px;
-          height: 52px;
-          border-radius: 8px;
-          background: linear-gradient(135deg, var(--lp-1) 0%, var(--lp-4) 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 24px;
-          box-shadow: 0 8px 24px var(--lp-a35);
-        }
-        .carbon-title {
-          color: var(--lp-dk-txt-h) !important;
-          font-weight: 800 !important;
-          font-size: 24px !important;
-          margin-bottom: 4px !important;
-          line-height: 1.2 !important;
-        }
-        .carbon-subtitle {
-          color: var(--lp-dk-txt-b);
-          font-size: 14px;
-          margin-bottom: 32px;
-        }
-        .carbon-input .ant-form-item-label > label {
-          color: var(--lp-dk-txt-l) !important;
-          font-size: 11px !important;
-          font-weight: 600 !important;
-          text-transform: uppercase !important;
-          letter-spacing: 0.08em !important;
-        }
-        .carbon-input .ant-input-affix-wrapper,
-        .carbon-input .ant-input-password {
-          background: var(--lp-dk-input) !important;
-          border: 1px solid #1E293B !important;
-          border-radius: 10px !important;
-        }
-        .carbon-input .ant-input-affix-wrapper:focus,
-        .carbon-input .ant-input-affix-wrapper-focused,
-        .carbon-input .ant-input-password:focus,
-        .carbon-input .ant-input-affix-wrapper:hover,
-        .carbon-input .ant-input-password:hover {
-          border-color: var(--lp-1) !important;
-          box-shadow: 0 0 0 2px var(--lp-a15) !important;
-        }
-        .carbon-input .ant-input {
-          background: var(--lp-dk-input) !important;
-          color: var(--lp-dk-txt-h) !important;
-          font-size: 14px !important;
-        }
-        .carbon-input .ant-input::placeholder {
-          color: #334155 !important;
-        }
-        .carbon-input .ant-input-prefix {
-          color: var(--lp-2) !important;
-          margin-right: 8px;
-        }
-        .carbon-input .ant-input-password-icon {
-          color: #334155 !important;
-        }
-        .carbon-input .ant-input-password-icon:hover {
-          color: var(--lp-2) !important;
-        }
-        .carbon-input .ant-form-item-explain-error {
-          color: #EF4444 !important;
-          font-size: 12px !important;
-        }
-        .carbon-checkbox .ant-checkbox-wrapper {
-          color: var(--lp-dk-txt-b) !important;
-          font-size: 13px !important;
-        }
-        .carbon-checkbox .ant-checkbox-inner {
-          background: var(--lp-dk-input) !important;
-          border-color: #1E293B !important;
-          border-radius: 4px !important;
-        }
-        .carbon-checkbox .ant-checkbox-checked .ant-checkbox-inner {
-          background: var(--lp-1) !important;
-          border-color: var(--lp-1) !important;
-        }
-        .carbon-btn.ant-btn-primary {
-          background: linear-gradient(135deg, var(--lp-1) 0%, var(--lp-4) 100%) !important;
-          box-shadow: 0 8px 24px var(--lp-a40) !important;
-        }
-        .carbon-btn.ant-btn-primary:hover {
-          background: linear-gradient(135deg, var(--lp-2) 0%, var(--lp-1) 100%) !important;
-          box-shadow: 0 12px 32px var(--lp-a55) !important;
-          transform: translateY(-1px);
-        }
-        .carbon-btn.ant-btn-primary:active {
-          transform: translateY(0);
-        }
-        .carbon-footer {
-          margin-top: 24px;
-          text-align: center;
-          color: var(--lp-dk-txt-b);
-          font-size: 12px;
-        }
-      `}</style>
-
-      <div className="carbon-wrap">
-        {/* Blurred glow blobs */}
-        <div className="carbon-blob" style={{
-          width: 500, height: 500,
-          background: 'rgba(0,120,255,0.08)',
-          top: -120, left: -100,
-        }} />
-        <div className="carbon-blob" style={{
-          width: 400, height: 400,
-          background: 'rgba(0,200,255,0.06)',
-          bottom: -80, right: -60,
-        }} />
-        <div className="carbon-blob" style={{
-          width: 360, height: 360,
-          background: 'rgba(100,0,255,0.05)',
-          top: '40%', right: '15%',
-        }} />
-
-        <div className="carbon-card">
-          {/* Logo */}
-          <div className="carbon-logo">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
-                fill="white"
-                strokeWidth="0"
-              />
-            </svg>
+    <LoginSplitBase companyId={companyId}>
+      <div style={{
+        width: '100%', height: '100%',
+        background: '#0a0a0a',
+        backgroundImage: 'radial-gradient(rgba(148,163,184,0.06) 1px, transparent 1px)',
+        backgroundSize: '32px 32px',
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        padding: '52px', position: 'relative',
+      }}>
+        {/* Logo */}
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 52 }}>
+            <div style={{ width: 42, height: 42, borderRadius: 10, background: accent+'18', border: `1px solid ${accent}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2Z" stroke={accent} strokeWidth="1.5" fill={accent+'22'} />
+                <path d="M12 6L17 8.5V13.5L12 16L7 13.5V8.5L12 6Z" fill={accent+'35'} stroke={accent+'cc'} strokeWidth="0.75" />
+              </svg>
+            </div>
+            <div>
+              <div style={{ color: '#F1F0FF', fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>Polaris Enterprise</div>
+              <div style={{ color: '#6B7AA0', fontSize: 12, marginTop: 2 }}>Sistema ERP · El Salvador</div>
+            </div>
           </div>
-
-          {/* Heading */}
-          <Typography.Title level={3} className="carbon-title">Polaris Enterprise</Typography.Title>
-          <p className="carbon-subtitle">Sistema de facturación DTE · El Salvador</p>
-
-          {error && (
-            <Alert
-              message={error}
-              type="error"
-              showIcon
-              style={{
-                marginBottom: 20,
-                background: 'rgba(239,68,68,0.1)',
-                border: '1px solid rgba(239,68,68,0.3)',
-                borderRadius: 8,
-                color: '#EF4444',
-              }}
-            />
-          )}
-
-          <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false} className="carbon-input">
-            <Form.Item name="companyId" hidden><Input /></Form.Item>
-            <Form.Item name="email" label="Correo electrónico" rules={[{ required: true, type: 'email', message: 'Correo inválido' }]} style={{ marginBottom: 16 }}>
-              <Input prefix={<UserOutlined />} placeholder="usuario@empresa.com" autoComplete="email" size="large" />
-            </Form.Item>
-            <Form.Item name="password" label="Contraseña" rules={[{ required: true, message: 'Requerido' }]} style={{ marginBottom: 16 }}>
-              <Input.Password prefix={<LockOutlined />} placeholder="••••••••" autoComplete="current-password" size="large" />
-            </Form.Item>
-            <Form.Item name="remember" valuePropName="checked" style={{ marginBottom: 24 }}>
-              <Checkbox className="carbon-checkbox">Recordar empresa y correo</Checkbox>
-            </Form.Item>
-            <Button type="primary" htmlType="submit" block loading={loading} size="large"
-              icon={!loading ? <ArrowRightOutlined /> : undefined} iconPosition="end"
-              className="carbon-btn"
-              style={{ height: 52, borderRadius: 14, fontWeight: 700, fontSize: 15, border: 'none', transition: 'all 0.2s' }}
-            >
-              Iniciar sesión
-            </Button>
-          </Form>
-
-          <div className="carbon-footer">
-            Polaris Enterprise &copy; {new Date().getFullYear()} 
+          <div style={{ height: 1, background: accent+'28', marginBottom: 36 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {FEATURES.map(f => (
+              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', background: accent+'18', border: `1px solid ${accent}38`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke={accent} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </div>
+                <span style={{ color: '#94A3B8', fontSize: 13, lineHeight: 1.4 }}>{f}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 44 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 99, padding: '5px 12px' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', animation: 'lp-pulse 2s ease-in-out infinite', flexShrink: 0 }} />
+              <span style={{ color: '#6EE7B7', fontSize: 11, fontWeight: 500, letterSpacing: '0.04em' }}>Todos los sistemas operativos</span>
+            </span>
           </div>
         </div>
+        <div style={{ position: 'relative', zIndex: 2, color: '#1E293B', fontSize: 11, letterSpacing: '0.03em' }}>
+          © {new Date().getFullYear()} Polaris Enterprise
+        </div>
       </div>
-    </>
+    </LoginSplitBase>
   )
 }

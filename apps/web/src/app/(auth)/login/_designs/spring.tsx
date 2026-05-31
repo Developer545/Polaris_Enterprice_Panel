@@ -1,295 +1,97 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
-import { UserOutlined, LockOutlined, ArrowRightOutlined, CheckCircleFilled } from '@ant-design/icons'
-import { useRouter } from 'next/navigation'
-import { getClient, setTenantSlug } from '@pos-dte/shared-api'
-
-interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
-const SAVED_KEY = 'pos_saved_credentials'
-
-const LEAVES = [
-  { w: 90,  h: 55,  top: '6%',  left: '3%',   color: 'var(--lp-a30)',  rotate: 25,  borderRadius: '60% 40% 70% 30% / 50% 60% 40% 50%' },
-  { w: 70,  h: 45,  top: '12%', right: '4%',   color: 'var(--lp-a25)', rotate: -40, borderRadius: '40% 60% 30% 70% / 60% 40% 50% 50%' },
-  { w: 110, h: 65,  top: '70%', left: '2%',    color: 'var(--lp-a30)', rotate: 60,  borderRadius: '70% 30% 60% 40% / 40% 60% 50% 50%' },
-  { w: 80,  h: 50,  top: '78%', right: '3%',   color: 'var(--lp-a20)', rotate: -20, borderRadius: '50% 50% 40% 60% / 60% 40% 60% 40%' },
-  { w: 60,  h: 38,  top: '42%', left: '1%',    color: 'var(--lp-a25)', rotate: 80,  borderRadius: '40% 60% 50% 50% / 50% 50% 60% 40%' },
-]
+import { LoginSplitBase } from './_shared/LoginSplitBase'
 
 const FEATURES = [
-  'Gestión de ventas y facturación DTE',
-  'Control de inventario en tiempo real',
-  'Reportes y dashboard inteligente',
+  'Facturación DTE certificada MH',
+  'Multi-sucursal y multi-usuario',
+  'Planilla ISSS · AFP · Renta ISR',
+  'Inventario y punto de venta',
+  'Reportes financieros en tiempo real',
 ]
 
-export default function LoginSpring({ companyId: propCompanyId = '' }: { companyId?: string }) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [form] = Form.useForm<LoginForm>()
-  const [isLocal, setIsLocal] = useState(false)
+const AC = '#2DD4BF'
 
-  useEffect(() => {
-    const local = typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    setIsLocal(local)
-    try {
-      const saved = localStorage.getItem(SAVED_KEY)
-      if (saved) form.setFieldsValue({ ...JSON.parse(saved), remember: true })
-    } catch {}
-    const cid = local ? 'local' : propCompanyId || (()=>{try{return localStorage.getItem('companyId')??''}catch{return ''}})(); if (cid) form.setFieldsValue({ companyId: cid })
-  }, [form])
-
-  async function onFinish(values: LoginForm) {
-    setLoading(true); setError(null)
-    try {
-      const res = await getClient().post('/api/auth/login', values)
-      if (res.data?.tenantSlug) setTenantSlug(res.data.tenantSlug)
-      if (values.remember) {
-        localStorage.setItem(SAVED_KEY, JSON.stringify({ companyId: values.companyId, email: values.email }))
-      } else {
-        localStorage.removeItem(SAVED_KEY)
-      }
-      localStorage.setItem('companyId', values.companyId)
-      const perms: Record<string, boolean> = res.data?.user?.permissions ?? {}
-      const isOwner = perms['branches.view_all'] === true
-      if (res.data?.user) {
-        localStorage.setItem('userId',             res.data.user.id)
-        localStorage.setItem('userName',           res.data.user.name)
-        localStorage.setItem('userEmail',          res.data.user.email)
-        localStorage.setItem('roleId',             res.data.user.roleId)
-        localStorage.setItem('branchIds',          JSON.stringify(res.data.user.branchIds ?? []))
-        localStorage.setItem('permissions',        JSON.stringify(perms))
-        localStorage.setItem('canViewAllBranches', isOwner ? '1' : '0')
-      }
-      document.cookie = `pos_session=1; path=/; max-age=${7 * 24 * 3600}; SameSite=Lax`
-      router.push(isOwner ? '/owner' : '/')
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Credenciales inválidas')
-    } finally { setLoading(false) }
-  }
-
+export default function LoginSpring({ companyId }: { companyId?: string }) {
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'var(--lp-bg)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        padding: '24px',
-      }}
-    >
-      <style>{`
-        * { scrollbar-width: none; -ms-overflow-style: none; }
-        *::-webkit-scrollbar { display: none; }
-        html, body { margin: 0; padding: 0; overflow: hidden; }
-        .spring-input .ant-input-affix-wrapper,
-        .spring-input .ant-input {
-          background: var(--lp-bg-input) !important;
-          border-color: var(--lp-3) !important;
-          border-radius: 12px !important;
-          color: var(--lp-txt-h) !important;
-        }
-        .spring-input .ant-input-affix-wrapper:focus,
-        .spring-input .ant-input-affix-wrapper-focused {
-          border-color: var(--lp-1) !important;
-          box-shadow: 0 0 0 3px var(--lp-a15) !important;
-        }
-        .spring-input .ant-input::placeholder { color: var(--lp-3) !important; }
-        .spring-input .ant-input-password-icon { color: var(--lp-3) !important; }
-        .spring-input .anticon:not(.ant-input-password-icon) { color: var(--lp-1) !important; }
-        .spring-input .ant-form-item-label > label {
-          color: var(--lp-txt-l) !important;
-          font-weight: 600 !important;
-          font-size: 13px !important;
-        }
-        .spring-input .ant-form-item-explain-error { color: #E63946 !important; }
-        .spring-input .ant-input-affix-wrapper .ant-input { background: transparent !important; }
-        .spring-checkbox .ant-checkbox-inner {
-          background: #F0FFF4 !important;
-          border-color: var(--lp-3) !important;
-          border-radius: 5px !important;
-        }
-        .spring-checkbox .ant-checkbox-checked .ant-checkbox-inner {
-          background: var(--lp-1) !important;
-          border-color: var(--lp-1) !important;
-        }
-        .spring-checkbox span:last-child { color: var(--lp-txt-l) !important; font-size: 13px !important; }
-        .spring-btn:hover {
-          box-shadow: 0 8px 24px var(--lp-a55) !important;
-          transform: translateY(-1px) !important;
-        }
-      `}</style>
+    <LoginSplitBase companyId={companyId}>
+      <div style={{
+        width: '100%', height: '100%',
+        background: '#030e10',
+        backgroundImage: [
+          'radial-gradient(ellipse 80% 60% at 20% 30%, rgba(20,184,166,0.25) 0%, transparent 60%)',
+          'radial-gradient(ellipse 60% 50% at 80% 75%, rgba(45,212,191,0.15) 0%, transparent 55%)',
+          'repeating-linear-gradient(45deg, rgba(20,184,166,0.06) 0, rgba(20,184,166,0.06) 1px, transparent 0, transparent 50%)',
+        ].join(', '),
+        backgroundSize: 'auto, auto, 24px 24px',
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        padding: '52px', position: 'relative',
+      }}>
 
-      {/* Floating leaf shapes */}
-      {LEAVES.map((l, i) => (
-        <div
-          key={i}
-          style={{
-            position: 'absolute',
-            width: l.w,
-            height: l.h,
-            top: l.top,
-            left: (l as any).left,
-            right: (l as any).right,
-            background: l.color,
-            borderRadius: l.borderRadius,
-            transform: `rotate(${l.rotate}deg)`,
-            pointerEvents: 'none',
-          }}
-        />
-      ))}
+        <div style={{ position: 'relative', zIndex: 2 }}>
 
-      {/* Split layout card */}
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 860,
-          borderRadius: 24,
-          overflow: 'hidden',
-          boxShadow: '0 16px 64px var(--lp-a15), 0 4px 16px var(--lp-a10)',
-          display: 'flex',
-          position: 'relative',
-          zIndex: 1,
-          minHeight: 520,
-        }}
-      >
-        {/* Left panel — branding */}
-        <div
-          style={{
-            flex: '0 0 340px',
-            background: 'linear-gradient(150deg, var(--lp-1) 0%, var(--lp-2) 50%, var(--lp-3) 100%)',
-            padding: '48px 36px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-          }}
-        >
-          {/* Logo + brand */}
-          <div>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 52,
-                height: 52,
-                background: 'rgba(255,255,255,0.25)',
-                borderRadius: 14,
-                marginBottom: 20,
-                backdropFilter: 'blur(8px)',
-              }}
-            >
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                <path d="M17 8C8 10 5.9 16.17 3.82 19.5c-.06.09.04.17.12.1C6 18 10.5 15 19 15" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-                <path d="M3 3c0 7 3 10.5 6 12" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 52 }}>
+            <div style={{
+              width: 42, height: 42, borderRadius: 10,
+              background: 'rgba(20,184,166,0.18)',
+              border: '1px solid rgba(20,184,166,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2Z" stroke={AC} strokeWidth="1.5" fill="rgba(20,184,166,0.2)" />
+                <path d="M12 6L17 8.5V13.5L12 16L7 13.5V8.5L12 6Z" fill="rgba(45,212,191,0.3)" stroke="rgba(94,234,212,0.8)" strokeWidth="0.75" />
               </svg>
             </div>
-            <Typography.Title
-              level={2}
-              style={{ color: '#FFFFFF', fontWeight: 800, fontSize: 26, margin: '0 0 8px', lineHeight: 1.2 }}
-            >
-              Polaris POS
-            </Typography.Title>
-            <Typography.Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, lineHeight: 1.6, display: 'block', marginBottom: 36 }}>
-              Sistema de punto de venta y facturación electrónica para El Salvador
-            </Typography.Text>
-
-            {/* Feature bullets */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {FEATURES.map((feat, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <CheckCircleFilled style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16, marginTop: 1, flexShrink: 0 }} />
-                  <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, lineHeight: 1.5 }}>{feat}</span>
-                </div>
-              ))}
+            <div>
+              <div style={{ color: '#F1F0FF', fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                Polaris Enterprise
+              </div>
+              <div style={{ color: '#6B7AA0', fontSize: 12, marginTop: 2 }}>
+                Sistema ERP · El Salvador
+              </div>
             </div>
           </div>
 
-          {/* Bottom tagline */}
-          <div>
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.25)', marginBottom: 16 }} />
-            <Typography.Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>
-              © {new Date().getFullYear()} Polaris POS · El Salvador
-            </Typography.Text>
+          <div style={{ height: 1, background: 'rgba(20,184,166,0.25)', marginBottom: 36 }} />
+
+          {/* Features */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {FEATURES.map(f => (
+              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 20, height: 20, borderRadius: '50%',
+                  background: 'rgba(20,184,166,0.18)',
+                  border: '1px solid rgba(20,184,166,0.35)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4l2.5 2.5L9 1" stroke={AC} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <span style={{ color: '#94A3B8', fontSize: 13, lineHeight: 1.4 }}>{f}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Status badge */}
+          <div style={{ marginTop: 44 }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)',
+              borderRadius: 99, padding: '5px 12px',
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', animation: 'lp-pulse 2s ease-in-out infinite', flexShrink: 0 }} />
+              <span style={{ color: '#6EE7B7', fontSize: 11, fontWeight: 500, letterSpacing: '0.04em' }}>
+                Todos los sistemas operativos
+              </span>
+            </span>
           </div>
         </div>
 
-        {/* Right panel — form */}
-        <div
-          style={{
-            flex: 1,
-            background: 'var(--lp-bg-card)',
-            padding: '48px 44px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-          }}
-        >
-          <div style={{ marginBottom: 28 }}>
-            <Typography.Title
-              level={3}
-              style={{ margin: '0 0 6px', color: 'var(--lp-txt-h)', fontWeight: 700, fontSize: 22 }}
-            >
-              Bienvenida de nuevo
-            </Typography.Title>
-            <Typography.Text style={{ color: 'var(--lp-1)', fontSize: 14 }}>
-              Inicia sesión para continuar
-            </Typography.Text>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <Alert
-              message={error}
-              type="error"
-              showIcon
-              closable
-              onClose={() => setError(null)}
-              style={{ marginBottom: 20, borderRadius: 10, borderColor: '#F9C7CA' }}
-            />
-          )}
-
-          <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false} className="spring-input">
-            <Form.Item name="companyId" hidden><Input /></Form.Item>
-            <Form.Item name="email" label="Correo electrónico" rules={[{ required: true, type: 'email', message: 'Correo inválido' }]} style={{ marginBottom: 16 }}>
-              <Input prefix={<UserOutlined />} placeholder="usuario@empresa.com" autoComplete="email" size="large" />
-            </Form.Item>
-            <Form.Item name="password" label="Contraseña" rules={[{ required: true, message: 'Requerido' }]} style={{ marginBottom: 16 }}>
-              <Input.Password prefix={<LockOutlined />} placeholder="••••••••" autoComplete="current-password" size="large" />
-            </Form.Item>
-            <Form.Item name="remember" valuePropName="checked" style={{ marginBottom: 24 }}>
-              <Checkbox className="spring-checkbox">Recordar empresa y correo</Checkbox>
-            </Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              block
-              loading={loading}
-              size="large"
-              icon={!loading ? <ArrowRightOutlined /> : undefined}
-              iconPosition="end"
-              className="spring-btn"
-              style={{
-                height: 52,
-                borderRadius: 14,
-                fontWeight: 700,
-                fontSize: 15,
-                border: 'none',
-                transition: 'all 0.2s',
-                background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-4) 100%)',
-                boxShadow: '0 4px 16px var(--lp-a40)',
-                color: '#FFFFFF',
-              }}
-            >
-              Iniciar sesión
-            </Button>
-          </Form>
+        <div style={{ position: 'relative', zIndex: 2, color: '#334155', fontSize: 11, letterSpacing: '0.03em' }}>
+          © {new Date().getFullYear()} Polaris Enterprise
         </div>
       </div>
-    </div>
+    </LoginSplitBase>
   )
 }

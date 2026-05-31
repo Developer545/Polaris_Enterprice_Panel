@@ -194,19 +194,12 @@ export function applyAppearance(s: AppearanceSettings): void {
   if (typeof document === 'undefined') return
   const root = document.documentElement
   root.style.setProperty('--font-family', FONT_VAR_MAP[s.fontFamily])
+  // Always apply login palette — use customPrimary if set, else default purple
+  const primaryColor = s.customPrimary ?? '#7C3AED'
+  applyLoginPalette(primaryColor, s.customTextColor)
   if (s.customPrimary) {
     root.style.setProperty('--brand-primary', s.customPrimary)
     root.style.setProperty('--brand-primary-light', s.customPrimary + '22')
-    applyLoginPalette(s.customPrimary, s.customTextColor)
-  } else if (s.customTextColor) {
-    // Re-apply text color override on top of existing palette
-    const root2 = document.documentElement
-    root2.style.setProperty('--lp-txt-h',    s.customTextColor)
-    root2.style.setProperty('--lp-txt-b',    s.customTextColor + 'b3')  // 70%
-    root2.style.setProperty('--lp-txt-l',    s.customTextColor)
-    root2.style.setProperty('--lp-dk-txt-h', s.customTextColor)
-    root2.style.setProperty('--lp-dk-txt-b', s.customTextColor + '99')  // 60%
-    root2.style.setProperty('--lp-dk-txt-l', s.customTextColor + '8c')  // 55%
   }
 }
 
