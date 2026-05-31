@@ -1,0 +1,258 @@
+'use client'
+import { useState, useEffect } from 'react'
+import { Inter } from 'next/font/google'
+import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
+import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined } from '@ant-design/icons'
+import { useRouter } from 'next/navigation'
+import { getClient, setTenantSlug } from '@pos-dte/shared-api'
+
+const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] })
+
+interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
+const SAVED_KEY = 'pos_saved_credentials'
+
+const BUBBLES = [
+  { size: 120, top: '5%',  left: '2%',   color: 'rgba(255,133,161,0.25)', blur: 20 },
+  { size: 80,  top: '10%', right: '5%',  color: 'rgba(133,193,255,0.3)',  blur: 16 },
+  { size: 160, top: '65%', left: '-3%',  color: 'rgba(133,255,181,0.2)',  blur: 24 },
+  { size: 100, top: '75%', right: '2%',  color: 'rgba(255,235,133,0.3)',  blur: 18 },
+  { size: 70,  top: '40%', left: '1%',   color: 'rgba(255,133,161,0.2)',  blur: 14 },
+  { size: 90,  top: '50%', right: '0%',  color: 'rgba(133,193,255,0.25)', blur: 16 },
+  { size: 50,  top: '85%', left: '40%',  color: 'rgba(255,200,133,0.3)',  blur: 12 },
+  { size: 110, top: '20%', left: '45%',  color: 'rgba(200,133,255,0.15)', blur: 20 },
+]
+
+export default function LoginCandy() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [form] = Form.useForm<LoginForm>()
+  const [isLocal, setIsLocal] = useState(false)
+
+  useEffect(() => {
+    const local = typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    setIsLocal(local)
+    try {
+      const saved = localStorage.getItem(SAVED_KEY)
+      if (saved) form.setFieldsValue({ ...JSON.parse(saved), remember: true })
+    } catch {}
+    if (local) form.setFieldsValue({ companyId: 'local' })
+  }, [form])
+
+  async function onFinish(values: LoginForm) {
+    setLoading(true); setError(null)
+    try {
+      const res = await getClient().post('/api/auth/login', values)
+      if (res.data?.tenantSlug) setTenantSlug(res.data.tenantSlug)
+      if (values.remember) {
+        localStorage.setItem(SAVED_KEY, JSON.stringify({ companyId: values.companyId, email: values.email }))
+      } else {
+        localStorage.removeItem(SAVED_KEY)
+      }
+      localStorage.setItem('companyId', values.companyId)
+      const perms: Record<string, boolean> = res.data?.user?.permissions ?? {}
+      const isOwner = perms['branches.view_all'] === true
+      if (res.data?.user) {
+        localStorage.setItem('userId',             res.data.user.id)
+        localStorage.setItem('userName',           res.data.user.name)
+        localStorage.setItem('userEmail',          res.data.user.email)
+        localStorage.setItem('roleId',             res.data.user.roleId)
+        localStorage.setItem('branchIds',          JSON.stringify(res.data.user.branchIds ?? []))
+        localStorage.setItem('permissions',        JSON.stringify(perms))
+        localStorage.setItem('canViewAllBranches', isOwner ? '1' : '0')
+      }
+      document.cookie = `pos_session=1; path=/; max-age=${7 * 24 * 3600}; SameSite=Lax`
+      router.push(isOwner ? '/owner' : '/')
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? 'Credenciales inválidas')
+    } finally { setLoading(false) }
+  }
+
+  return (
+    <div
+      className={inter.className}
+      style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(120deg, #FFE5EE 0%, #E8F4FF 35%, #F0FFE8 70%, #FFF5E0 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+        padding: '24px',
+      }}
+    >
+      <style>{`
+        .candy-input .ant-input-affix-wrapper,
+        .candy-input .ant-input {
+          background: #FFF5F8 !important;
+          border-color: #FFB3C6 !important;
+          border-radius: 16px !important;
+          color: #3D1A26 !important;
+        }
+        .candy-input .ant-input-affix-wrapper:focus,
+        .candy-input .ant-input-affix-wrapper-focused {
+          border-color: #FF4081 !important;
+          box-shadow: 0 0 0 3px rgba(255,64,129,0.12) !important;
+        }
+        .candy-input .ant-input::placeholder { color: #FFAAC0 !important; }
+        .candy-input .ant-input-password-icon { color: #FFB3C6 !important; }
+        .candy-input .anticon:not(.ant-input-password-icon) { color: #FF85A1 !important; }
+        .candy-input .ant-form-item-label > label {
+          color: #CC4477 !important;
+          font-weight: 600 !important;
+          font-size: 13px !important;
+        }
+        .candy-input .ant-form-item-explain-error { color: #FF4081 !important; }
+        .candy-input .ant-input-affix-wrapper .ant-input { background: transparent !important; }
+        .candy-checkbox .ant-checkbox-inner {
+          background: #FFF0F5 !important;
+          border-color: #FFB3C6 !important;
+          border-radius: 6px !important;
+        }
+        .candy-checkbox .ant-checkbox-checked .ant-checkbox-inner {
+          background: linear-gradient(135deg, #FF85A1, #FF4081) !important;
+          border-color: #FF85A1 !important;
+        }
+        .candy-checkbox span:last-child { color: #CC4477 !important; font-size: 13px !important; }
+        .candy-btn:hover {
+          box-shadow: 0 8px 28px rgba(255,64,129,0.5) !important;
+          transform: translateY(-2px) !important;
+        }
+      `}</style>
+
+      {/* Floating candy bubbles */}
+      {BUBBLES.map((b, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            width: b.size,
+            height: b.size,
+            top: b.top,
+            left: (b as any).left,
+            right: (b as any).right,
+            background: b.color,
+            borderRadius: '50%',
+            filter: `blur(${b.blur}px)`,
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
+
+      {/* Card */}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 440,
+          background: '#FFFFFF',
+          borderRadius: 28,
+          boxShadow: '0 8px 40px rgba(255,100,150,0.15), 0 2px 8px rgba(255,133,161,0.1)',
+          overflow: 'hidden',
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        {/* Rainbow top border */}
+        <div
+          style={{
+            height: 5,
+            background: 'linear-gradient(90deg, #FF85A1 0%, #85C1FF 50%, #85FFB5 100%)',
+          }}
+        />
+
+        <div style={{ padding: '36px 40px 32px' }}>
+          {/* Logo */}
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 56,
+                height: 56,
+                background: 'linear-gradient(135deg, #FF85A1 0%, #85C1FF 100%)',
+                borderRadius: 18,
+                marginBottom: 16,
+                boxShadow: '0 4px 16px rgba(255,133,161,0.4)',
+              }}
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="4" fill="white" />
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" stroke="white" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </div>
+            <Typography.Title
+              level={3}
+              style={{ margin: 0, color: '#FF4081', fontWeight: 800, fontSize: 22 }}
+            >
+              ¡Hola de nuevo! 🌸
+            </Typography.Title>
+            <Typography.Text style={{ color: '#89AABB', fontSize: 14, marginTop: 4, display: 'block' }}>
+              Inicia sesión en tu cuenta
+            </Typography.Text>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <Alert
+              message={error}
+              type="error"
+              showIcon
+              closable
+              onClose={() => setError(null)}
+              style={{ marginBottom: 20, borderRadius: 12, borderColor: '#FFB3C6' }}
+            />
+          )}
+
+          <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false} className="candy-input">
+            {isLocal ? (
+              <Form.Item name="companyId" hidden><Input /></Form.Item>
+            ) : (
+              <Form.Item name="companyId" label="ID de empresa" rules={[{ required: true, message: 'Requerido' }]} style={{ marginBottom: 16 }}>
+                <Input prefix={<ShopOutlined />} placeholder="company-id" size="large" />
+              </Form.Item>
+            )}
+            <Form.Item name="email" label="Correo electrónico" rules={[{ required: true, type: 'email', message: 'Correo inválido' }]} style={{ marginBottom: 16 }}>
+              <Input prefix={<UserOutlined />} placeholder="usuario@empresa.com" autoComplete="email" size="large" />
+            </Form.Item>
+            <Form.Item name="password" label="Contraseña" rules={[{ required: true, message: 'Requerido' }]} style={{ marginBottom: 16 }}>
+              <Input.Password prefix={<LockOutlined />} placeholder="••••••••" autoComplete="current-password" size="large" />
+            </Form.Item>
+            <Form.Item name="remember" valuePropName="checked" style={{ marginBottom: 24 }}>
+              <Checkbox className="candy-checkbox">Recordar empresa y correo</Checkbox>
+            </Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              block
+              loading={loading}
+              size="large"
+              icon={!loading ? <ArrowRightOutlined /> : undefined}
+              iconPosition="end"
+              className="candy-btn"
+              style={{
+                height: 52,
+                borderRadius: 16,
+                fontWeight: 700,
+                fontSize: 15,
+                border: 'none',
+                transition: 'all 0.2s',
+                background: 'linear-gradient(135deg, #FF6B9D 0%, #FF4081 100%)',
+                boxShadow: '0 4px 16px rgba(255,64,129,0.4)',
+                color: '#FFFFFF',
+              }}
+            >
+              Iniciar sesión
+            </Button>
+          </Form>
+
+          <p style={{ textAlign: 'center', marginTop: 24, marginBottom: 0, color: '#FFAAC0', fontSize: 12 }}>
+            © {new Date().getFullYear()} Polaris POS · Todos los derechos reservados
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
