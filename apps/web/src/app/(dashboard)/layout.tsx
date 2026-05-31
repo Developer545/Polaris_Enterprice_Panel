@@ -112,9 +112,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [collapsed, setCollapsed] = useState(false)
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['ventas']))
   const [themeOpen, setThemeOpen] = useState(false)
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null)
+  const [companyName, setCompanyName] = useState<string | null>(null)
   const pathname = usePathname()
   const router = useRouter()
   const { token } = antTheme.useToken()
+
+  useEffect(() => {
+    try {
+      setCompanyLogo(localStorage.getItem('companyLogoUrl'))
+      setCompanyName(localStorage.getItem('companyName'))
+    } catch {}
+  }, [])
 
   const groupColorMap: Record<string, string> = {
     ventas:   token.colorPrimary,
@@ -237,21 +246,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           borderBottom: '1px solid var(--sidebar-border)',
           flexShrink: 0,
         }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: token.colorPrimary,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <ShopOutlined style={{ color: '#fff', fontSize: 18 }} />
-          </div>
-          {!collapsed && (
+          {companyLogo ? (
+            <img
+              src={companyLogo}
+              alt={companyName ?? 'Empresa'}
+              style={{
+                height: 36, maxWidth: collapsed ? 36 : 140,
+                objectFit: 'contain', borderRadius: 4, flexShrink: 0,
+              }}
+            />
+          ) : (
+            <div style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: token.colorPrimary,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <ShopOutlined style={{ color: '#fff', fontSize: 18 }} />
+            </div>
+          )}
+          {!collapsed && !companyLogo && (
             <div style={{ marginLeft: 10, overflow: 'hidden' }}>
               <div style={{ color: 'var(--sidebar-fg)', fontWeight: 700, fontSize: 14, lineHeight: 1.2, whiteSpace: 'nowrap' }}>
                 Polaris
               </div>
               <div style={{ color: 'var(--sidebar-muted)', fontSize: 11, whiteSpace: 'nowrap' }}>
                 Enterprise
+              </div>
+            </div>
+          )}
+          {!collapsed && companyLogo && companyName && (
+            <div style={{ marginLeft: 10, overflow: 'hidden' }}>
+              <div style={{ color: 'var(--sidebar-fg)', fontWeight: 700, fontSize: 13, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>
+                {companyName}
               </div>
             </div>
           )}

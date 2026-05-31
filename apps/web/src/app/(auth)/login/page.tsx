@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAppearance } from '@/context/AppearanceContext'
 import { PRESET_COLORS, PRESET_TEXT_COLORS, FONT_OPTIONS } from '@/config/appearance'
+import { getClient } from '@pos-dte/shared-api'
 import Aurora  from './_designs/aurora'
 import Bloom   from './_designs/bloom'
 import Cloud   from './_designs/cloud'
@@ -43,6 +44,8 @@ const floatBtn: React.CSSProperties = {
   boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
 }
 
+interface Branding { name: string; logoUrl: string | null }
+
 export default function LoginPage() {
   const [active,       setActive]       = useState<DesignKey>(DEFAULT)
   const [designOpen,   setDesignOpen]   = useState(false)
@@ -52,13 +55,78 @@ export default function LoginPage() {
   const colorInputRef   = useRef<HTMLInputElement>(null)
   const textInputRef    = useRef<HTMLInputElement>(null)
 
+  // ── Branding / 2-step state ───────────────────────────────────────────────
+  const [step,          setStep]          = useState<'company' | 'login'>('company')
+  const [branding,      setBranding]      = useState<Branding | null>(null)
+  const [companyInput,  setCompanyInput]  = useState('')
+  const [brandingError, setBrandingError] = useState<string | null>(null)
+  const [brandingLoad,  setBrandingLoad]  = useState(false)
+
+  async function fetchBranding(id: string): Promise<boolean> {
+    setBrandingLoad(true)
+    setBrandingError(null)
+    try {
+      const res = await getClient().get(`/api/auth/branding?companyId=${encodeURIComponent(id)}`)
+      const b = { name: res.data.name, logoUrl: res.data.logoUrl ?? null }
+      setBranding(b)
+      try {
+        if (b.logoUrl) localStorage.setItem('companyLogoUrl', b.logoUrl)
+        else localStorage.removeItem('companyLogoUrl')
+        localStorage.setItem('companyName', b.name)
+      } catch {}
+      return true
+    } catch (err: any) {
+      const status = err?.response?.status
+      if (status === 404) {
+        setBrandingError('Empresa no encontrada. Verifica el ID.')
+      } else {
+        setBrandingError('Error al conectar con el servidor.')
+      }
+      return false
+    } finally {
+      setBrandingLoad(false)
+    }
+  }
+
+  async function handleCompanySubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const id = companyInput.trim()
+    if (!id) return
+    const ok = await fetchBranding(id)
+    if (ok) {
+      try { localStorage.setItem('companyId', id) } catch {}
+      setStep('login')
+    }
+  }
+
+  function goBackToCompany() {
+    setStep('company')
+    setBranding(null)
+    setBrandingError(null)
+    try {
+      localStorage.removeItem('companyId')
+      localStorage.removeItem('companyLogoUrl')
+      localStorage.removeItem('companyName')
+    } catch {}
+  }
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(DESIGN_KEY)
       if (isSavedKey(saved)) setActive(saved)
     } catch {}
+
+    // Si hay companyId guardado, saltar directo al paso 2
+    const savedCompanyId = (() => { try { return localStorage.getItem('companyId') } catch { return null } })()
+    if (savedCompanyId) {
+      setCompanyInput(savedCompanyId)
+      fetchBranding(savedCompanyId).then(ok => {
+        if (ok) setStep('login')
+      })
+    }
+
     setReady(true)
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function selectDesign(key: DesignKey) {
     setActive(key); setDesignOpen(false)
@@ -67,6 +135,121 @@ export default function LoginPage() {
 
   if (!ready) return null
   const Active = DESIGNS[active]
+
+  // ── Paso 1: pantalla de empresa ────────────────────────────────────────────
+  if (step === 'company') {
+    return (
+      <>
+        <div style={{
+          minHeight: '100vh',
+          background: '#0a0a0f',
+          backgroundImage: 'radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.08) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(168,85,247,0.06) 0%, transparent 50%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: 'Inter, system-ui, sans-serif',
+        }}>
+          <div style={{
+            width: '100%', maxWidth: 400,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderTop: '2px solid rgba(99,102,241,0.5)',
+            borderRadius: 16,
+            padding: '44px 40px 40px',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
+          }}>
+            {/* Icono */}
+            <div style={{
+              width: 52, height: 52, borderRadius: 14,
+              background: 'rgba(99,102,241,0.12)',
+              border: '1px solid rgba(99,102,241,0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 24,
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="rgba(129,140,248,1)" strokeWidth="1.5" fill="rgba(99,102,241,0.15)"/>
+                <path d="M9 22V12h6v10" stroke="rgba(129,140,248,1)" strokeWidth="1.5"/>
+              </svg>
+            </div>
+
+            <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, marginBottom: 6, letterSpacing: '-0.02em' }}>
+              Bienvenido
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, marginBottom: 32 }}>
+              Ingresa el ID de tu empresa para continuar
+            </div>
+
+            <form onSubmit={handleCompanySubmit}>
+              <label style={{ display: 'block', color: 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
+                ID de empresa
+              </label>
+              <input
+                type="text"
+                value={companyInput}
+                onChange={e => setCompanyInput(e.target.value)}
+                placeholder="ej. garcia-market"
+                autoFocus
+                autoComplete="off"
+                style={{
+                  width: '100%', padding: '12px 14px', borderRadius: 8,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: brandingError ? '1px solid rgba(255,71,87,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                  color: '#fff', fontSize: 14, outline: 'none',
+                  boxSizing: 'border-box', marginBottom: 8,
+                  transition: 'border-color 0.15s',
+                }}
+                onFocus={e => { if (!brandingError) e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)' }}
+                onBlur={e => { if (!brandingError) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
+              />
+
+              {brandingError && (
+                <div style={{ color: '#ff6b6b', fontSize: 12, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#ff6b6b" strokeWidth="2"/><path d="M12 8v4M12 16h.01" stroke="#ff6b6b" strokeWidth="2" strokeLinecap="round"/></svg>
+                  {brandingError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={brandingLoad || !companyInput.trim()}
+                style={{
+                  width: '100%', padding: '13px 0', borderRadius: 8, border: 'none',
+                  background: brandingLoad || !companyInput.trim()
+                    ? 'rgba(99,102,241,0.3)'
+                    : 'linear-gradient(135deg, rgba(99,102,241,0.9) 0%, rgba(139,92,246,0.9) 100%)',
+                  color: '#fff', fontSize: 14, fontWeight: 700, cursor: brandingLoad || !companyInput.trim() ? 'not-allowed' : 'pointer',
+                  marginTop: 4,
+                  boxShadow: brandingLoad || !companyInput.trim() ? 'none' : '0 0 24px rgba(99,102,241,0.35)',
+                  transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}
+              >
+                {brandingLoad ? (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 0.8s linear infinite' }}>
+                      <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="3"/>
+                      <path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" strokeWidth="3" strokeLinecap="round"/>
+                    </svg>
+                    Verificando...
+                  </>
+                ) : (
+                  <>
+                    Continuar
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div style={{ marginTop: 24, textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 11 }}>
+              ¿No tienes un ID? Contacta al administrador de tu empresa
+            </div>
+          </div>
+        </div>
+        <style>{`
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        `}</style>
+      </>
+    )
+  }
 
   const sectionLabel = (text: string) => (
     <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
@@ -91,6 +274,41 @@ export default function LoginPage() {
   return (
     <>
       <Active />
+
+      {/* ── Branding overlay (logo empresa) ── */}
+      {branding?.logoUrl && (
+        <div style={{
+          position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9999, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)',
+          borderRadius: 12, padding: '8px 20px',
+          display: 'flex', alignItems: 'center', gap: 12,
+          pointerEvents: 'none',
+        }}>
+          <img src={branding.logoUrl} alt={branding.name} style={{ height: 36, objectFit: 'contain' }} />
+          <span style={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{branding.name}</span>
+        </div>
+      )}
+
+      {/* ── Cambiar empresa (bottom-left, encima de la paleta) ── */}
+      <button
+        onClick={goBackToCompany}
+        title="Cambiar empresa"
+        style={{
+          position: 'fixed', bottom: 64, left: 20, zIndex: 9997,
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 20, padding: '6px 14px',
+          color: 'rgba(255,255,255,0.7)', fontSize: 11, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 6,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+          transition: 'all 0.15s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)' }}
+        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }}
+      >
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        Cambiar empresa
+      </button>
 
       {/* ── Design switcher (bottom-right) ── */}
       <button
@@ -158,7 +376,7 @@ export default function LoginPage() {
 
       {paletteOpen && (
         <div style={{
-          position: 'fixed', bottom: 64, left: 20, zIndex: 9998,
+          position: 'fixed', bottom: 108, left: 20, zIndex: 9998,
           background: 'rgba(8,8,12,0.93)', backdropFilter: 'blur(20px)',
           borderRadius: 16, padding: '14px',
           boxShadow: '0 8px 40px rgba(0,0,0,0.6)',

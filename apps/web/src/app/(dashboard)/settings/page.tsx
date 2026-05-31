@@ -4,7 +4,7 @@
 import { Tabs, Typography, Card, App } from 'antd'
 import {
   BankOutlined, BranchesOutlined, TeamOutlined,
-  SafetyOutlined, AppstoreOutlined, DatabaseOutlined, ApiOutlined,
+  AppstoreOutlined, DatabaseOutlined, ApiOutlined,
 } from '@ant-design/icons'
 import { useAppContext } from '../../../hooks/use-app-context'
 import { useQuery } from '@tanstack/react-query'
@@ -12,9 +12,7 @@ import { api } from '../../../lib/api'
 import EmpresaTab from './tabs/EmpresaTab'
 import SucursalesTab from './tabs/SucursalesTab'
 import UsuariosTab from './tabs/UsuariosTab'
-import RolesTab from './tabs/RolesTab'
 import CategoriasTab from './tabs/CategoriasTab'
-import CatalogosTab from './tabs/CatalogosTab'
 import IntegracionesTab from './tabs/IntegracionesTab'
 import RespaldosTab from './tabs/RespaldosTab'
 
@@ -45,19 +43,9 @@ function SettingsContent() {
       children: <UsuariosTab companyId={companyId} />,
     },
     {
-      key: 'roles',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><SafetyOutlined /> Roles y Permisos</span>,
-      children: <RolesTab companyId={companyId} />,
-    },
-    {
       key: 'categorias',
       label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><AppstoreOutlined /> Categorías</span>,
       children: <CategoriasTab companyId={companyId} />,
-    },
-    {
-      key: 'catalogos',
-      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><DatabaseOutlined /> Catálogos SV</span>,
-      children: <CatalogosTab />,
     },
     {
       key: 'integraciones',
