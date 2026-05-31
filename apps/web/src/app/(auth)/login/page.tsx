@@ -158,8 +158,8 @@ export default function LoginPage() {
             width: 45%;
             background-color: #08090E;
             background-image:
-              linear-gradient(rgba(139,92,246,0.08) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(139,92,246,0.08) 1px, transparent 1px);
+              linear-gradient(rgba(139,92,246,0.25) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(139,92,246,0.25) 1px, transparent 1px);
             background-size: 40px 40px;
             padding: 48px;
             display: flex;
@@ -180,7 +180,7 @@ export default function LoginPage() {
           .eg-dot-grid {
             position: absolute;
             inset: 0;
-            background: radial-gradient(ellipse 80% 60% at 20% 50%, rgba(139,92,246,0.12) 0%, transparent 70%);
+            background: radial-gradient(ellipse 80% 60% at 20% 50%, rgba(139,92,246,0.25) 0%, transparent 70%);
             pointer-events: none;
           }
           .eg-input:focus {
