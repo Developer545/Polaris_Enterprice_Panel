@@ -18,7 +18,7 @@ export class SalesGoalsController {
   }
 
   @Post()
-  @RequirePermissions(PERMISSIONS.SALES_CREATE)
+  @RequirePermissions(PERMISSIONS.EMPLOYEES_CREATE)
   create(
     @Body(new ZodValidationPipe(CreateSalesGoalSchema)) dto: z.infer<typeof CreateSalesGoalSchema>,
     @CurrentUser() user: JwtAccessPayload,
@@ -27,7 +27,7 @@ export class SalesGoalsController {
   }
 
   @Put(':id')
-  @RequirePermissions(PERMISSIONS.SALES_CREATE)
+  @RequirePermissions(PERMISSIONS.EMPLOYEES_CREATE)
   update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateSalesGoalSchema)) dto: z.infer<typeof UpdateSalesGoalSchema>,
@@ -37,7 +37,7 @@ export class SalesGoalsController {
   }
 
   @Delete(':id')
-  @RequirePermissions(PERMISSIONS.SALES_CREATE)
+  @RequirePermissions(PERMISSIONS.EMPLOYEES_CREATE)
   remove(@Param('id') id: string, @CurrentUser() user: JwtAccessPayload) {
     return this.svc.remove(id, user)
   }
