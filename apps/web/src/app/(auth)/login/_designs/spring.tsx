@@ -1,12 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Inter } from 'next/font/google'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined, CheckCircleFilled } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
-
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] })
 
 interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
 const SAVED_KEY = 'pos_saved_credentials'
@@ -74,10 +71,9 @@ export default function LoginSpring() {
 
   return (
     <div
-      className={inter.className}
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(160deg, #E8F8ED 0%, #F0FAFF 50%, #FFF8F0 100%)',
+        background: 'var(--lp-bg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -92,10 +88,10 @@ export default function LoginSpring() {
         html, body { margin: 0; padding: 0; overflow: hidden; }
         .spring-input .ant-input-affix-wrapper,
         .spring-input .ant-input {
-          background: #F0FFF4 !important;
+          background: var(--lp-bg-input) !important;
           border-color: var(--lp-3) !important;
           border-radius: 12px !important;
-          color: #1B4332 !important;
+          color: var(--lp-txt-h) !important;
         }
         .spring-input .ant-input-affix-wrapper:focus,
         .spring-input .ant-input-affix-wrapper-focused {
@@ -106,7 +102,7 @@ export default function LoginSpring() {
         .spring-input .ant-input-password-icon { color: var(--lp-3) !important; }
         .spring-input .anticon:not(.ant-input-password-icon) { color: var(--lp-1) !important; }
         .spring-input .ant-form-item-label > label {
-          color: #2D6A4F !important;
+          color: var(--lp-txt-l) !important;
           font-weight: 600 !important;
           font-size: 13px !important;
         }
@@ -121,7 +117,7 @@ export default function LoginSpring() {
           background: var(--lp-1) !important;
           border-color: var(--lp-1) !important;
         }
-        .spring-checkbox span:last-child { color: #2D6A4F !important; font-size: 13px !important; }
+        .spring-checkbox span:last-child { color: var(--lp-txt-l) !important; font-size: 13px !important; }
         .spring-btn:hover {
           box-shadow: 0 8px 24px var(--lp-a55) !important;
           transform: translateY(-1px) !important;
@@ -226,7 +222,7 @@ export default function LoginSpring() {
         <div
           style={{
             flex: 1,
-            background: '#FFFFFF',
+            background: 'var(--lp-bg-card)',
             padding: '48px 44px',
             display: 'flex',
             flexDirection: 'column',
@@ -236,7 +232,7 @@ export default function LoginSpring() {
           <div style={{ marginBottom: 28 }}>
             <Typography.Title
               level={3}
-              style={{ margin: '0 0 6px', color: '#1B4332', fontWeight: 700, fontSize: 22 }}
+              style={{ margin: '0 0 6px', color: 'var(--lp-txt-h)', fontWeight: 700, fontSize: 22 }}
             >
               Bienvenida de nuevo
             </Typography.Title>

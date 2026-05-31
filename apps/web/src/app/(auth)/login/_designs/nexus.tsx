@@ -1,12 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Inter } from 'next/font/google'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
-
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] })
 
 interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
 const SAVED_KEY = 'pos_saved_credentials'
@@ -66,7 +63,7 @@ export default function LoginNexus() {
         html, body { margin: 0; padding: 0; overflow: hidden; }
         .nexus-wrap {
           min-height: 100vh;
-          background-color: #030610;
+          background-color: var(--lp-dk-bg);
           background-image:
             linear-gradient(var(--lp-a10) 1px, transparent 1px),
             linear-gradient(90deg, var(--lp-a10) 1px, transparent 1px);
@@ -76,7 +73,7 @@ export default function LoginNexus() {
           justify-content: center;
           position: relative;
           overflow: hidden;
-          font-family: ${inter.style.fontFamily};
+          font-family: var(--font-family, Inter, sans-serif);
         }
         .nexus-blob {
           position: absolute;
@@ -89,7 +86,7 @@ export default function LoginNexus() {
           z-index: 10;
           width: 100%;
           max-width: 420px;
-          background: rgba(0,20,40,0.7);
+          background: var(--lp-dk-card);
           border: 1px solid var(--lp-a20);
           border-top: 2px solid var(--lp-1);
           border-radius: 12px;
@@ -151,7 +148,7 @@ export default function LoginNexus() {
         }
         .nexus-input .ant-input {
           background: transparent !important;
-          color: #E0F7FA !important;
+          color: var(--lp-dk-txt-h) !important;
           font-size: 14px !important;
         }
         .nexus-input .ant-input::placeholder {
@@ -185,11 +182,11 @@ export default function LoginNexus() {
           border-color: var(--lp-1) !important;
         }
         .nexus-checkbox .ant-checkbox-checked .ant-checkbox-inner::after {
-          border-color: #030610 !important;
+          border-color: var(--lp-dk-bg) !important;
         }
         .nexus-btn.ant-btn-primary {
           background: linear-gradient(135deg, var(--lp-a70) 0%, var(--lp-4) 100%) !important;
-          color: #030610 !important;
+          color: var(--lp-dk-bg) !important;
           box-shadow: 0 0 20px var(--lp-a40), 0 8px 24px var(--lp-a20) !important;
           font-weight: 800 !important;
         }
@@ -197,13 +194,13 @@ export default function LoginNexus() {
           background: linear-gradient(135deg, var(--lp-1) 0%, var(--lp-3) 100%) !important;
           box-shadow: 0 0 30px var(--lp-a50), 0 12px 32px var(--lp-a30) !important;
           transform: translateY(-1px);
-          color: #030610 !important;
+          color: var(--lp-dk-bg) !important;
         }
         .nexus-btn.ant-btn-primary:active {
           transform: translateY(0);
         }
         .nexus-btn .anticon {
-          color: #030610 !important;
+          color: var(--lp-dk-bg) !important;
         }
         .nexus-footer {
           margin-top: 24px;
@@ -223,12 +220,12 @@ export default function LoginNexus() {
         }} />
         <div className="nexus-blob" style={{
           width: 440, height: 440,
-          background: 'rgba(0,100,255,0.10)',
+          background: 'var(--lp-a10)',
           bottom: -100, right: -100,
         }} />
         <div className="nexus-blob" style={{
           width: 380, height: 380,
-          background: 'rgba(100,0,255,0.08)',
+          background: 'var(--lp-a10)',
           top: '35%', right: '5%',
         }} />
 

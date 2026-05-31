@@ -1,12 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Inter } from 'next/font/google'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
-
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] })
 
 interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
 const SAVED_KEY = 'pos_saved_credentials'
@@ -66,13 +63,13 @@ export default function LoginForge() {
         html, body { margin: 0; padding: 0; overflow: hidden; }
         .forge-wrap {
           min-height: 100vh;
-          background-color: #080400;
+          background-color: var(--lp-dk-bg);
           display: flex;
           align-items: center;
           justify-content: center;
           position: relative;
           overflow: hidden;
-          font-family: ${inter.style.fontFamily};
+          font-family: var(--font-family, Inter, sans-serif);
         }
         /* Ember glow blobs at corners */
         .forge-ember {
@@ -86,7 +83,7 @@ export default function LoginForge() {
           z-index: 10;
           width: 100%;
           max-width: 420px;
-          background: rgba(20,10,0,0.85);
+          background: var(--lp-dk-card);
           border: 1px solid var(--lp-a20);
           border-top: 3px solid var(--lp-1);
           border-radius: 16px;
@@ -111,19 +108,19 @@ export default function LoginForge() {
           flex-shrink: 0;
         }
         .forge-title {
-          color: #FFF0E0 !important;
+          color: var(--lp-dk-txt-h) !important;
           font-size: 24px !important;
           font-weight: 800 !important;
           margin-bottom: 4px !important;
           line-height: 1.2 !important;
         }
         .forge-subtitle {
-          color: rgba(255,200,150,0.7);
+          color: var(--lp-dk-txt-b);
           font-size: 14px;
           margin-bottom: 32px;
         }
         .forge-input .ant-form-item-label > label {
-          color: rgba(255,160,100,0.8) !important;
+          color: var(--lp-dk-txt-l) !important;
           font-size: 11px !important;
           font-weight: 600 !important;
           text-transform: uppercase !important;
@@ -144,7 +141,7 @@ export default function LoginForge() {
         }
         .forge-input .ant-input {
           background: transparent !important;
-          color: #FFF0E0 !important;
+          color: var(--lp-dk-txt-h) !important;
           font-size: 14px !important;
         }
         .forge-input .ant-input::placeholder {
@@ -165,7 +162,7 @@ export default function LoginForge() {
           font-size: 12px !important;
         }
         .forge-checkbox .ant-checkbox-wrapper {
-          color: rgba(255,200,150,0.65) !important;
+          color: var(--lp-dk-txt-b) !important;
           font-size: 13px !important;
         }
         .forge-checkbox .ant-checkbox-inner {
@@ -192,7 +189,7 @@ export default function LoginForge() {
         .forge-footer {
           margin-top: 24px;
           text-align: center;
-          color: rgba(255,150,80,0.3);
+          color: var(--lp-dk-txt-b);
           font-size: 12px;
         }
       `}</style>

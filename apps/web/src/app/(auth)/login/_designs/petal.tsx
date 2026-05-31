@@ -1,12 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Inter } from 'next/font/google'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
-
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] })
 
 interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
 const SAVED_KEY = 'pos_saved_credentials'
@@ -69,10 +66,9 @@ export default function LoginPetal() {
 
   return (
     <div
-      className={inter.className}
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(160deg, #FFF0F5 0%, #FAE8EE 45%, #F0E6F6 100%)',
+        background: 'var(--lp-bg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -105,7 +101,7 @@ export default function LoginPetal() {
         style={{
           width: '100%',
           maxWidth: 440,
-          background: '#FFFFFF',
+          background: 'var(--lp-bg-card)',
           borderRadius: 24,
           borderTop: '4px solid var(--lp-1)',
           boxShadow: '0 12px 60px var(--lp-a26), 0 2px 12px var(--lp-a1a)',
@@ -138,7 +134,7 @@ export default function LoginPetal() {
           </div>
           <Typography.Title
             level={3}
-            style={{ margin: 0, color: '#7C1D4E', fontWeight: 700, fontSize: 22 }}
+            style={{ margin: 0, color: 'var(--lp-txt-h)', fontWeight: 700, fontSize: 22 }}
           >
             Bienvenida de nuevo
           </Typography.Title>
@@ -165,10 +161,10 @@ export default function LoginPetal() {
           html, body { margin: 0; padding: 0; overflow: hidden; }
           .petal-input .ant-input-affix-wrapper,
           .petal-input .ant-input {
-            background: #FFF5F8 !important;
+            background: var(--lp-bg-input) !important;
             border-color: var(--lp-2) !important;
             border-radius: 12px !important;
-            color: #4A1A30 !important;
+            color: var(--lp-txt-h) !important;
           }
           .petal-input .ant-input-affix-wrapper:focus,
           .petal-input .ant-input-affix-wrapper-focused {
@@ -228,7 +224,7 @@ export default function LoginPetal() {
         </Form>
 
         {/* Footer */}
-        <p style={{ textAlign: 'center', marginTop: 24, marginBottom: 0, color: '#E4B0C8', fontSize: 12 }}>
+        <p style={{ textAlign: 'center', marginTop: 24, marginBottom: 0, color: 'var(--lp-txt-b)', fontSize: 12 }}>
           © {new Date().getFullYear()} Polaris POS · Todos los derechos reservados
         </p>
       </div>

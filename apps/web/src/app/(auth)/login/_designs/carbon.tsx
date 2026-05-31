@@ -1,12 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Inter } from 'next/font/google'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
-
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] })
 
 interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
 const SAVED_KEY = 'pos_saved_credentials'
@@ -66,7 +63,7 @@ export default function LoginCarbon() {
         html, body { margin: 0; padding: 0; overflow: hidden; }
         .carbon-wrap {
           min-height: 100vh;
-          background-color: #080808;
+          background-color: var(--lp-dk-bg);
           background-image: radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px);
           background-size: 24px 24px;
           display: flex;
@@ -74,7 +71,7 @@ export default function LoginCarbon() {
           justify-content: center;
           position: relative;
           overflow: hidden;
-          font-family: ${inter.style.fontFamily};
+          font-family: var(--font-family, Inter, sans-serif);
         }
         .carbon-blob {
           position: absolute;
@@ -87,7 +84,7 @@ export default function LoginCarbon() {
           z-index: 10;
           width: 100%;
           max-width: 420px;
-          background: #111118;
+          background: var(--lp-dk-card);
           border: 1px solid #1E1E2E;
           border-left: 3px solid var(--lp-1);
           border-radius: 16px;
@@ -106,19 +103,19 @@ export default function LoginCarbon() {
           box-shadow: 0 8px 24px var(--lp-a35);
         }
         .carbon-title {
-          color: #E2E8F0 !important;
+          color: var(--lp-dk-txt-h) !important;
           font-weight: 800 !important;
           font-size: 24px !important;
           margin-bottom: 4px !important;
           line-height: 1.2 !important;
         }
         .carbon-subtitle {
-          color: #64748B;
+          color: var(--lp-dk-txt-b);
           font-size: 14px;
           margin-bottom: 32px;
         }
         .carbon-input .ant-form-item-label > label {
-          color: #64748B !important;
+          color: var(--lp-dk-txt-l) !important;
           font-size: 11px !important;
           font-weight: 600 !important;
           text-transform: uppercase !important;
@@ -126,7 +123,7 @@ export default function LoginCarbon() {
         }
         .carbon-input .ant-input-affix-wrapper,
         .carbon-input .ant-input-password {
-          background: #0D0D15 !important;
+          background: var(--lp-dk-input) !important;
           border: 1px solid #1E293B !important;
           border-radius: 10px !important;
         }
@@ -139,8 +136,8 @@ export default function LoginCarbon() {
           box-shadow: 0 0 0 2px var(--lp-a15) !important;
         }
         .carbon-input .ant-input {
-          background: #0D0D15 !important;
-          color: #E2E8F0 !important;
+          background: var(--lp-dk-input) !important;
+          color: var(--lp-dk-txt-h) !important;
           font-size: 14px !important;
         }
         .carbon-input .ant-input::placeholder {
@@ -161,11 +158,11 @@ export default function LoginCarbon() {
           font-size: 12px !important;
         }
         .carbon-checkbox .ant-checkbox-wrapper {
-          color: #64748B !important;
+          color: var(--lp-dk-txt-b) !important;
           font-size: 13px !important;
         }
         .carbon-checkbox .ant-checkbox-inner {
-          background: #0D0D15 !important;
+          background: var(--lp-dk-input) !important;
           border-color: #1E293B !important;
           border-radius: 4px !important;
         }
@@ -188,7 +185,7 @@ export default function LoginCarbon() {
         .carbon-footer {
           margin-top: 24px;
           text-align: center;
-          color: #334155;
+          color: var(--lp-dk-txt-b);
           font-size: 12px;
         }
       `}</style>

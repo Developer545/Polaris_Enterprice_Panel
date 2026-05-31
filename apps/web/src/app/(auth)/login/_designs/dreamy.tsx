@@ -1,12 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Inter } from 'next/font/google'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
-
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] })
 
 interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
 const SAVED_KEY = 'pos_saved_credentials'
@@ -73,10 +70,9 @@ export default function LoginDreamy() {
 
   return (
     <div
-      className={inter.className}
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0F0520 0%, #1E0B3B 50%, #0A1040 100%)',
+        background: 'var(--lp-dk-bg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -98,7 +94,7 @@ export default function LoginDreamy() {
           background: rgba(255,255,255,0.07) !important;
           border-color: var(--lp-a4d) !important;
           border-radius: 12px !important;
-          color: #F3E8FF !important;
+          color: var(--lp-dk-txt-h) !important;
         }
         .dreamy-input .ant-input-affix-wrapper:focus,
         .dreamy-input .ant-input-affix-wrapper-focused {
@@ -109,7 +105,7 @@ export default function LoginDreamy() {
         .dreamy-input .ant-input-password-icon { color: rgba(243,232,255,0.5) !important; }
         .dreamy-input .anticon:not(.ant-input-password-icon) { color: var(--lp-1) !important; }
         .dreamy-input .ant-form-item-label > label {
-          color: rgba(243,232,255,0.7) !important;
+          color: var(--lp-dk-txt-l) !important;
           font-weight: 500 !important;
           font-size: 13px !important;
         }
@@ -125,7 +121,7 @@ export default function LoginDreamy() {
           background: var(--lp-1) !important;
           border-color: var(--lp-1) !important;
         }
-        .dreamy-checkbox span:last-child { color: rgba(243,232,255,0.65) !important; font-size: 13px !important; }
+        .dreamy-checkbox span:last-child { color: var(--lp-dk-txt-b) !important; font-size: 13px !important; }
         .dreamy-btn:hover {
           box-shadow: 0 8px 28px var(--lp-a80) !important;
           transform: translateY(-1px) !important;
@@ -195,11 +191,11 @@ export default function LoginDreamy() {
           </div>
           <Typography.Title
             level={3}
-            style={{ margin: 0, color: '#F3E8FF', fontWeight: 700, fontSize: 22 }}
+            style={{ margin: 0, color: 'var(--lp-dk-txt-h)', fontWeight: 700, fontSize: 22 }}
           >
             Bienvenida de nuevo
           </Typography.Title>
-          <Typography.Text style={{ color: 'rgba(243,232,255,0.6)', fontSize: 14, marginTop: 4, display: 'block' }}>
+          <Typography.Text style={{ color: 'var(--lp-dk-txt-b)', fontSize: 14, marginTop: 4, display: 'block' }}>
             Inicia sesión en tu cuenta
           </Typography.Text>
         </div>
@@ -258,7 +254,7 @@ export default function LoginDreamy() {
           </Button>
         </Form>
 
-        <p style={{ textAlign: 'center', marginTop: 24, marginBottom: 0, color: 'rgba(243,232,255,0.3)', fontSize: 12 }}>
+        <p style={{ textAlign: 'center', marginTop: 24, marginBottom: 0, color: 'var(--lp-dk-txt-b)', fontSize: 12 }}>
           © {new Date().getFullYear()} Polaris POS · Todos los derechos reservados
         </p>
       </div>

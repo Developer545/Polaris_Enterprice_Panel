@@ -1,12 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Inter } from 'next/font/google'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
-
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] })
 
 interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
 const SAVED_KEY = 'pos_saved_credentials'
@@ -66,23 +63,23 @@ export default function LoginCommand() {
         html, body { margin: 0; padding: 0; overflow: hidden; }
         .command-wrap {
           min-height: 100vh;
-          background: #0D1117;
+          background: var(--lp-dk-bg);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-family: ${inter.style.fontFamily};
+          font-family: var(--font-family, Inter, sans-serif);
         }
         .command-window {
           width: 100%;
           max-width: 460px;
-          background: #161B22;
+          background: var(--lp-dk-card);
           border: 1px solid #30363D;
           border-radius: 8px;
           overflow: hidden;
           box-shadow: 0 20px 60px rgba(0,0,0,0.7);
         }
         .command-titlebar {
-          background: #21262D;
+          background: var(--lp-dk-input);
           height: 36px;
           display: flex;
           align-items: center;
@@ -99,7 +96,7 @@ export default function LoginCommand() {
         }
         .command-titlebar-label {
           margin-left: 8px;
-          color: #8B949E;
+          color: var(--lp-dk-txt-b);
           font-size: 12px;
           font-family: 'Courier New', monospace;
           letter-spacing: 0.03em;
@@ -140,21 +137,21 @@ export default function LoginCommand() {
           flex-shrink: 0;
         }
         .command-title {
-          color: #E6EDF3 !important;
+          color: var(--lp-dk-txt-h) !important;
           font-size: 22px !important;
           font-weight: 700 !important;
           margin: 0 !important;
           font-family: 'Courier New', monospace !important;
         }
         .command-subtitle {
-          color: #8B949E;
+          color: var(--lp-dk-txt-b);
           font-size: 13px;
           font-family: 'Courier New', monospace;
           margin-bottom: 28px;
           padding-left: 22px;
         }
         .command-input .ant-form-item-label > label {
-          color: #8B949E !important;
+          color: var(--lp-dk-txt-l) !important;
           font-size: 12px !important;
           font-weight: 500 !important;
           font-family: 'Courier New', monospace !important;
@@ -167,7 +164,7 @@ export default function LoginCommand() {
         }
         .command-input .ant-input-affix-wrapper,
         .command-input .ant-input-password {
-          background: #0D1117 !important;
+          background: var(--lp-dk-input) !important;
           border: 1px solid #30363D !important;
           border-radius: 6px !important;
         }
@@ -179,8 +176,8 @@ export default function LoginCommand() {
           box-shadow: 0 0 0 2px var(--lp-a10) !important;
         }
         .command-input .ant-input {
-          background: #0D1117 !important;
-          color: #E6EDF3 !important;
+          background: var(--lp-dk-input) !important;
+          color: var(--lp-dk-txt-h) !important;
           font-family: 'Courier New', monospace !important;
           font-size: 13px !important;
         }
@@ -204,12 +201,12 @@ export default function LoginCommand() {
           font-family: 'Courier New', monospace !important;
         }
         .command-checkbox .ant-checkbox-wrapper {
-          color: #8B949E !important;
+          color: var(--lp-dk-txt-b) !important;
           font-size: 13px !important;
           font-family: 'Courier New', monospace !important;
         }
         .command-checkbox .ant-checkbox-inner {
-          background: #0D1117 !important;
+          background: var(--lp-dk-input) !important;
           border-color: #30363D !important;
           border-radius: 3px !important;
         }
@@ -235,7 +232,7 @@ export default function LoginCommand() {
         .command-footer {
           margin-top: 20px;
           text-align: center;
-          color: #484F58;
+          color: var(--lp-dk-txt-b);
           font-size: 11px;
           font-family: 'Courier New', monospace;
         }

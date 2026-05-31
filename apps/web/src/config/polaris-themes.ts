@@ -30,8 +30,10 @@ export function applyPolarisTheme(theme: PolarisTheme): void {
   import('./appearance').then(({ applyLoginPalette, APPEARANCE_STORAGE_KEY }) => {
     try {
       const saved = localStorage.getItem(APPEARANCE_STORAGE_KEY)
-      const customPrimary = saved ? JSON.parse(saved)?.customPrimary : null
-      if (!customPrimary) applyLoginPalette(theme.colorPrimary)
+      const parsed = saved ? JSON.parse(saved) : {}
+      const customPrimary    = parsed?.customPrimary   ?? null
+      const customTextColor  = parsed?.customTextColor ?? null
+      if (!customPrimary) applyLoginPalette(theme.colorPrimary, customTextColor)
     } catch {
       applyLoginPalette(theme.colorPrimary)
     }

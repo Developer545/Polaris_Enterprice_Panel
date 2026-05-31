@@ -1,25 +1,22 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Inter } from 'next/font/google'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
 
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] })
-
 interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
 const SAVED_KEY = 'pos_saved_credentials'
 
 const BUBBLES = [
-  { size: 120, top: '5%',  left: '2%',   color: 'rgba(255,133,161,0.25)', blur: 20 },
-  { size: 80,  top: '10%', right: '5%',  color: 'rgba(133,193,255,0.3)',  blur: 16 },
-  { size: 160, top: '65%', left: '-3%',  color: 'rgba(133,255,181,0.2)',  blur: 24 },
-  { size: 100, top: '75%', right: '2%',  color: 'rgba(255,235,133,0.3)',  blur: 18 },
-  { size: 70,  top: '40%', left: '1%',   color: 'rgba(255,133,161,0.2)',  blur: 14 },
-  { size: 90,  top: '50%', right: '0%',  color: 'rgba(133,193,255,0.25)', blur: 16 },
-  { size: 50,  top: '85%', left: '40%',  color: 'rgba(255,200,133,0.3)',  blur: 12 },
-  { size: 110, top: '20%', left: '45%',  color: 'rgba(200,133,255,0.15)', blur: 20 },
+  { size: 120, top: '5%',  left: '2%',   color: 'var(--lp-a25)', blur: 20 },
+  { size: 80,  top: '10%', right: '5%',  color: 'var(--lp-a30)', blur: 16 },
+  { size: 160, top: '65%', left: '-3%',  color: 'var(--lp-a20)', blur: 24 },
+  { size: 100, top: '75%', right: '2%',  color: 'var(--lp-a30)', blur: 18 },
+  { size: 70,  top: '40%', left: '1%',   color: 'var(--lp-a20)', blur: 14 },
+  { size: 90,  top: '50%', right: '0%',  color: 'var(--lp-a25)', blur: 16 },
+  { size: 50,  top: '85%', left: '40%',  color: 'var(--lp-a30)', blur: 12 },
+  { size: 110, top: '20%', left: '45%',  color: 'var(--lp-a15)', blur: 20 },
 ]
 
 export default function LoginCandy() {
@@ -71,10 +68,9 @@ export default function LoginCandy() {
 
   return (
     <div
-      className={inter.className}
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(120deg, #FFE5EE 0%, #E8F4FF 35%, #F0FFE8 70%, #FFF5E0 100%)',
+        background: 'var(--lp-bg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -89,10 +85,10 @@ export default function LoginCandy() {
         html, body { margin: 0; padding: 0; overflow: hidden; }
         .candy-input .ant-input-affix-wrapper,
         .candy-input .ant-input {
-          background: #FFF5F8 !important;
+          background: var(--lp-bg-input) !important;
           border-color: var(--lp-2) !important;
           border-radius: 16px !important;
-          color: #3D1A26 !important;
+          color: var(--lp-txt-h) !important;
         }
         .candy-input .ant-input-affix-wrapper:focus,
         .candy-input .ant-input-affix-wrapper-focused {
@@ -149,7 +145,7 @@ export default function LoginCandy() {
         style={{
           width: '100%',
           maxWidth: 440,
-          background: '#FFFFFF',
+          background: 'var(--lp-bg-card)',
           borderRadius: 28,
           boxShadow: '0 8px 40px var(--lp-a26), 0 2px 8px var(--lp-a1a)',
           overflow: 'hidden',
@@ -192,7 +188,7 @@ export default function LoginCandy() {
             >
               ¡Hola de nuevo! 🌸
             </Typography.Title>
-            <Typography.Text style={{ color: '#89AABB', fontSize: 14, marginTop: 4, display: 'block' }}>
+            <Typography.Text style={{ color: 'var(--lp-txt-b)', fontSize: 14, marginTop: 4, display: 'block' }}>
               Inicia sesión en tu cuenta
             </Typography.Text>
           </div>

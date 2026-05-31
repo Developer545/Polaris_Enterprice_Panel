@@ -5,13 +5,11 @@
  * Card: vidrio esmerilado con blur, formas flotantes
  */
 import { useState, useEffect } from 'react'
-import { Inter } from 'next/font/google'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
 
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] })
 
 interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
 const SAVED_KEY = 'pos_saved_credentials'
@@ -87,10 +85,10 @@ export default function LoginCloud() {
 
         .cloud-input .ant-input,
         .cloud-input .ant-input-affix-wrapper {
-          background: rgba(255,255,255,0.7) !important;
+          background: var(--lp-bg-input) !important;
           border-color: rgba(201,184,232,0.5) !important;
           border-radius: 12px !important;
-          color: #3b1f6e !important;
+          color: var(--lp-txt-h) !important;
           height: 48px !important;
           font-size: 14px !important;
           backdrop-filter: blur(8px);
@@ -99,40 +97,40 @@ export default function LoginCloud() {
         .cloud-input .ant-input-affix-wrapper:hover,
         .cloud-input .ant-input-affix-wrapper-focused {
           border-color: var(--lp-1) !important;
-          background: rgba(255,255,255,0.9) !important;
+          background: var(--lp-bg-card) !important;
           box-shadow: 0 0 0 3px var(--lp-a20) !important;
         }
         .cloud-input .ant-input-affix-wrapper .ant-input {
           background: transparent !important;
           height: auto !important;
-          color: #3b1f6e !important;
+          color: var(--lp-txt-h) !important;
         }
         .cloud-input .ant-input-prefix { color: var(--lp-1) !important; margin-right: 10px; }
         .cloud-input .ant-input-password-icon { color: var(--lp-1) !important; }
         .cloud-input .ant-input::placeholder { color: #c4b5fd !important; }
-        .cloud-input .ant-form-item-label > label { color: #6b5b9e !important; font-size: 12px !important; font-weight: 600 !important; letter-spacing: 0.04em !important; text-transform: uppercase; }
+        .cloud-input .ant-form-item-label > label { color: var(--lp-txt-l) !important; font-size: 12px !important; font-weight: 600 !important; letter-spacing: 0.04em !important; text-transform: uppercase; }
         .cloud-input .ant-form-item-explain-error { color: #e879a8 !important; font-size: 12px !important; }
         .cloud-checkbox .ant-checkbox-inner { border-color: #c9b8e8 !important; border-radius: 5px !important; background: rgba(255,255,255,0.7) !important; }
         .cloud-checkbox .ant-checkbox-checked .ant-checkbox-inner { background: var(--lp-1) !important; border-color: var(--lp-1) !important; }
-        .cloud-checkbox span { color: #8b7ab5 !important; font-size: 13px !important; }
+        .cloud-checkbox span { color: var(--lp-txt-b) !important; font-size: 13px !important; }
         .cloud-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 12px 32px var(--lp-a50) !important; }
         .cloud-btn:active { transform: translateY(0) !important; }
       `}</style>
 
-      <div className={inter.className} style={{
+      <div style={{
         position: 'fixed', inset: 0,
-        background: 'linear-gradient(135deg, #FFD4A3 0%, #F8C8D4 30%, #E8D5F5 65%, #B8E0F7 100%)',
+        background: 'var(--lp-bg)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
       }}>
         {/* Blobs flotantes en el fondo */}
         {[
-          { w: 320, h: 260, top: '-10%', left: '-8%',   bg: 'rgba(255,212,163,0.45)', dur: '9s',  delay: '0s'   },
-          { w: 280, h: 220, top: '5%',   right: '-6%',  bg: 'rgba(248,200,212,0.40)', dur: '11s', delay: '1s'   },
-          { w: 200, h: 200, bottom: '8%',left: '10%',   bg: 'rgba(201,184,232,0.35)', dur: '8s',  delay: '0.5s' },
-          { w: 260, h: 200, bottom: '-8%',right: '5%',  bg: 'rgba(184,224,247,0.40)', dur: '10s', delay: '2s'   },
-          { w: 140, h: 140, top: '40%',  left: '5%',    bg: 'rgba(232,121,168,0.20)', dur: '7s',  delay: '1.5s' },
-          { w: 100, h: 100, top: '20%',  right: '15%',  bg: 'rgba(255,212,163,0.30)', dur: '6s',  delay: '0.8s' },
+          { w: 320, h: 260, top: '-10%', left: '-8%',   bg: 'var(--lp-a25)', dur: '9s',  delay: '0s'   },
+          { w: 280, h: 220, top: '5%',   right: '-6%',  bg: 'var(--lp-a20)', dur: '11s', delay: '1s'   },
+          { w: 200, h: 200, bottom: '8%',left: '10%',   bg: 'var(--lp-a15)', dur: '8s',  delay: '0.5s' },
+          { w: 260, h: 200, bottom: '-8%',right: '5%',  bg: 'var(--lp-a20)', dur: '10s', delay: '2s'   },
+          { w: 140, h: 140, top: '40%',  left: '5%',    bg: 'var(--lp-a10)', dur: '7s',  delay: '1.5s' },
+          { w: 100, h: 100, top: '20%',  right: '15%',  bg: 'var(--lp-a15)', dur: '6s',  delay: '0.8s' },
         ].map((b, i) => (
           <div key={i} style={{
             position: 'absolute',
@@ -175,10 +173,10 @@ export default function LoginCloud() {
                 <path d="M12 2L13.6 9.8L22 12L13.6 14.2L12 22L10.4 14.2L2 12L10.4 9.8Z" fill="white" />
               </svg>
             </div>
-            <Typography.Title level={2} style={{ margin: '0 0 6px', color: '#3b1f6e', fontWeight: 800, fontSize: 26, letterSpacing: '-0.02em' }}>
+            <Typography.Title level={2} style={{ margin: '0 0 6px', color: 'var(--lp-txt-h)', fontWeight: 800, fontSize: 26, letterSpacing: '-0.02em' }}>
               Polaris Enterprise
             </Typography.Title>
-            <Typography.Text style={{ color: '#8b7ab5', fontSize: 14 }}>
+            <Typography.Text style={{ color: 'var(--lp-txt-b)', fontSize: 14 }}>
               {isLocal ? 'Entorno local detectado' : 'Inicia sesión en tu cuenta'}
             </Typography.Text>
           </div>
@@ -223,11 +221,11 @@ export default function LoginCloud() {
 
           <div style={{ marginTop: 20, textAlign: 'center', display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ flex: 1, height: 1, background: 'rgba(201,184,232,0.3)' }} />
-            <span style={{ color: '#c4b5fd', fontSize: 10, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>CONEXIÓN SEGURA · TLS 1.3</span>
+            <span style={{ color: 'var(--lp-txt-b)', fontSize: 10, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>CONEXIÓN SEGURA · TLS 1.3</span>
             <div style={{ flex: 1, height: 1, background: 'rgba(201,184,232,0.3)' }} />
           </div>
           <div style={{ textAlign: 'center', marginTop: 12 }}>
-            <span style={{ color: '#c4b5fd', fontSize: 10 }}>© {new Date().getFullYear()} Polaris Enterprise · Speeddan System</span>
+            <span style={{ color: 'var(--lp-txt-b)', fontSize: 10 }}>© {new Date().getFullYear()} Polaris Enterprise · Speeddan System</span>
           </div>
         </div>
       </div>

@@ -1,21 +1,18 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Inter } from 'next/font/google'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
 
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] })
-
 interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
 const SAVED_KEY = 'pos_saved_credentials'
 
 const BLOBS = [
-  { w: 320, h: 200, top: '-5%', left: '-8%',  color: 'rgba(120,0,180,0.2)',  rotate: -30 },
-  { w: 260, h: 180, top: '60%', right: '-5%', color: 'rgba(180,0,120,0.18)', rotate: 20  },
-  { w: 200, h: 280, top: '30%', left: '-4%',  color: 'rgba(80,0,120,0.2)',   rotate: 50  },
-  { w: 300, h: 160, top: '80%', left: '25%',  color: 'rgba(150,30,100,0.15)',rotate: -10 },
+  { w: 320, h: 200, top: '-5%', left: '-8%',  color: 'var(--lp-a20)',  rotate: -30 },
+  { w: 260, h: 180, top: '60%', right: '-5%', color: 'var(--lp-a15)', rotate: 20  },
+  { w: 200, h: 280, top: '30%', left: '-4%',  color: 'var(--lp-a20)',   rotate: 50  },
+  { w: 300, h: 160, top: '80%', left: '25%',  color: 'var(--lp-a15)',rotate: -10 },
 ]
 
 export default function LoginVelvet() {
@@ -67,10 +64,9 @@ export default function LoginVelvet() {
 
   return (
     <div
-      className={inter.className}
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(145deg, #1A0025 0%, #2D0040 50%, #120018 100%)',
+        background: 'var(--lp-dk-bg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -88,7 +84,7 @@ export default function LoginVelvet() {
           background: rgba(255,255,255,0.06) !important;
           border-color: var(--lp-a25) !important;
           border-radius: 12px !important;
-          color: #F5E6D0 !important;
+          color: var(--lp-dk-txt-h) !important;
         }
         .velvet-input .ant-input-affix-wrapper:focus,
         .velvet-input .ant-input-affix-wrapper-focused {
@@ -114,7 +110,7 @@ export default function LoginVelvet() {
           border-color: var(--lp-1) !important;
         }
         .velvet-checkbox span:last-child {
-          color: rgba(245,230,208,0.6) !important;
+          color: var(--lp-dk-txt-b) !important;
           font-size: 13px !important;
         }
         .velvet-btn:hover {
@@ -179,11 +175,11 @@ export default function LoginVelvet() {
           </div>
           <Typography.Title
             level={3}
-            style={{ margin: 0, color: '#F5E6D0', fontWeight: 700, fontSize: 22, letterSpacing: '0.02em' }}
+            style={{ margin: 0, color: 'var(--lp-dk-txt-h)', fontWeight: 700, fontSize: 22, letterSpacing: '0.02em' }}
           >
             Bienvenida de nuevo
           </Typography.Title>
-          <Typography.Text style={{ color: 'rgba(245,230,208,0.55)', fontSize: 14, marginTop: 4, display: 'block' }}>
+          <Typography.Text style={{ color: 'var(--lp-dk-txt-b)', fontSize: 14, marginTop: 4, display: 'block' }}>
             Accede a tu espacio exclusivo
           </Typography.Text>
         </div>
@@ -242,7 +238,7 @@ export default function LoginVelvet() {
               transition: 'all 0.2s',
               background: 'linear-gradient(135deg, var(--lp-1) 0%, var(--lp-2) 100%)',
               boxShadow: '0 4px 20px var(--lp-a35)',
-              color: '#1A0025',
+              color: 'var(--lp-dk-bg)',
             }}
           >
             Iniciar sesión

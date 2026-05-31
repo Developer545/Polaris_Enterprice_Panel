@@ -1,12 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Inter } from 'next/font/google'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
-
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] })
 
 interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
 const SAVED_KEY = 'pos_saved_credentials'
@@ -67,7 +64,7 @@ export default function LoginSteel() {
         .steel-wrap {
           min-height: 100vh;
           display: flex;
-          font-family: ${inter.style.fontFamily};
+          font-family: var(--font-family, Inter, sans-serif);
           overflow: hidden;
         }
 
@@ -146,7 +143,7 @@ export default function LoginSteel() {
         /* ── RIGHT PANEL ── */
         .steel-right {
           flex: 1;
-          background: #F8FAFC;
+          background: var(--lp-bg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -158,7 +155,7 @@ export default function LoginSteel() {
           max-width: 400px;
         }
         .steel-form-title {
-          color: #0F1923 !important;
+          color: var(--lp-txt-h) !important;
           font-size: 22px !important;
           font-weight: 800 !important;
           margin-bottom: 4px !important;
@@ -172,7 +169,7 @@ export default function LoginSteel() {
           letter-spacing: 0.07em;
         }
         .steel-input .ant-form-item-label > label {
-          color: #475569 !important;
+          color: var(--lp-txt-l) !important;
           font-size: 12px !important;
           font-weight: 600 !important;
           text-transform: uppercase !important;
@@ -180,7 +177,7 @@ export default function LoginSteel() {
         }
         .steel-input .ant-input-affix-wrapper,
         .steel-input .ant-input-password {
-          background: #F1F5F9 !important;
+          background: var(--lp-bg-input) !important;
           border: 1px solid #CBD5E1 !important;
           border-radius: 8px !important;
         }
@@ -192,8 +189,8 @@ export default function LoginSteel() {
           box-shadow: 0 0 0 2px var(--lp-a10) !important;
         }
         .steel-input .ant-input {
-          background: #F1F5F9 !important;
-          color: #0F1923 !important;
+          background: var(--lp-bg-input) !important;
+          color: var(--lp-txt-h) !important;
           font-size: 14px !important;
         }
         .steel-input .ant-input::placeholder {
@@ -214,11 +211,11 @@ export default function LoginSteel() {
           font-size: 12px !important;
         }
         .steel-checkbox .ant-checkbox-wrapper {
-          color: #475569 !important;
+          color: var(--lp-txt-l) !important;
           font-size: 13px !important;
         }
         .steel-checkbox .ant-checkbox-inner {
-          background: #F1F5F9 !important;
+          background: var(--lp-bg-input) !important;
           border-color: #CBD5E1 !important;
           border-radius: 4px !important;
         }
@@ -241,7 +238,7 @@ export default function LoginSteel() {
         .steel-footer {
           margin-top: 24px;
           text-align: center;
-          color: #94A3B8;
+          color: var(--lp-txt-b);
           font-size: 12px;
         }
 

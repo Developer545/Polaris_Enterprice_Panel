@@ -5,23 +5,17 @@
  * Derecha: formulario blanco limpio
  */
 import { useState, useEffect } from 'react'
-import { Inter } from 'next/font/google'
 import { Form, Input, Button, Typography, Alert, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined, ShopOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { getClient, setTenantSlug } from '@pos-dte/shared-api'
 
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] })
 
 interface LoginForm { companyId: string; email: string; password: string; remember?: boolean }
 const SAVED_KEY = 'pos_saved_credentials'
 
 // Colores pastel base
-const V1 = '#C9B8E8' // violeta claro
-const V2 = 'var(--lp-1)' // violeta medio → accent principal
-const P1 = '#F8C8D4' // rosado claro
 const P2 = '#E879A8' // rosado medio (error — kept as-is)
-const O1 = '#FFD4A3' // naranja pastel
 
 export default function LoginBloom() {
   const router = useRouter()
@@ -89,42 +83,42 @@ export default function LoginBloom() {
 
         .bloom-input .ant-input,
         .bloom-input .ant-input-affix-wrapper {
-          background: #fdf8ff !important;
+          background: var(--lp-bg-input) !important;
           border-color: #e2d9f3 !important;
           border-radius: 12px !important;
-          color: #3b1f6e !important;
+          color: var(--lp-txt-h) !important;
           height: 48px !important;
           font-size: 14px !important;
           transition: all 0.2s !important;
         }
         .bloom-input .ant-input-affix-wrapper:hover,
         .bloom-input .ant-input-affix-wrapper-focused {
-          border-color: ${V2} !important;
+          border-color: var(--lp-1) !important;
           box-shadow: 0 0 0 3px var(--lp-a15) !important;
         }
         .bloom-input .ant-input-affix-wrapper .ant-input {
           background: transparent !important;
           height: auto !important;
-          color: #3b1f6e !important;
+          color: var(--lp-txt-h) !important;
         }
-        .bloom-input .ant-input-prefix { color: ${V2} !important; margin-right: 10px; }
-        .bloom-input .ant-input-password-icon { color: ${V2} !important; }
+        .bloom-input .ant-input-prefix { color: var(--lp-1) !important; margin-right: 10px; }
+        .bloom-input .ant-input-password-icon { color: var(--lp-1) !important; }
         .bloom-input .ant-input::placeholder { color: #c4b5fd !important; }
-        .bloom-input .ant-form-item-label > label { color: #6b5b9e !important; font-size: 12px !important; font-weight: 600 !important; letter-spacing: 0.04em !important; text-transform: uppercase; }
+        .bloom-input .ant-form-item-label > label { color: var(--lp-txt-l) !important; font-size: 12px !important; font-weight: 600 !important; letter-spacing: 0.04em !important; text-transform: uppercase; }
         .bloom-input .ant-form-item-explain-error { color: #e879a8 !important; font-size: 12px !important; }
-        .bloom-checkbox .ant-checkbox-inner { border-color: ${V1} !important; border-radius: 5px !important; }
-        .bloom-checkbox .ant-checkbox-checked .ant-checkbox-inner { background: ${V2} !important; border-color: ${V2} !important; }
-        .bloom-checkbox span { color: #8b7ab5 !important; font-size: 13px !important; }
+        .bloom-checkbox .ant-checkbox-inner { border-color: var(--lp-3) !important; border-radius: 5px !important; }
+        .bloom-checkbox .ant-checkbox-checked .ant-checkbox-inner { background: var(--lp-1) !important; border-color: var(--lp-1) !important; }
+        .bloom-checkbox span { color: var(--lp-txt-b) !important; font-size: 13px !important; }
         .bloom-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 10px 28px var(--lp-a50) !important; }
         .bloom-btn:active { transform: translateY(0) !important; }
       `}</style>
 
-      <div className={inter.className} style={{ position: 'fixed', inset: 0, display: 'flex' }}>
+      <div style={{ position: 'fixed', inset: 0, display: 'flex' }}>
 
         {/* ══ IZQUIERDA — panel degradado ══ */}
         <div style={{
           width: '45%', flexShrink: 0, position: 'relative', overflow: 'hidden',
-          background: `linear-gradient(145deg, ${V1} 0%, ${P1} 45%, ${O1} 100%)`,
+          background: 'linear-gradient(145deg, var(--lp-3) 0%, var(--lp-2) 45%, var(--lp-a25) 100%)',
           display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
           padding: '48px 52px',
         }}>
@@ -159,7 +153,7 @@ export default function LoginBloom() {
               }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M12 2L13.6 9.8L22 12L13.6 14.2L12 22L10.4 14.2L2 12L10.4 9.8Z"
-                    fill={V2} />
+                    fill="var(--lp-1)" />
                 </svg>
               </div>
               <div>
@@ -194,7 +188,7 @@ export default function LoginBloom() {
 
         {/* ══ DERECHA — formulario blanco ══ */}
         <div style={{
-          flex: 1, background: '#ffffff',
+          flex: 1, background: 'var(--lp-bg-card)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '40px 60px', position: 'relative',
           overflow: 'hidden',
@@ -202,23 +196,23 @@ export default function LoginBloom() {
           {/* Acento decorativo superior */}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0, height: 4,
-            background: `linear-gradient(90deg, ${V1}, ${P1}, ${O1})`,
+            background: 'linear-gradient(90deg, var(--lp-3), var(--lp-2), var(--lp-a25))',
           }} />
 
           {/* Forma decorativa fondo */}
           <div style={{
             position: 'absolute', bottom: -60, right: -60, width: 300, height: 300,
             borderRadius: '60% 40% 55% 45% / 45% 55% 45% 55%',
-            background: `radial-gradient(circle, ${V1}30 0%, transparent 70%)`,
+            background: 'radial-gradient(circle, var(--lp-a15) 0%, transparent 70%)',
             pointerEvents: 'none',
           }} />
 
           <div style={{ width: '100%', maxWidth: 400, animation: 'fadeUp 0.5s ease 0.2s both' }}>
             <div style={{ marginBottom: 36 }}>
-              <Typography.Title level={2} style={{ margin: '0 0 8px', color: '#3b1f6e', fontWeight: 700, fontSize: 28, letterSpacing: '-0.02em' }}>
+              <Typography.Title level={2} style={{ margin: '0 0 8px', color: 'var(--lp-txt-h)', fontWeight: 700, fontSize: 28, letterSpacing: '-0.02em' }}>
                 Bienvenida 🌸
               </Typography.Title>
-              <Typography.Text style={{ color: '#8b7ab5', fontSize: 14 }}>
+              <Typography.Text style={{ color: 'var(--lp-txt-b)', fontSize: 14 }}>
                 {isLocal ? 'Ingresa tus credenciales para continuar' : 'Accede a tu panel con tus credenciales'}
               </Typography.Text>
             </div>
