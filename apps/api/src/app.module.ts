@@ -178,6 +178,7 @@ export class AppModule implements NestModule {
       .exclude(
         { path: 'control-plane/*path', method: RequestMethod.ALL },
         { path: 'health', method: RequestMethod.GET },
+        { path: 'auth/branding', method: RequestMethod.GET },
         { path: 'auth/login', method: RequestMethod.POST },
         { path: 'auth/refresh', method: RequestMethod.POST },
         { path: 'auth/logout', method: RequestMethod.POST },
