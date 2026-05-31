@@ -293,7 +293,7 @@ export default function LoginNexus() {
           </Form>
 
           <div className="nexus-footer">
-            POLARIS ENTERPRISE &copy; {new Date().getFullYear()} · SPEEDDAN SYSTEM
+            POLARIS ENTERPRISE &copy; {new Date().getFullYear()} 
           </div>
         </div>
       </div>

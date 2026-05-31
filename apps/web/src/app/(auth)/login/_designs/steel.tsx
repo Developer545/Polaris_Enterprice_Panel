@@ -336,7 +336,7 @@ export default function LoginSteel() {
             </Form>
 
             <div className="steel-footer">
-              Polaris Enterprise &copy; {new Date().getFullYear()} · Speeddan System
+              Polaris Enterprise &copy; {new Date().getFullYear()} 
             </div>
           </div>
         </div>

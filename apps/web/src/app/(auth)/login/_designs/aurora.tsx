@@ -275,7 +275,7 @@ export default function LoginAurora() {
           </div>
 
           <div style={{ marginTop: 16, animation: 'fadeUp 0.6s ease 0.3s both' }}>
-            <span style={{ color: 'var(--lp-txt-b)', fontSize: 11 }}>© {new Date().getFullYear()} Polaris Enterprise · Speeddan System</span>
+            <span style={{ color: 'var(--lp-txt-b)', fontSize: 11 }}>© {new Date().getFullYear()} Polaris Enterprise </span>
           </div>
         </div>
       </div>

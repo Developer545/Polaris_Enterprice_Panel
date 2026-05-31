@@ -225,7 +225,7 @@ export default function LoginCloud() {
             <div style={{ flex: 1, height: 1, background: 'rgba(201,184,232,0.3)' }} />
           </div>
           <div style={{ textAlign: 'center', marginTop: 12 }}>
-            <span style={{ color: 'var(--lp-txt-b)', fontSize: 10 }}>© {new Date().getFullYear()} Polaris Enterprise · Speeddan System</span>
+            <span style={{ color: 'var(--lp-txt-b)', fontSize: 10 }}>© {new Date().getFullYear()} Polaris Enterprise </span>
           </div>
         </div>
       </div>

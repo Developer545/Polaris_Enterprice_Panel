@@ -307,7 +307,7 @@ export default function LoginCommand() {
             </Form>
 
             <div className="command-footer">
-              <span>$</span> Polaris Enterprise &copy; {new Date().getFullYear()} · Speeddan System
+              <span>$</span> Polaris Enterprise &copy; {new Date().getFullYear()} 
             </div>
           </div>
         </div>

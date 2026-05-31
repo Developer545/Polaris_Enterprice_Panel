@@ -150,8 +150,8 @@ function StatusBadge({ ok, label }: { ok: boolean; label: string }) {
 // ─── DB Strategy label ────────────────────────────────────────────────────────
 
 const DB_STRATEGY_INFO: Record<string, { label: string; color: string; description: string }> = {
-  NEON_SHARED:     { label: 'Neon Compartida',   color: 'blue',   description: 'Base de datos en cloud compartida, aislada por tenant. Administrada por Speeddan System.' },
-  NEON_DEDICATED:  { label: 'Neon Dedicada',     color: 'purple', description: 'Base de datos Neon exclusiva para este tenant. Administrada por Speeddan System.' },
+  NEON_SHARED:     { label: 'Neon Compartida',   color: 'blue',   description: 'Base de datos en cloud compartida, aislada por tenant. Administrada por Polaris Enterprise.' },
+  NEON_DEDICATED:  { label: 'Neon Dedicada',     color: 'purple', description: 'Base de datos Neon exclusiva para este tenant. Administrada por Polaris Enterprise.' },
   LOCAL_DEDICATED: { label: 'PostgreSQL Propio',  color: 'orange', description: 'Base de datos PostgreSQL en servidor del cliente. Administrada por el cliente.' },
 }
 
@@ -717,7 +717,7 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
           icon={<InfoCircleOutlined />}
           message={
             <span style={{ fontSize: 12 }}>
-              Si no configuras SMTP propio, el sistema usará el servidor global de Speeddan System
+              Si no configuras SMTP propio, el sistema usará el servidor global de Polaris Enterprise
               (si está disponible). Se recomienda configurar uno propio para que el correo salga
               desde tu dominio empresarial.
             </span>
@@ -813,7 +813,7 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
                   showIcon
                   message={
                     <span style={{ fontSize: 12 }}>
-                      Para cambiar la URL de conexión PostgreSQL, contacta a soporte de Speeddan System.
+                      Para cambiar la URL de conexión PostgreSQL, contacta a soporte de Polaris Enterprise.
                       La URL se almacena cifrada y nunca se expone al frontend.
                     </span>
                   }
@@ -845,7 +845,7 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
               }}>
                 <CheckCircleOutlined style={{ color: '#16a34a' }} />
                 <Text style={{ fontSize: 13, color: '#15803d' }}>
-                  Base de datos administrada por Speeddan System — sin configuración requerida
+                  Base de datos administrada por Polaris Enterprise — sin configuración requerida
                 </Text>
               </div>
             )}
@@ -854,7 +854,7 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
               <Text type="secondary" style={{ fontSize: 12 }}>
                 Para cambiar la estrategia de base de datos (ej. migrar a base de datos propia),
                 contacta a{' '}
-                <Text strong style={{ fontSize: 12 }}>soporte@speeddan.com</Text>
+                <Text strong style={{ fontSize: 12 }}>soporte@polarisenterprisesv.com</Text>
                 {' '}con el ID de tenant: <code style={{ background: 'var(--sidebar-item-hover-bg)', padding: '1px 6px', borderRadius: 4 }}>{tenantInfo?.slug}</code>
               </Text>
             </div>

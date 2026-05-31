@@ -182,7 +182,7 @@ export default function LoginBloom() {
 
           {/* Footer */}
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>© {new Date().getFullYear()} Polaris Enterprise · Speeddan System</span>
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>© {new Date().getFullYear()} Polaris Enterprise </span>
           </div>
         </div>
 

@@ -266,7 +266,7 @@ export default function LoginCarbon() {
           </Form>
 
           <div className="carbon-footer">
-            Polaris Enterprise &copy; {new Date().getFullYear()} · Speeddan System
+            Polaris Enterprise &copy; {new Date().getFullYear()} 
           </div>
         </div>
       </div>
