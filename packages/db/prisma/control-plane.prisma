@@ -73,6 +73,7 @@ model Tenant {
   modules          Json         @default("{}")  // { "pos": true, "dte": true, ... }
   dteAllowedTypes  String[]     // DTE types admin allows: ["01","03","05","06","11"]
   provisioned      Boolean      @default(false) // true once first company+user created
+  dteMonthlyQuota  Int          @default(500)   // cuota DTE mensual, 0 = ilimitado
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   companies        TenantCompany[]
@@ -93,18 +94,20 @@ model TenantCompany {
 }
 
 model Plan {
-  id           String   @id @default(cuid())
-  name         String   @unique
-  description  String?
-  price        Decimal  @db.Decimal(10, 2)
-  maxCompanies Int      @default(1)
-  maxBranches  Int      @default(1)
-  maxUsers     Int      @default(5)
-  features     Json     @default("{}")  // { "dte": true, "reports": false, ... }
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  tenants      Tenant[]
+  id               String   @id @default(cuid())
+  name             String   @unique
+  description      String?
+  price            Decimal  @db.Decimal(10, 2)
+  maxCompanies     Int      @default(1)
+  maxBranches      Int      @default(1)
+  maxUsers         Int      @default(5)
+  dteMonthlyQuota  Int      @default(500)    // 0 = ilimitado
+  modules          Json     @default("{\"pos\":true,\"dte\":true,\"inventory\":true,\"purchases\":true,\"expenses\":true,\"payroll\":false,\"reports\":true,\"crm\":false}")
+  features         Json     @default("{}")  // { "dte": true, "reports": false, ... }
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  tenants          Tenant[]
 }
 
 model AdminUser {

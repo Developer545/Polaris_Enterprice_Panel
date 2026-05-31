@@ -26,6 +26,7 @@ export const UpdateTenantSchema = z.object({
   status: z.enum(['TRIAL', 'ACTIVE', 'SUSPENDED', 'CANCELLED']).optional(),
   dbStrategy: z.enum(['NEON_SHARED', 'NEON_DEDICATED', 'LOCAL_DEDICATED']).optional(),
   dbUrl: z.string().optional(),
+  dteMonthlyQuota: z.number().int().min(0).optional(),
 })
 
 export const UpdateModulesSchema = z.object({

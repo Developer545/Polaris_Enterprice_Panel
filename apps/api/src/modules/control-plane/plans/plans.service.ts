@@ -9,6 +9,11 @@ export const CreatePlanSchema = z.object({
   maxCompanies: z.number().int().min(1).default(1),
   maxBranches: z.number().int().min(1).default(1),
   maxUsers: z.number().int().min(1).default(5),
+  dteMonthlyQuota: z.number().int().min(0).default(500),  // 0 = ilimitado
+  modules: z.record(z.boolean()).default({
+    pos: true, dte: true, inventory: true, purchases: true,
+    expenses: true, payroll: false, reports: true, crm: false,
+  }),
   features: z.record(z.boolean()).default({}),
   isActive: z.boolean().default(true),
 })

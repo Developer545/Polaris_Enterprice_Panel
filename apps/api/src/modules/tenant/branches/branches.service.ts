@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common'
+import { Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
+import { ControlPlaneClient } from '../../../infrastructure/prisma/control-plane.client'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
@@ -26,7 +27,10 @@ export type UpdateBranchDto = z.infer<typeof UpdateBranchSchema>
 
 @Injectable()
 export class BranchesService {
-  constructor(private readonly clientFactory: TenantClientFactory) {}
+  constructor(
+    private readonly clientFactory: TenantClientFactory,
+    private readonly cpClient: ControlPlaneClient,
+  ) {}
 
   private getDb() {
     const { dbUrl } = getCurrentTenant()
@@ -73,6 +77,23 @@ export class BranchesService {
     const { tenantId } = getCurrentTenant()
     const db = this.getDb()
     this.assertCompanyAccess(user, dto.companyId)
+
+    // Verificar límite de sucursales según plan del tenant
+    const tenantRecord = await this.cpClient.tenant.findUnique({
+      where: { id: tenantId },
+      select: { plan: { select: { maxBranches: true } } },
+    })
+    const maxBranches = tenantRecord?.plan?.maxBranches ?? 1
+    if (maxBranches > 0) {
+      const currentBranches = await db.branch.count({
+        where: { tenantId, isActive: true },
+      })
+      if (currentBranches >= maxBranches) {
+        throw new BadRequestException(
+          `Tu plan permite máximo ${maxBranches} sucursal(es). Actualiza tu plan para agregar más.`
+        )
+      }
+    }
 
     if (dto.codEstableMH) {
       const exists = await db.branch.findFirst({

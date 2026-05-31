@@ -3,6 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq'
 import { Queue } from 'bullmq'
 import { randomUUID } from 'crypto'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
+import { ControlPlaneClient } from '../../../infrastructure/prisma/control-plane.client'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import { calcIvaRetention1, calcLineTotals, calcSaleSummary, buildNumeroControl } from '@pos-dte/dte-core'
 import { Decimal } from '@prisma/client/runtime/library'
@@ -46,6 +47,7 @@ export class PosService {
 
   constructor(
     private readonly clientFactory: TenantClientFactory,
+    private readonly cpClient: ControlPlaneClient,
     @Optional() @InjectQueue('dte') private readonly dteQueue?: Queue,
   ) {}
 
@@ -225,6 +227,30 @@ export class PosService {
       throw new BadRequestException(
         `Tipo de documento '${dto.tipoDte}' no está habilitado para esta empresa. Actívalo en Configuración → Integraciones DTE.`
       )
+    }
+
+    // Verificar cuota DTE mensual del tenant
+    if (dto.emitDte) {
+      const tenantRecord = await this.cpClient.tenant.findUnique({
+        where: { id: tenantId },
+        select: { dteMonthlyQuota: true },
+      })
+      if (tenantRecord && tenantRecord.dteMonthlyQuota > 0) {
+        const startOfMonth = new Date()
+        startOfMonth.setDate(1)
+        startOfMonth.setHours(0, 0, 0, 0)
+        const usedThisMonth = await db.dteDocument.count({
+          where: {
+            tenantId,
+            createdAt: { gte: startOfMonth },
+          },
+        })
+        if (usedThisMonth >= tenantRecord.dteMonthlyQuota) {
+          throw new BadRequestException(
+            `Has alcanzado tu cuota mensual de ${tenantRecord.dteMonthlyQuota} documentos DTE. Contacta a soporte para ampliar tu plan.`
+          )
+        }
+      }
     }
 
     // codigoGeneracion generado antes de la tx para incluirlo en el outbox
@@ -483,7 +509,9 @@ export class PosService {
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
     const lastDayOfMonth  = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
 
-    const [salesAgg, activeClientsAgg, expensesAgg] = await Promise.all([
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
+
+    const [salesAgg, activeClientsAgg, expensesAgg, tenantRecord, dteUsedThisMonth] = await Promise.all([
       db.sale.aggregate({
         where: saleWhere,
         _sum: { totalPagar: true },
@@ -497,6 +525,13 @@ export class PosService {
       db.expense.aggregate({
         where: { tenantId, companyId, ...branchScope, date: { gte: from, lte: to } },
         _sum: { amount: true },
+      }),
+      this.cpClient.tenant.findUnique({
+        where: { id: tenantId },
+        select: { dteMonthlyQuota: true },
+      }),
+      db.dteDocument.count({
+        where: { tenantId, createdAt: { gte: startOfCurrentMonth } },
       }),
     ])
 
@@ -676,9 +711,17 @@ export class PosService {
     }
     dteStatusCounts.NO_DTE = Math.max(0, monthSalesCount - dteDocs.length)
 
+    const quotaLimit = tenantRecord?.dteMonthlyQuota ?? 0
+    const dteQuota = {
+      used: dteUsedThisMonth,
+      limit: quotaLimit,
+      pct: quotaLimit > 0 ? Math.min(100, Math.round((dteUsedThisMonth / quotaLimit) * 100)) : 0,
+    }
+
     return {
       totalSales, countSales, activeClients, totalExpenses, last7Days,
       topProducts, last6Months, expensesByCategory, lowStock, dteStatus: dteStatusCounts,
+      dteQuota,
     }
   }
 

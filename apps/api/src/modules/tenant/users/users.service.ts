@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common'
 import * as bcrypt from 'bcryptjs'
 import { TenantClientFactory } from '../../../infrastructure/prisma/tenant-client.factory'
+import { ControlPlaneClient } from '../../../infrastructure/prisma/control-plane.client'
 import { getCurrentTenant } from '../tenant-resolver/tenant.context'
 import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
@@ -31,7 +32,10 @@ export type UpdateUserDto = z.infer<typeof UpdateUserSchema>
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly clientFactory: TenantClientFactory) {}
+  constructor(
+    private readonly clientFactory: TenantClientFactory,
+    private readonly cpClient: ControlPlaneClient,
+  ) {}
 
   private getDb() {
     const { dbUrl } = getCurrentTenant()
@@ -94,6 +98,23 @@ export class UsersService {
     const db = this.getDb()
     this.assertCompanyAccess(user, dto.companyId)
     await this.validateCompanyRelations(db, tenantId, dto.companyId, dto.roleId, dto.branchIds)
+
+    // Verificar límite de usuarios según plan del tenant
+    const tenantRecord = await this.cpClient.tenant.findUnique({
+      where: { id: tenantId },
+      select: { plan: { select: { maxUsers: true } } },
+    })
+    const maxUsers = tenantRecord?.plan?.maxUsers ?? 5
+    if (maxUsers > 0) {
+      const currentUsers = await db.user.count({
+        where: { tenantId, isActive: true },
+      })
+      if (currentUsers >= maxUsers) {
+        throw new BadRequestException(
+          `Tu plan permite máximo ${maxUsers} usuario(s). Actualiza tu plan para agregar más.`
+        )
+      }
+    }
 
     const exists = await db.user.findFirst({
       where: { tenantId, email: dto.email, companyId: dto.companyId },
