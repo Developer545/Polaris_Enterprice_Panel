@@ -19,13 +19,20 @@ import { useBarcodeScanner } from '../../../hooks/use-barcode-scanner'
 interface CartItem {
   productId: string
   name: string
-  price: number
+  price: number           // resolved price (after priceType selection)
+  priceType: string | null // 'STANDARD'|'WHOLESALE'|'DISTRIBUTION'|'SPECIAL'|null
   quantity: number
   discount: number
   tipoItem: string
   uniMedida: number
   trackStock: boolean
   stock: number
+  hasCommission: boolean  // product.commissionAmount > 0
+  sellerId: string | null // item-level seller override (null = use invoice seller)
+  // available prices
+  priceWholesale: number | null
+  priceDistribution: number | null
+  priceSpecial: number | null
 }
 
 const FORMA_PAGO = [
@@ -90,6 +97,7 @@ export default function PosPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [lastSale, setLastSale] = useState<any>(null)
   const [printModal, setPrintModal] = useState(false)
+  const [invoiceSellerId, setInvoiceSellerId] = useState<string | null>(null)
 
   const { companyId, branchId } = useAppContext()
 
@@ -109,6 +117,8 @@ export default function PosPage() {
   const enabledDteTypes: string[] = bootstrapCompany?.dteEnabledTypes?.length
     ? bootstrapCompany.dteEnabledTypes
     : ['01', '03']
+  const sellers: any[] = bootstrap?.sellers ?? []
+  const enableCommissions: boolean = bootstrapCompany?.enableCommissions ?? false
 
   // Build PrintContext from lastSale data (recomputed only when lastSale/bootstrap change)
   const printCtx: PrintContext | null = useMemo(() => {
@@ -310,26 +320,42 @@ export default function PosPage() {
     setClientSearch('')
     setNewClientName('')
     setNewClientEmail('')
+    setInvoiceSellerId(null)
   }
 
   function addToCart(product: any) {
     setCart(prev => {
       const exists = prev.find(i => i.productId === product.id)
-      if (exists) {
-        return prev.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i)
-      }
+      if (exists) return prev.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i)
       return [...prev, {
         productId: product.id,
         name: product.name,
         price: Number(product.price),
+        priceType: null,
         quantity: 1,
         discount: 0,
         tipoItem: product.tipoItem,
         uniMedida: product.uniMedida,
         trackStock: product.trackStock,
         stock: product.stock ?? 0,
+        hasCommission: Number(product.commissionAmount ?? 0) > 0,
+        sellerId: null,
+        priceWholesale: product.priceWholesale ? Number(product.priceWholesale) : null,
+        priceDistribution: product.priceDistribution ? Number(product.priceDistribution) : null,
+        priceSpecial: product.priceSpecial ? Number(product.priceSpecial) : null,
       }]
     })
+  }
+
+  function setItemPriceType(productId: string, priceType: string | null) {
+    setCart(prev => prev.map(i => {
+      if (i.productId !== productId) return i
+      const newPrice = priceType === 'WHOLESALE'    ? (i.priceWholesale    ?? i.price)
+                     : priceType === 'DISTRIBUTION' ? (i.priceDistribution ?? i.price)
+                     : priceType === 'SPECIAL'      ? (i.priceSpecial      ?? i.price)
+                     : i.price  // revert to standard
+      return { ...i, priceType, price: newPrice }
+    }))
   }
 
   function updateQty(productId: string, qty: number) {
@@ -382,12 +408,15 @@ export default function PosPage() {
       cashRegisterId: openRegister?.id,
       clientId,
       tipoDte,
+      sellerId: invoiceSellerId || null,
       condicionOperacion: '1',
       items: cart.map(i => ({
         productId: i.productId,
         quantity: i.quantity,
         unitPrice: i.price,
         discount: i.discount,
+        priceType: i.priceType || undefined,
+        sellerId: i.sellerId || undefined,
       })),
       payments: values.payments,
       emitDte: true,
@@ -397,16 +426,40 @@ export default function PosPage() {
   const cartColumns = [
     {
       title: 'Producto', dataIndex: 'name', key: 'name',
-      render: (name: string, r: CartItem) => (
-        <div>
-          <div style={{ fontWeight: 500, fontSize: 12 }}>{name}</div>
-          {r.trackStock && (
-            <Tag color={(r.stock - r.quantity) <= 0 ? 'red' : 'green'} style={{ fontSize: 9, padding: '0 4px', lineHeight: '16px' }}>
-              Stock: {r.stock}
-            </Tag>
-          )}
-        </div>
-      ),
+      render: (name: string, r: CartItem) => {
+        const hasAltPrices = enableCommissions && (r.priceWholesale || r.priceDistribution || r.priceSpecial)
+        const priceOptions = [
+          { value: null as string | null, label: `Estándar` },
+          ...(r.priceWholesale    ? [{ value: 'WHOLESALE',    label: `Mayoreo ($${r.priceWholesale.toFixed(2)})`          }] : []),
+          ...(r.priceDistribution ? [{ value: 'DISTRIBUTION', label: `Distribución ($${r.priceDistribution.toFixed(2)})` }] : []),
+          ...(r.priceSpecial      ? [{ value: 'SPECIAL',      label: `Especial ($${r.priceSpecial.toFixed(2)})`          }] : []),
+        ]
+        return (
+          <div>
+            <div style={{ fontWeight: 500, fontSize: 12 }}>
+              {name}
+              {r.hasCommission && enableCommissions && (
+                <Tag color="orange" style={{ fontSize: 9, padding: '0 3px', marginLeft: 4 }}>Com.</Tag>
+              )}
+            </div>
+            {r.trackStock && (
+              <Tag color={(r.stock - r.quantity) <= 0 ? 'red' : 'green'} style={{ fontSize: 9, padding: '0 4px', lineHeight: '16px' }}>
+                Stock: {r.stock}
+              </Tag>
+            )}
+            {hasAltPrices && (
+              <Select
+                size="small"
+                value={r.priceType}
+                onChange={v => setItemPriceType(r.productId, v)}
+                options={priceOptions}
+                style={{ width: '100%', marginTop: 3, fontSize: 11 }}
+                placeholder="Precio estándar"
+              />
+            )}
+          </div>
+        )
+      },
     },
     {
       title: 'Cant.', key: 'qty', width: 80,
@@ -800,6 +853,36 @@ export default function PosPage() {
           />
           {renderClientContent()}
         </Card>
+
+        {/* Vendedor */}
+        {enableCommissions && sellers.length > 0 && (
+          <Card
+            size="small"
+            title={<span><TeamOutlined style={{ marginRight: 6, color: token.colorPrimary }} />Vendedor</span>}
+            style={{ borderRadius: 10 }}
+            styles={{ body: { padding: '8px 12px' } }}
+          >
+            <Select
+              allowClear
+              placeholder="Seleccionar vendedor de la factura"
+              style={{ width: '100%' }}
+              value={invoiceSellerId}
+              onChange={v => setInvoiceSellerId(v ?? null)}
+              showSearch
+              optionFilterProp="label"
+              options={sellers.map((s: any) => ({
+                value: s.id,
+                label: `${s.firstName} ${s.lastName}`,
+              }))}
+              size="small"
+            />
+            {invoiceSellerId && (
+              <div style={{ fontSize: 10, color: '#999', marginTop: 4 }}>
+                Vendedor aplica a toda la factura. Se puede sobreescribir por ítem.
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* Register status */}
         <Card size="small" style={{ borderRadius: 10 }} styles={{ body: { padding: '8px 12px' } }}>

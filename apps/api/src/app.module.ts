@@ -53,6 +53,7 @@ import { ExpensesModule } from './modules/tenant/expenses/expenses.module'
 // Tenant — Phase 4: RRHH
 import { EmployeesModule } from './modules/tenant/employees/employees.module'
 import { PayrollModule } from './modules/tenant/payroll/payroll.module'
+import { SalesGoalsModule } from './modules/tenant/sales-goals/sales-goals.module'
 
 // Tenant — Phase 5
 import { InventoryModule } from './modules/tenant/inventory/inventory.module'
@@ -129,6 +130,7 @@ import { UploadModule } from './modules/tenant/upload/upload.module'
     // Tenant — Phase 4
     EmployeesModule,
     PayrollModule,
+    SalesGoalsModule,
 
     // Tenant — Phase 5
     InventoryModule,

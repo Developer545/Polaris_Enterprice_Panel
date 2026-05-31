@@ -199,6 +199,15 @@ export default function PayrollPage() {
     { title: 'Empleado', render: (r: any) => r.employee ? `${r.employee.firstName} ${r.employee.lastName}` : '—' },
     { title: 'Cargo',    render: (r: any) => r.employee?.position ?? '—', width: 130 },
     { title: 'Bruto',       dataIndex: 'totalBruto',      render: (v: any) => fmt(Number(v ?? 0)) },
+    {
+      title: 'Comisiones', dataIndex: 'comisiones', key: 'comisiones', align: 'right' as const,
+      render: (v: any) => {
+        const n = Number(v ?? 0)
+        return n > 0
+          ? <Text style={{ color: '#f47920', fontWeight: 600 }}>{fmt(n)}</Text>
+          : <Text type="secondary">$0.00</Text>
+      },
+    },
     { title: 'ISSS',        dataIndex: 'isssEmpleado',    render: (v: any) => <Text type="danger">{fmt(Number(v ?? 0))}</Text> },
     { title: 'AFP',         dataIndex: 'afpEmpleado',     render: (v: any) => <Text type="danger">{fmt(Number(v ?? 0))}</Text> },
     { title: 'Renta',       dataIndex: 'rentaRetenida',   render: (v: any) => <Text type="danger">{fmt(Number(v ?? 0))}</Text> },

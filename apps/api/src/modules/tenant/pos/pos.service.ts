@@ -16,6 +16,8 @@ export const SaleLineSchema = z.object({
   quantity: z.number().positive(),
   unitPrice: z.number().positive().optional(), // override if custom price
   discount: z.number().nonnegative().default(0),
+  sellerId: z.string().cuid().optional().nullable(),
+  priceType: z.enum(['STANDARD', 'WHOLESALE', 'DISTRIBUTION', 'SPECIAL']).optional().nullable(),
 })
 
 export const CreateSaleSchema = z.object({
@@ -25,6 +27,7 @@ export const CreateSaleSchema = z.object({
   clientId: z.string().cuid().optional().nullable(),
   tipoDte: z.enum(['01', '03']).default('01'), // 01=CF, 03=CCF
   condicionOperacion: z.enum(['1', '2', '3']).default('1'), // 1=Contado, 2=Crédito, 3=Otro
+  sellerId: z.string().cuid().optional().nullable(), // invoice-level seller (can be overridden per item)
   items: z.array(SaleLineSchema).min(1),
   payments: z.array(z.object({
     formaPago: z.string().length(2), // 01=Efectivo,02=Tarjeta,03=Transferencia,etc.
@@ -134,6 +137,12 @@ export class PosService {
     const productIds = dto.items.map(i => i.productId)
     const products = await db.service.findMany({
       where: { id: { in: productIds }, tenantId, companyId: dto.companyId, isActive: true },
+      select: {
+        id: true, name: true, price: true, cost: true,
+        priceWholesale: true, priceDistribution: true, priceSpecial: true,
+        commissionAmount: true,
+        tipoItem: true, uniMedida: true, trackStock: true, stock: true, minStock: true,
+      },
     })
     if (products.length !== productIds.length) throw new BadRequestException('Uno o más productos no encontrados')
 
@@ -158,7 +167,12 @@ export class PosService {
     // Build typed line totals
     const lines = dto.items.map(item => {
       const product = products.find(p => p.id === item.productId)!
-      const unitPrice = item.unitPrice ?? Number(product.price)
+      const pt = item.priceType
+      const priceByType = pt === 'WHOLESALE'     ? Number(product.priceWholesale    ?? product.price)
+                        : pt === 'DISTRIBUTION'  ? Number(product.priceDistribution ?? product.price)
+                        : pt === 'SPECIAL'       ? Number(product.priceSpecial      ?? product.price)
+                        : Number(product.price)  // STANDARD or null → standard
+      const unitPrice = item.unitPrice ?? priceByType
       const totals = calcLineTotals(
         {
           quantity: item.quantity,
@@ -226,6 +240,7 @@ export class PosService {
           cashRegisterId: dto.cashRegisterId,
           clientId: dto.clientId,
           userId: user.sub,
+          sellerId: dto.sellerId ?? null,
           tipoDte: dto.tipoDte,
           condicionOperacion: dto.condicionOperacion,
           notes: dto.notes,
@@ -251,6 +266,8 @@ export class PosService {
               ivaItem: new Decimal(totals.ivaItem),
               tipoItem: product.tipoItem,
               uniMedida: product.uniMedida,
+              sellerId: item.sellerId ?? dto.sellerId ?? null,
+              priceType: item.priceType ?? null,
             })),
           },
           // Payments
@@ -392,6 +409,28 @@ export class PosService {
       return { sale: newSale, numeroControl: txNumeroControl }
     })
 
+    // Create Type A commission records for items with commissionAmount
+    if (dto.sellerId || dto.items.some(i => i.sellerId)) {
+      const commRecords: any[] = []
+      for (const { item, product } of lines) {
+        const effectiveSellerId = item.sellerId ?? dto.sellerId
+        if (!effectiveSellerId || !product.commissionAmount || Number(product.commissionAmount) <= 0) continue
+        const amount = Number(product.commissionAmount) * item.quantity
+        commRecords.push({
+          tenantId,
+          companyId: dto.companyId,
+          employeeId: effectiveSellerId,
+          saleId: sale.id,
+          type: 'A',
+          amount: new Decimal(Math.round(amount * 10000) / 10000),
+          isPaid: false,
+        })
+      }
+      if (commRecords.length > 0) {
+        await db.commissionRecord.createMany({ data: commRecords })
+      }
+    }
+
     // BullMQ best-effort — el outbox en PG ya garantiza que no se pierde el DTE.
     // En desktop local sin Redis, el DteLocalOutboxService procesa QUEUED desde PostgreSQL.
     if (dto.emitDte && useBullDteQueue() && this.dteQueue) {
@@ -510,7 +549,7 @@ export class PosService {
     if (branchId && !user.branchIds.includes(branchId) && !user.canViewAllBranches)
       throw new ForbiddenException('Sucursal no autorizada')
 
-    const [categories, products, openRegister, company, branch] = await Promise.all([
+    const [categories, products, openRegister, company, branch, sellers] = await Promise.all([
       // Categories — lightweight, all active
       db.category.findMany({
         where: { tenantId, companyId, isActive: true },
@@ -524,6 +563,8 @@ export class PosService {
         select: {
           id: true, name: true, sku: true, barcode: true,
           price: true, cost: true, emoji: true, imageUrl: true,
+          priceWholesale: true, priceDistribution: true, priceSpecial: true,
+          commissionAmount: true,
           tipoItem: true, uniMedida: true,
           trackStock: true, stock: true, minStock: true,
           categoryId: true,
@@ -555,6 +596,8 @@ export class PosService {
           nit: true, nrc: true, phone: true, email: true,
           address: true, actividadEconomica: true,
           esGranContribuyente: true, dteEnabledTypes: true,
+          enableCommissions: true,
+          enableSalesGoals: true,
         },
       }),
 
@@ -562,6 +605,13 @@ export class PosService {
       db.branch.findFirst({
         where: { id: branchId, tenantId, companyId },
         select: { id: true, name: true, address: true, phone: true, codEstableMH: true, codPuntoVentaMH: true },
+      }),
+
+      // Sellers — active employees with commissionType set
+      db.employee.findMany({
+        where: { tenantId, companyId, status: 'ACTIVE', commissionType: { not: null } },
+        select: { id: true, firstName: true, lastName: true, commissionType: true },
+        orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
       }),
     ])
 
@@ -572,7 +622,7 @@ export class PosService {
       minStock: branchInventories?.[0]?.minStock ?? p.minStock,
     }))
 
-    return { categories, products: resolvedProducts, openRegister, company, branch }
+    return { categories, products: resolvedProducts, openRegister, company, branch, sellers }
   }
 
   async voidSale(id: string, reason: string, user: JwtAccessPayload) {

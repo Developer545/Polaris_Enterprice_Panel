@@ -3,6 +3,7 @@ import {
   EmployeesService,
   CreateEmployeeSchema, UpdateEmployeeSchema,
   CreateCargoSchema, UpdateCargoSchema,
+  CreateGroupSchema, UpdateGroupSchema,
 } from './employees.service'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
@@ -18,6 +19,39 @@ import { z } from 'zod'
 @Controller('employees')
 export class EmployeesController {
   constructor(private readonly svc: EmployeesService) {}
+
+  // ── Groups (must come before :id routes) ──────────────────────────────────────
+
+  @Get('groups')
+  @RequirePermissions(PERMISSIONS.EMPLOYEES_VIEW)
+  listGroups(@CurrentUser() user: JwtAccessPayload, @Query('companyId') companyId?: string) {
+    return this.svc.listGroups(companyId ?? user.companyId, user)
+  }
+
+  @Post('groups')
+  @RequirePermissions(PERMISSIONS.EMPLOYEES_CREATE)
+  createGroup(
+    @Body(new ZodValidationPipe(CreateGroupSchema)) dto: z.infer<typeof CreateGroupSchema>,
+    @CurrentUser() user: JwtAccessPayload,
+  ) {
+    return this.svc.createGroup(dto, user)
+  }
+
+  @Put('groups/:id')
+  @RequirePermissions(PERMISSIONS.EMPLOYEES_EDIT)
+  updateGroup(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(UpdateGroupSchema)) dto: z.infer<typeof UpdateGroupSchema>,
+    @CurrentUser() user: JwtAccessPayload,
+  ) {
+    return this.svc.updateGroup(id, dto, user)
+  }
+
+  @Delete('groups/:id')
+  @RequirePermissions(PERMISSIONS.EMPLOYEES_DELETE)
+  deleteGroup(@Param('id') id: string, @CurrentUser() user: JwtAccessPayload) {
+    return this.svc.deleteGroup(id, user)
+  }
 
   // ── Cargos (must come before :id routes to avoid param collision) ─────────────
 

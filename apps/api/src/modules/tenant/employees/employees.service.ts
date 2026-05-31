@@ -9,6 +9,7 @@ export const CreateEmployeeSchema = z.object({
   companyId: z.string().cuid(),
   branchId: z.string().cuid().optional().nullable(),
   cargoId: z.string().cuid().optional().nullable(),
+  groupId: z.string().cuid().optional().nullable(),
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
   dui: z.string().optional().nullable(),
@@ -30,6 +31,8 @@ export const CreateEmployeeSchema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE', 'ON_LEAVE']).default('ACTIVE'),
   afpInstitution: z.enum(['CONFIA', 'CRECER']).optional().nullable(),
   photoUrl: z.string().optional().nullable(),
+  commissionType: z.enum(['A', 'B', 'BOTH']).optional().nullable(),
+  employeeDiscount: z.number().min(0).max(100).optional().nullable(),
 })
 
 export const UpdateEmployeeSchema = CreateEmployeeSchema.partial().omit({ companyId: true })
@@ -43,10 +46,23 @@ export const CreateCargoSchema = z.object({
 
 export const UpdateCargoSchema = CreateCargoSchema.partial().omit({ companyId: true })
 
+export const CreateGroupSchema = z.object({
+  companyId: z.string().cuid(),
+  name: z.string().min(1).max(100),
+  description: z.string().optional().nullable(),
+  commissionType: z.enum(['PERCENT_SOLD', 'PERCENT_GOAL']).optional().nullable(),
+  commissionPct: z.number().min(0).max(100).optional().nullable(),
+  isActive: z.boolean().optional().default(true),
+})
+
+export const UpdateGroupSchema = CreateGroupSchema.partial().omit({ companyId: true })
+
 export type CreateEmployeeDto = z.infer<typeof CreateEmployeeSchema>
 export type UpdateEmployeeDto = z.infer<typeof UpdateEmployeeSchema>
 export type CreateCargoDto    = z.infer<typeof CreateCargoSchema>
 export type UpdateCargoDto    = z.infer<typeof UpdateCargoSchema>
+export type CreateGroupDto    = z.infer<typeof CreateGroupSchema>
+export type UpdateGroupDto    = z.infer<typeof UpdateGroupSchema>
 
 @Injectable()
 export class EmployeesService {
@@ -103,6 +119,10 @@ export class EmployeesService {
         photoUrl: true,
         cargoId: true,
         cargo: { select: { id: true, nombre: true } },
+        groupId: true,
+        group: { select: { id: true, name: true } },
+        commissionType: true,
+        employeeDiscount: true,
         createdAt: true,
       },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
@@ -115,7 +135,10 @@ export class EmployeesService {
     const db = this.getDb()
     const employee = await db.employee.findFirst({
       where: { id, tenantId, companyId: user.companyId, ...buildBranchWhere(user) },
-      include: { cargo: { select: { id: true, nombre: true } } },
+      include: {
+        cargo: { select: { id: true, nombre: true } },
+        group: { select: { id: true, name: true } },
+      },
     })
     if (!employee) throw new NotFoundException('Empleado no encontrado')
     return employee
@@ -198,6 +221,65 @@ export class EmployeesService {
     if (!cargo) throw new NotFoundException('Cargo no encontrado')
     if (cargo._count.employees > 0) throw new ConflictException('No se puede eliminar: tiene empleados asignados')
     return db.employeeCargo.delete({ where: { id } })
+  }
+
+  // ── Groups CRUD ───────────────────────────────────────────────────────────────
+
+  async listGroups(companyId: string, user: JwtAccessPayload) {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
+    const groups = await db.employeeGroup.findMany({
+      where: { tenantId, companyId },
+      include: { _count: { select: { employees: true } } },
+      orderBy: { name: 'asc' },
+    })
+    return groups.map(g => ({ ...g, totalEmpleados: g._count.employees, _count: undefined }))
+  }
+
+  async createGroup(dto: CreateGroupDto, user: JwtAccessPayload) {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+    this.assertCompanyAccess(user, dto.companyId)
+    return db.employeeGroup.create({
+      data: {
+        tenantId,
+        companyId: dto.companyId,
+        name: dto.name,
+        description: dto.description ?? null,
+        commissionType: dto.commissionType ?? null,
+        commissionPct: dto.commissionPct ?? null,
+        isActive: dto.isActive ?? true,
+      },
+    })
+  }
+
+  async updateGroup(id: string, dto: UpdateGroupDto, user: JwtAccessPayload) {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+    const group = await db.employeeGroup.findFirst({ where: { id, tenantId } })
+    if (!group) throw new NotFoundException('Grupo no encontrado')
+    this.assertCompanyAccess(user, group.companyId)
+    return db.employeeGroup.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.commissionType !== undefined && { commissionType: dto.commissionType }),
+        ...(dto.commissionPct !== undefined && { commissionPct: dto.commissionPct }),
+        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+      },
+    })
+  }
+
+  async deleteGroup(id: string, user: JwtAccessPayload) {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+    const group = await db.employeeGroup.findFirst({ where: { id, tenantId }, include: { _count: { select: { employees: true } } } })
+    if (!group) throw new NotFoundException('Grupo no encontrado')
+    this.assertCompanyAccess(user, group.companyId)
+    if (group._count.employees > 0) throw new ConflictException('El grupo tiene empleados asignados')
+    return db.employeeGroup.delete({ where: { id } })
   }
 
   // ── Employee Analytics ───────────────────────────────────────────────────────

@@ -107,6 +107,9 @@ model Company {
   smtpPwdEnc               String?     // AES-256 encrypted
   smtpFrom                 String?     // e.g. "Empresa <noreply@empresa.com>"
   smtpSecure               Boolean     @default(false)
+  // Business feature toggles
+  enableCommissions        Boolean     @default(false)  // activate commission system
+  enableSalesGoals         Boolean     @default(false)  // activate sales goals module
   isActive                 Boolean     @default(true)
   createdAt                DateTime    @default(now())
   updatedAt                DateTime    @updatedAt
@@ -128,10 +131,13 @@ model Company {
   expenses           Expense[]
   employees          Employee[]
   employeeCargos     EmployeeCargo[]
+  employeeGroups     EmployeeGroup[]
   payrollPeriods     PayrollPeriod[]
   auditLogs          AuditLog[]
   inventoryMovements InventoryMovement[]
   accountsReceivable AccountReceivable[]
+  salesGoals         SalesGoal[]
+  commissionRecords  CommissionRecord[]
 
   @@index([tenantId])
 }
@@ -308,8 +314,12 @@ model Service {
   description String?
   sku         String?
   barcode     String?
-  price       Decimal   @db.Decimal(10, 4)
-  cost        Decimal   @default(0) @db.Decimal(10, 4)
+  price             Decimal   @db.Decimal(10, 4)       // precio estándar
+  priceWholesale    Decimal?  @db.Decimal(10, 4)       // precio mayoreo
+  priceDistribution Decimal?  @db.Decimal(10, 4)       // precio distribución
+  priceSpecial      Decimal?  @db.Decimal(10, 4)       // precio especial
+  cost              Decimal   @default(0) @db.Decimal(10, 4)
+  commissionAmount  Decimal?  @db.Decimal(10, 4)       // comisión fija tipo A por unidad vendida
   imageUrl    String?
   emoji       String?   @default("")  // emoji visual para POS tiles
   // DTE
@@ -406,6 +416,8 @@ model Sale {
   client           Client?       @relation(fields: [clientId], references: [id])
   userId           String
   user             User          @relation(fields: [userId], references: [id])
+  sellerId         String?       // vendedor asignado (puede diferir del cajero userId)
+  sellerEmployee   Employee?     @relation("SaleSeller", fields: [sellerId], references: [id])
   tipoDte          String        @default("01")  // 01=CF 03=CCF 05=NC 06=ND
   condicionOperacion String      @default("1")   // 1=Contado 2=Crédito
   // Totals (Decimal — NO float arithmetic)
@@ -431,6 +443,7 @@ model Sale {
   dteDocument        DteDocument?
   inventoryMovements InventoryMovement[]
   accountReceivable  AccountReceivable?
+  commissionRecords  CommissionRecord[]
 
   @@index([tenantId, companyId, branchId])
   @@index([tenantId, companyId, createdAt])
@@ -453,6 +466,9 @@ model SaleItem {
   ivaItem      Decimal  @default(0) @db.Decimal(10, 4)
   tipoItem     String   @default("2")
   uniMedida    Int      @default(59)
+  sellerId     String?  // vendedor específico de este ítem (override del vendedor de la venta)
+  seller       Employee? @relation("SaleItemSeller", fields: [sellerId], references: [id])
+  priceType    String?  // 'STANDARD'|'WHOLESALE'|'DISTRIBUTION'|'SPECIAL'
 }
 
 model Payment {
@@ -699,12 +715,20 @@ model Employee {
   afpInstitution  String?        // "CONFIA" | "CRECER"
   // Foto
   photoUrl        String?
+  // Grupos y comisiones
+  groupId         String?        // grupo del vendedor (obligatorio al crear si enableCommissions)
+  commissionType  String?        // 'A' | 'B' | 'BOTH' | null (sin comisión)
+  employeeDiscount Decimal?      @db.Decimal(5, 2)  // % descuento al comprar productos de la empresa
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
   cargoId         String?
   cargo           EmployeeCargo? @relation(fields: [cargoId], references: [id])
+  group           EmployeeGroup? @relation(fields: [groupId], references: [id])
   payrollItems    PayrollItem[]
+  salesAsSeller   Sale[]         @relation("SaleSeller")
+  saleItemsAsSeller SaleItem[]   @relation("SaleItemSeller")
+  commissions     CommissionRecord[]
 
   @@index([tenantId, companyId])
   @@index([tenantId, companyId, branchId])
@@ -726,6 +750,28 @@ model EmployeeCargo {
   @@unique([tenantId, companyId, nombre])
   @@index([tenantId, companyId])
   @@map("employee_cargos")
+}
+
+model EmployeeGroup {
+  id          String    @id @default(cuid())
+  tenantId    String
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  // Configuración de comisión tipo B para el grupo
+  commissionType String?  // 'PERCENT_SOLD' | 'PERCENT_GOAL'
+  commissionPct  Decimal? @db.Decimal(5, 2)  // % de comisión tipo B
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  employees   Employee[]
+  salesGoals  SalesGoal[]
+
+  @@unique([tenantId, companyId, name])
+  @@index([tenantId, companyId])
+  @@map("employee_groups")
 }
 
 model PayrollPeriod {
@@ -763,6 +809,7 @@ model PayrollItem {
   salaryBase      Decimal       @db.Decimal(10, 2)
   horasExtra      Decimal       @default(0) @db.Decimal(10, 2)
   bonos           Decimal       @default(0) @db.Decimal(10, 2)
+  comisiones      Decimal       @default(0) @db.Decimal(10, 2)  // comisiones tipo A + B del período
   aguinaldo       Decimal       @default(0) @db.Decimal(10, 2)
   otrosIngresos   Decimal       @default(0) @db.Decimal(10, 2)
   totalBruto      Decimal       @db.Decimal(10, 2)
@@ -781,6 +828,57 @@ model PayrollItem {
 
   @@index([payrollPeriodId])
   @@index([employeeId])
+}
+
+// ─── Sales Goals & Commissions ───────────────────────────────────────────────
+
+model SalesGoal {
+  id              String         @id @default(cuid())
+  tenantId        String
+  companyId       String
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  groupId         String?        // null = meta global (aplica a todos los grupos)
+  group           EmployeeGroup? @relation(fields: [groupId], references: [id])
+  name            String
+  startDate       DateTime
+  endDate         DateTime
+  targetAmount    Decimal        @db.Decimal(10, 2)
+  // Comisión tipo B: base de cálculo
+  commissionBasis String         @default("SOLD")   // 'SOLD' = % del monto vendido | 'GOAL' = % del monto meta
+  commissionPct   Decimal        @default(0) @db.Decimal(5, 2)
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([tenantId, companyId])
+  @@index([tenantId, companyId, groupId])
+  @@index([tenantId, companyId, startDate, endDate])
+  @@map("sales_goals")
+}
+
+model CommissionRecord {
+  id            String    @id @default(cuid())
+  tenantId      String
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId    String
+  employee      Employee  @relation(fields: [employeeId], references: [id])
+  saleId        String?
+  sale          Sale?     @relation(fields: [saleId], references: [id])
+  saleItemId    String?   // para tipo A (por ítem específico)
+  type          String    // 'A' | 'B'
+  amount        Decimal   @db.Decimal(10, 4)
+  payrollItemId String?   // id del PayrollItem cuando se pagó en planilla
+  isPaid        Boolean   @default(false)
+  periodStart   DateTime?
+  periodEnd     DateTime?
+  notes         String?
+  createdAt     DateTime  @default(now())
+
+  @@index([tenantId, companyId])
+  @@index([tenantId, companyId, employeeId])
+  @@index([tenantId, companyId, isPaid])
+  @@map("commission_records")
 }
 
 // ─── Audit ───────────────────────────────────────────────────────────────────

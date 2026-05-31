@@ -8,6 +8,7 @@ export interface PayrollCalcParams {
   salaryBase: number
   horasExtra?: number
   bonos?: number
+  comisiones?: number
   aguinaldo?: number
   otrosIngresos?: number
   afpInstitution?: string | null
@@ -17,6 +18,7 @@ export interface PayrollCalc {
   salaryBase: number
   horasExtra: number
   bonos: number
+  comisiones: number
   aguinaldo: number
   otrosIngresos: number
   totalBruto: number
@@ -98,11 +100,12 @@ export function calcPayrollItem(params: PayrollCalcParams): PayrollCalc {
     salaryBase,
     horasExtra = 0,
     bonos = 0,
+    comisiones = 0,
     aguinaldo = 0,
     otrosIngresos = 0,
   } = params
 
-  const totalBruto = round2(salaryBase + horasExtra + bonos + aguinaldo + otrosIngresos)
+  const totalBruto = round2(salaryBase + horasExtra + bonos + comisiones + aguinaldo + otrosIngresos)
 
   const isssEmpleado = calcIsssEmpleado(totalBruto)
   const afpEmpleado = calcAfpEmpleado(totalBruto)
@@ -122,6 +125,7 @@ export function calcPayrollItem(params: PayrollCalcParams): PayrollCalc {
     salaryBase,
     horasExtra,
     bonos,
+    comisiones,
     aguinaldo,
     otrosIngresos,
     totalBruto,

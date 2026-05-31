@@ -135,12 +135,32 @@ export class PayrollService {
       )
     }
 
+    // Fetch unpaid commission records per employee for this period
+    const allCommissions = await db.commissionRecord.findMany({
+      where: {
+        tenantId,
+        companyId: period.companyId,
+        isPaid: false,
+        createdAt: { gte: period.startDate, lte: period.endDate },
+      },
+      select: { id: true, employeeId: true, amount: true },
+    })
+    // Group by employee
+    const commsByEmp: Record<string, { ids: string[]; total: number }> = {}
+    for (const c of allCommissions) {
+      if (!commsByEmp[c.employeeId]) commsByEmp[c.employeeId] = { ids: [], total: 0 }
+      commsByEmp[c.employeeId].ids.push(c.id)
+      commsByEmp[c.employeeId].total += Number(c.amount)
+    }
+
     // Calculate each employee's payroll item
     const itemsData = employees.map((emp) => {
       const salaryBase = Number(emp.salary)
+      const comisiones = commsByEmp[emp.id]?.total ?? 0
       const calc = calcPayrollItem({
         salaryBase,
         afpInstitution: emp.afpInstitution,
+        comisiones,
       })
 
       return {
@@ -150,6 +170,7 @@ export class PayrollService {
         salaryBase: new Decimal(calc.salaryBase),
         horasExtra: new Decimal(calc.horasExtra),
         bonos: new Decimal(calc.bonos),
+        comisiones: new Decimal(calc.comisiones),
         aguinaldo: new Decimal(calc.aguinaldo),
         otrosIngresos: new Decimal(calc.otrosIngresos),
         totalBruto: new Decimal(calc.totalBruto),
@@ -175,6 +196,20 @@ export class PayrollService {
     // Persist everything in a single transaction
     return db.$transaction(async (tx) => {
       await tx.payrollItem.createMany({ data: itemsData })
+
+      // Link commission records to payroll items + mark paid
+      const createdItems = await tx.payrollItem.findMany({
+        where: { payrollPeriodId: periodId },
+        select: { id: true, employeeId: true },
+      })
+      for (const pi of createdItems) {
+        const commData = commsByEmp[pi.employeeId]
+        if (!commData || commData.ids.length === 0) continue
+        await tx.commissionRecord.updateMany({
+          where: { id: { in: commData.ids } },
+          data: { isPaid: true, payrollItemId: pi.id },
+        })
+      }
 
       return tx.payrollPeriod.update({
         where: { id: periodId },

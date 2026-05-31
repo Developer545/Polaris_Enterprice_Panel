@@ -14,6 +14,11 @@ export const CreateProductSchema = z.object({
   barcode:     z.string().optional().nullable(),
   price:       z.number().positive(),
   cost:        z.number().nonnegative().optional().default(0),
+  // Precios adicionales
+  priceWholesale:    z.number().positive().optional().nullable(),
+  priceDistribution: z.number().positive().optional().nullable(),
+  priceSpecial:      z.number().positive().optional().nullable(),
+  commissionAmount:  z.number().min(0).optional().nullable(),
   imageUrl:    z.string().url().optional().nullable(),
   emoji:       z.string().max(10).optional().nullable(),
   // DTE fields
@@ -151,8 +156,12 @@ export class ProductsService {
       data: {
         ...dto,
         tenantId,
-        price: new Decimal(dto.price),
-        cost: new Decimal(dto.cost ?? 0),
+        price:             new Decimal(dto.price),
+        cost:              new Decimal(dto.cost ?? 0),
+        priceWholesale:    dto.priceWholesale    != null ? new Decimal(dto.priceWholesale)    : null,
+        priceDistribution: dto.priceDistribution != null ? new Decimal(dto.priceDistribution) : null,
+        priceSpecial:      dto.priceSpecial      != null ? new Decimal(dto.priceSpecial)      : null,
+        commissionAmount:  dto.commissionAmount  != null ? new Decimal(dto.commissionAmount)  : null,
       },
     })
   }
@@ -163,13 +172,17 @@ export class ProductsService {
     const product = await db.service.findFirst({ where: { id, tenantId, companyId: user.companyId } })
     if (!product) throw new NotFoundException('Producto/servicio no encontrado')
 
-    const { price, cost, ...rest } = dto
+    const { price, cost, priceWholesale, priceDistribution, priceSpecial, commissionAmount, ...rest } = dto
     return db.service.update({
       where: { id },
       data: {
         ...rest,
-        ...(price !== undefined ? { price: new Decimal(price) } : {}),
-        ...(cost !== undefined ? { cost: new Decimal(cost) } : {}),
+        ...(price             !== undefined ? { price:             new Decimal(price)                                                          } : {}),
+        ...(cost              !== undefined ? { cost:              new Decimal(cost ?? 0)                                                       } : {}),
+        ...(priceWholesale    !== undefined ? { priceWholesale:    priceWholesale    != null ? new Decimal(priceWholesale)    : null } : {}),
+        ...(priceDistribution !== undefined ? { priceDistribution: priceDistribution != null ? new Decimal(priceDistribution) : null } : {}),
+        ...(priceSpecial      !== undefined ? { priceSpecial:      priceSpecial      != null ? new Decimal(priceSpecial)      : null } : {}),
+        ...(commissionAmount  !== undefined ? { commissionAmount:  commissionAmount  != null ? new Decimal(commissionAmount)  : null } : {}),
       },
     })
   }

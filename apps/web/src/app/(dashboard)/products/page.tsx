@@ -262,8 +262,19 @@ export default function ProductsPage() {
       },
     },
     {
-      title: 'Precio', dataIndex: 'price', key: 'price', width: 100, align: 'right',
-      render: (v: any) => <Text strong style={{ color: token.colorPrimary, fontSize: 13 }}>${Number(v).toFixed(2)}</Text>,
+      title: 'Precio', key: 'precio', width: 130, align: 'right',
+      render: (r: any) => (
+        <Space direction="vertical" size={1} style={{ alignItems: 'flex-end' }}>
+          <Text strong style={{ color: token.colorPrimary, fontSize: 13 }}>${Number(r.price).toFixed(2)}</Text>
+          {r.commissionAmount != null && Number(r.commissionAmount) > 0 && (
+            <Tooltip title={`Comisión fija: $${Number(r.commissionAmount).toFixed(2)}/und`}>
+              <Tag icon={<DollarOutlined />} color="orange" style={{ fontSize: 10, margin: 0, borderRadius: 4, lineHeight: '18px', padding: '0 5px', cursor: 'default' }}>
+                Com. ${Number(r.commissionAmount).toFixed(2)}
+              </Tag>
+            </Tooltip>
+          )}
+        </Space>
+      ),
     },
     {
       title: 'Costo', dataIndex: 'cost', key: 'cost', width: 90, align: 'right',
@@ -287,14 +298,18 @@ export default function ProductsPage() {
               setEditProd(r)
               prodForm.setFieldsValue({
                 ...r,
-                tipoItem:         String(r.tipoItem ?? '1'),
-                price:            Number(r.price),
-                cost:             Number(r.cost ?? 0),
-                uniMedida:        Number(r.uniMedida ?? 59),
-                conversionFactor: Number(r.conversionFactor ?? 1),
-                fraccionable:     isFrac,
-                emoji:            r.emoji ?? '',
-                imageUrl:         r.imageUrl ?? '',
+                tipoItem:          String(r.tipoItem ?? '1'),
+                price:             Number(r.price),
+                cost:              Number(r.cost ?? 0),
+                priceWholesale:    r.priceWholesale    != null ? Number(r.priceWholesale)    : null,
+                priceDistribution: r.priceDistribution != null ? Number(r.priceDistribution) : null,
+                priceSpecial:      r.priceSpecial      != null ? Number(r.priceSpecial)      : null,
+                commissionAmount:  r.commissionAmount  != null ? Number(r.commissionAmount)  : null,
+                uniMedida:         Number(r.uniMedida ?? 59),
+                conversionFactor:  Number(r.conversionFactor ?? 1),
+                fraccionable:      isFrac,
+                emoji:             r.emoji ?? '',
+                imageUrl:          r.imageUrl ?? '',
               })
             }} />
           </Tooltip>
@@ -452,14 +467,46 @@ export default function ProductsPage() {
             </Col>
           </Row>
 
-          <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Precios</Text>
+          <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Precios y comisiones</Text>
           <Divider style={{ margin: '6px 0 14px' }} />
+          <Card size="small" style={{ borderRadius: 10, marginBottom: 14, background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}` }}>
+            <Text style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 12, color: token.colorTextSecondary }}>
+              Precios
+            </Text>
+            <Row gutter={16}>
+              <Col xs={12} sm={12}>
+                <Form.Item name="price" label="Precio estándar" rules={[{ required: true }]} style={{ marginBottom: 14 }}>
+                  <InputNumber min={0} step={0.01} prefix="$" precision={2} style={{ width: '100%', borderRadius: 8 }} />
+                </Form.Item>
+              </Col>
+              <Col xs={12} sm={12}>
+                <Form.Item name="priceWholesale" label="Precio mayoreo" style={{ marginBottom: 14 }}>
+                  <InputNumber min={0} step={0.01} prefix="$" precision={2} style={{ width: '100%', borderRadius: 8 }} placeholder="Opcional" />
+                </Form.Item>
+              </Col>
+              <Col xs={12} sm={12}>
+                <Form.Item name="priceDistribution" label="Precio distribución" style={{ marginBottom: 14 }}>
+                  <InputNumber min={0} step={0.01} prefix="$" precision={2} style={{ width: '100%', borderRadius: 8 }} placeholder="Opcional" />
+                </Form.Item>
+              </Col>
+              <Col xs={12} sm={12}>
+                <Form.Item name="priceSpecial" label="Precio especial" style={{ marginBottom: 14 }}>
+                  <InputNumber min={0} step={0.01} prefix="$" precision={2} style={{ width: '100%', borderRadius: 8 }} placeholder="Opcional" />
+                </Form.Item>
+              </Col>
+              <Col xs={12} sm={12}>
+                <Form.Item
+                  name="commissionAmount"
+                  label="Comisión fija (tipo A)"
+                  tooltip="Monto fijo de comisión por unidad vendida"
+                  style={{ marginBottom: 0 }}
+                >
+                  <InputNumber min={0} step={0.01} prefix="$" precision={2} style={{ width: '100%', borderRadius: 8 }} placeholder="Opcional" />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Card>
           <Row gutter={16}>
-            <Col xs={12} sm={8}>
-              <Form.Item name="price" label="Precio de venta" rules={[{ required: true }]} style={{ marginBottom: 14 }}>
-                <InputNumber min={0} step={0.01} prefix="$" precision={2} style={{ width: '100%', borderRadius: 8 }} />
-              </Form.Item>
-            </Col>
             <Col xs={12} sm={8}>
               <Form.Item name="cost" label="Costo promedio" style={{ marginBottom: 14 }}>
                 <InputNumber min={0} step={0.01} prefix="$" precision={2} style={{ width: '100%', borderRadius: 8 }} />

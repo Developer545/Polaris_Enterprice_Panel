@@ -38,6 +38,8 @@ export const UpdateCompanySchema = z.object({
   smtpPassword: z.string().optional(),   // stored encrypted → smtpPwdEnc
   smtpFrom: z.string().optional().nullable(),
   smtpSecure: z.boolean().optional(),
+  enableCommissions: z.boolean().optional(),
+  enableSalesGoals: z.boolean().optional(),
 })
 
 export type UpdateCompanyDto = z.infer<typeof UpdateCompanySchema>
@@ -88,6 +90,7 @@ export class CompanyService {
         address: true, departamentoCod: true, municipioCod: true, distritoCod: true,
         phone: true, email: true, logoUrl: true,
         esGranContribuyente: true, sujetoRetencionIva1: true,
+        enableCommissions: true, enableSalesGoals: true,
         dteAmbiente: true, dteEnabledTypes: true, isActive: true, createdAt: true,
         haciendaUserEnc: true,
         certDataEnc: true,

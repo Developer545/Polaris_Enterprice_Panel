@@ -14,7 +14,7 @@ import {
   CalculatorOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
   CaretDownOutlined, CaretRightOutlined, BankOutlined,
   TagOutlined, SafetyOutlined, DatabaseOutlined, AccountBookOutlined,
-  BgColorsOutlined,
+  BgColorsOutlined, TrophyOutlined,
 } from '@ant-design/icons'
 import { usePathname, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
@@ -70,8 +70,9 @@ const NAV_GROUPS: NavGroup[] = [
     icon: <IdcardOutlined />,
     color: 'var(--ant-color-success)',
     items: [
-      { key: '/employees', label: 'Empleados', icon: <IdcardOutlined />, module: 'empleados' },
-      { key: '/payroll',   label: 'Planilla',  icon: <CalculatorOutlined />, module: 'planilla' },
+      { key: '/employees',   label: 'Empleados',       icon: <IdcardOutlined />, module: 'empleados' },
+      { key: '/payroll',     label: 'Planilla',        icon: <CalculatorOutlined />, module: 'planilla' },
+      { key: '/sales-goals', label: 'Metas de ventas', icon: <TrophyOutlined />, module: 'ventas' },
     ],
   },
   {

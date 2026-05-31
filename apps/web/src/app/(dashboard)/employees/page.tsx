@@ -9,6 +9,7 @@ import {
   PlusOutlined, EditOutlined, ReloadOutlined, UserOutlined, TeamOutlined,
   DollarOutlined, CheckCircleOutlined, CameraOutlined, DeleteOutlined,
   ExclamationCircleOutlined, TrophyOutlined, BarChartOutlined, FallOutlined,
+  ApartmentOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
@@ -21,6 +22,22 @@ const { Text, Title } = Typography
 const AFP_OPTIONS    = [{ value: 'CONFIA', label: 'CONFIA' }, { value: 'CRECER', label: 'CRECER' }]
 const SALARY_OPTIONS = [{ value: 'MONTHLY', label: 'Mensual' }, { value: 'DAILY', label: 'Diario' }, { value: 'HOURLY', label: 'Por hora' }]
 const STATUS_OPTIONS = [{ value: 'ACTIVE', label: 'Activo' }, { value: 'INACTIVE', label: 'Inactivo' }, { value: 'ON_LEAVE', label: 'Con permiso' }]
+
+const COMMISSION_TYPE_EMP_OPTIONS = [
+  { value: 'A',    label: 'A — Fija por producto' },
+  { value: 'B',    label: 'B — % por meta' },
+  { value: 'BOTH', label: 'Ambas (A + B)' },
+]
+
+const COMMISSION_TYPE_GROUP_OPTIONS = [
+  { value: 'PERCENT_SOLD', label: '% del monto vendido' },
+  { value: 'PERCENT_GOAL', label: '% al alcanzar meta' },
+]
+
+const COMMISSION_TYPE_GROUP_LABEL: Record<string, string> = {
+  PERCENT_SOLD: '% Vendido',
+  PERCENT_GOAL: '% Meta',
+}
 
 const STATUS_COLOR: Record<string, string>  = { ACTIVE: 'green', INACTIVE: 'default', ON_LEAVE: 'orange' }
 const STATUS_LABEL: Record<string, string>  = { ACTIVE: 'Activo', INACTIVE: 'Inactivo', ON_LEAVE: 'Permiso' }
@@ -52,15 +69,20 @@ export default function EmployeesPage() {
   const qc = useQueryClient()
   const { companyId } = useAppContext()
 
-  const [pageTab,   setPageTab]   = useState('empleados')
-  const [drawerEmp, setDrawerEmp] = useState<any>(null)  // selected employee for drawer
-  const [drawerTab, setDrawerTab] = useState('datos')
+  const [pageTab,    setPageTab]    = useState('empleados')
+  const [drawerEmp,  setDrawerEmp]  = useState<any>(null)  // selected employee for drawer
+  const [drawerTab,  setDrawerTab]  = useState('datos')
   const [newEmpOpen, setNewEmpOpen] = useState(false)
-  const [editCargo, setEditCargo] = useState<any>(null)  // null=closed, {}=new, {id}=edit
+  const [editCargo,  setEditCargo]  = useState<any>(null)  // null=closed, {}=new, {id}=edit
+  const [editGroup,  setEditGroup]  = useState<any>(null)  // null=closed, {}=new, {id}=edit
 
   const [form]      = Form.useForm()
   const [cargoForm] = Form.useForm()
+  const [groupForm] = Form.useForm()
   const PRIMARY = token.colorPrimary
+
+  // Watch commissionType in group form to conditionally show commissionPct
+  const groupCommissionType = Form.useWatch('commissionType', groupForm)
 
   // ── Geo cascading ────────────────────────────────────────────────────────────
   const selectedDept = Form.useWatch('departamentoCod', form)
@@ -96,6 +118,12 @@ export default function EmployeesPage() {
   const { data: cargos = [] } = useQuery({
     queryKey: ['employee-cargos', companyId],
     queryFn: () => api.get('/api/employees/cargos', { params: { companyId } }).then(r => r.data),
+    enabled: !!companyId,
+  })
+
+  const { data: groups = [] } = useQuery({
+    queryKey: ['employee-groups', companyId],
+    queryFn: () => api.get('/api/employees/groups', { params: { companyId } }).then(r => r.data),
     enabled: !!companyId,
   })
 
@@ -154,6 +182,28 @@ export default function EmployeesPage() {
     onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error'),
   })
 
+  const groupMutation = useMutation({
+    mutationFn: (values: any) =>
+      editGroup?.id
+        ? api.put(`/api/employees/groups/${editGroup.id}`, values)
+        : api.post('/api/employees/groups', { ...values, companyId }),
+    onSuccess: () => {
+      message.success('Grupo guardado')
+      qc.invalidateQueries({ queryKey: ['employee-groups'] })
+      setEditGroup(null)
+    },
+    onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error'),
+  })
+
+  const deleteGroupMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/api/employees/groups/${id}`),
+    onSuccess: () => {
+      message.success('Grupo eliminado')
+      qc.invalidateQueries({ queryKey: ['employee-groups'] })
+    },
+    onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error'),
+  })
+
   // ── Photo upload ──────────────────────────────────────────────────────────────
   const [photoLoading, setPhotoLoading] = useState(false)
 
@@ -190,6 +240,9 @@ export default function EmployeesPage() {
       ...emp,
       hireDate: emp.hireDate ? emp.hireDate.substring(0, 10) : undefined,
       cargoId: emp.cargoId ?? undefined,
+      groupId: emp.groupId ?? undefined,
+      commissionType: emp.commissionType ?? undefined,
+      employeeDiscount: emp.employeeDiscount != null ? Number(emp.employeeDiscount) : undefined,
     })
   }
 
@@ -206,6 +259,7 @@ export default function EmployeesPage() {
   const activeEmp   = employees.filter((e: any) => e.status === 'ACTIVE').length
   const onLeaveEmp  = employees.filter((e: any) => e.status === 'ON_LEAVE').length
   const totalCargos = cargos.length
+  const totalGroups = groups.length
 
   // ── Employee table columns ────────────────────────────────────────────────────
   const columns = [
@@ -219,7 +273,12 @@ export default function EmployeesPage() {
           </Avatar>
           <div>
             <div style={{ fontWeight: 600, fontSize: 13 }}>{r.firstName} {r.lastName}</div>
-            <div style={{ fontSize: 11, color: token.colorTextSecondary }}>{r.cargo?.nombre ?? r.position ?? '—'}</div>
+            <div style={{ fontSize: 11, color: token.colorTextSecondary }}>
+              {r.cargo?.nombre ?? r.position ?? '—'}
+              {r.group?.name && (
+                <span style={{ marginLeft: 6, color: '#6366f1' }}>· {r.group.name}</span>
+              )}
+            </div>
           </div>
         </Space>
       ),
@@ -266,6 +325,54 @@ export default function EmployeesPage() {
               modal.confirm({
                 title: 'Eliminar cargo', content: `¿Eliminar "${r.nombre}"?`, okText: 'Eliminar', okButtonProps: { danger: true },
                 onOk: () => deleteCargoMutation.mutate(r.id),
+              })
+            }}
+          />
+        </Space>
+      ),
+    },
+  ]
+
+  // ── Groups table ──────────────────────────────────────────────────────────────
+  const groupCols = [
+    { title: 'Nombre', dataIndex: 'name', key: 'name', render: (v: string) => <Text strong>{v}</Text> },
+    { title: 'Descripción', dataIndex: 'description', key: 'description', render: (v: string) => v ?? '—' },
+    {
+      title: 'Tipo comisión', dataIndex: 'commissionType', key: 'commissionType',
+      render: (v: string) => v ? <Tag color="purple">{COMMISSION_TYPE_GROUP_LABEL[v] ?? v}</Tag> : <span style={{ color: token.colorTextSecondary }}>Sin comisión</span>,
+    },
+    {
+      title: '% Comisión', dataIndex: 'commissionPct', key: 'commissionPct', align: 'right' as const,
+      render: (v: any) => v != null ? <Text strong style={{ color: PRIMARY }}>{Number(v).toFixed(2)}%</Text> : '—',
+    },
+    { title: 'Empleados', key: 'totalEmpleados', dataIndex: 'totalEmpleados', align: 'center' as const,
+      render: (v: number) => <Tag color="blue">{v}</Tag> },
+    {
+      title: 'Activo', dataIndex: 'isActive', key: 'isActive', align: 'center' as const,
+      render: (v: boolean) => <Tag color={v ? 'green' : 'default'}>{v ? 'Sí' : 'No'}</Tag>,
+    },
+    {
+      title: 'Acciones', key: 'actions', width: 110,
+      render: (r: any) => (
+        <Space size={4}>
+          <Button size="small" icon={<EditOutlined />}
+            onClick={() => {
+              setEditGroup(r)
+              groupForm.setFieldsValue({
+                name: r.name,
+                description: r.description,
+                commissionType: r.commissionType ?? undefined,
+                commissionPct: r.commissionPct != null ? Number(r.commissionPct) : undefined,
+                isActive: r.isActive,
+              })
+            }}
+          />
+          <Button size="small" danger icon={<DeleteOutlined />}
+            onClick={() => {
+              if (r.totalEmpleados > 0) { message.warning('El grupo tiene empleados asignados'); return }
+              modal.confirm({
+                title: 'Eliminar grupo', content: `¿Eliminar "${r.name}"?`, okText: 'Eliminar', okButtonProps: { danger: true },
+                onOk: () => deleteGroupMutation.mutate(r.id),
               })
             }}
           />
@@ -408,6 +515,44 @@ export default function EmployeesPage() {
         </Col>
       </Row>
 
+      <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Grupo y comisiones</Text>
+      <Divider style={{ margin: '4px 0 16px' }} />
+      <Row gutter={16}>
+        <Col span={12}>
+          <Form.Item name="groupId" label={<FL text="Grupo de empleados" />} style={{ marginBottom: 14 }}>
+            <Select
+              placeholder={groups.length === 0 ? 'Sin grupos — créelos en la pestaña Grupos' : 'Seleccionar grupo'}
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              options={groups.map((g: any) => ({ value: g.id, label: g.name }))}
+              style={{ borderRadius: 8 }}
+              notFoundContent={<span style={{ fontSize: 12, color: token.colorTextSecondary }}>No hay grupos creados aún</span>}
+            />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item name="commissionType" label={<FL text="Tipo de comisión" />} style={{ marginBottom: 14 }}>
+            <Select
+              placeholder="Sin comisión individual"
+              allowClear
+              options={COMMISSION_TYPE_EMP_OPTIONS}
+              style={{ borderRadius: 8 }}
+            />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item name="employeeDiscount" label={<FL text="Descuento empleado (%)" />} style={{ marginBottom: 14 }}>
+            <InputNumber
+              min={0} max={100} step={0.5}
+              suffix="%"
+              placeholder="0"
+              style={{ width: '100%', borderRadius: 8 }}
+            />
+          </Form.Item>
+        </Col>
+      </Row>
+
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
         <Button onClick={() => { setDrawerEmp(null); setNewEmpOpen(false) }}>Cancelar</Button>
         {drawerEmp?.id && drawerEmp?.status === 'ACTIVE' && (
@@ -533,7 +678,7 @@ export default function EmployeesPage() {
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <Title level={4} style={{ margin: 0, fontWeight: 700 }}>Empleados</Title>
-        <Text type="secondary" style={{ fontSize: 13 }}>Gestión de personal, cargos y datos laborales</Text>
+        <Text type="secondary" style={{ fontSize: 13 }}>Gestión de personal, cargos, grupos y datos laborales</Text>
       </div>
 
       {/* KPI cards */}
@@ -559,11 +704,18 @@ export default function EmployeesPage() {
               valueStyle={{ color: token.colorWarning, fontWeight: 700 }} />
           </Card>
         </Col>
-        <Col xs={12} sm={6}>
+        <Col xs={6} sm={3}>
           <Card size="small" style={{ borderRadius: 12, border: `1px solid ${'#6366f1'}20`, background: `${'#6366f1'}06` }} styles={{ body: { padding: '12px 16px' } }}>
-            <Statistic title="Cargos definidos" value={totalCargos}
+            <Statistic title="Cargos" value={totalCargos}
               prefix={<TrophyOutlined style={{ color: '#6366f1' }} />}
               valueStyle={{ color: '#6366f1', fontWeight: 700 }} />
+          </Card>
+        </Col>
+        <Col xs={6} sm={3}>
+          <Card size="small" style={{ borderRadius: 12, border: `1px solid ${'#0891b2'}20`, background: `${'#0891b2'}06` }} styles={{ body: { padding: '12px 16px' } }}>
+            <Statistic title="Grupos" value={totalGroups}
+              prefix={<ApartmentOutlined style={{ color: '#0891b2' }} />}
+              valueStyle={{ color: '#0891b2', fontWeight: 700 }} />
           </Card>
         </Col>
       </Row>
@@ -586,11 +738,19 @@ export default function EmployeesPage() {
                 </Button>
               </Space>
             )
-            : (
+            : pageTab === 'cargos'
+            ? (
               <Button type="primary" icon={<PlusOutlined />}
                 onClick={() => { setEditCargo({}); cargoForm.resetFields() }}
                 style={{ background: PRIMARY, borderColor: PRIMARY, borderRadius: 8 }}>
                 Nuevo cargo
+              </Button>
+            )
+            : (
+              <Button type="primary" icon={<PlusOutlined />}
+                onClick={() => { setEditGroup({}); groupForm.resetFields(); groupForm.setFieldsValue({ isActive: true }) }}
+                style={{ background: PRIMARY, borderColor: PRIMARY, borderRadius: 8 }}>
+                Nuevo grupo
               </Button>
             )
         }
@@ -617,6 +777,19 @@ export default function EmployeesPage() {
                 <Table
                   size="small" columns={cargoCols} dataSource={cargos} rowKey="id"
                   pagination={{ pageSize: 15, showSizeChanger: false, showTotal: (t) => `${t} cargos`, style: { padding: '8px 16px' } }}
+                  style={{ borderRadius: 12, overflow: 'hidden' }}
+                />
+              </Card>
+            ),
+          },
+          {
+            key: 'grupos',
+            label: `Grupos (${totalGroups})`,
+            children: (
+              <Card size="small" style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }} styles={{ body: { padding: 0 } }}>
+                <Table
+                  size="small" columns={groupCols} dataSource={groups} rowKey="id"
+                  pagination={{ pageSize: 15, showSizeChanger: false, showTotal: (t) => `${t} grupos`, style: { padding: '8px 16px' } }}
                   style={{ borderRadius: 12, overflow: 'hidden' }}
                 />
               </Card>
@@ -667,7 +840,7 @@ export default function EmployeesPage() {
         }
       </Drawer>
 
-      {/* ── Modal: nuevo cargo ──────────────────────────────────────────────── */}
+      {/* ── Modal: nuevo/editar cargo ───────────────────────────────────────── */}
       <Modal
         open={editCargo !== null}
         title={editCargo?.id ? 'Editar cargo' : 'Nuevo cargo'}
@@ -686,6 +859,62 @@ export default function EmployeesPage() {
             <Input.TextArea rows={2} style={{ borderRadius: 8 }} />
           </Form.Item>
           <Form.Item name="activo" label={<FL text="Activo" />} valuePropName="checked" initialValue={true}>
+            <Switch />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ── Modal: nuevo/editar grupo ───────────────────────────────────────── */}
+      <Modal
+        open={editGroup !== null}
+        title={editGroup?.id ? 'Editar grupo' : 'Nuevo grupo'}
+        onCancel={() => setEditGroup(null)}
+        onOk={() => groupForm.submit()}
+        confirmLoading={groupMutation.isPending}
+        okText="Guardar"
+        okButtonProps={{ style: { background: PRIMARY, borderColor: PRIMARY, borderRadius: 8, fontWeight: 600 } }}
+        width={480}
+      >
+        <Form form={groupForm} layout="vertical" onFinish={groupMutation.mutate} requiredMark={false} style={{ marginTop: 16 }}>
+          <Form.Item name="name" label={<FL text="Nombre del grupo" />} rules={[{ required: true }]}>
+            <Input style={{ borderRadius: 8 }} placeholder="Ej: Ventas, Producción, Supervisores" />
+          </Form.Item>
+          <Form.Item name="description" label={<FL text="Descripción" />}>
+            <Input.TextArea rows={2} style={{ borderRadius: 8 }} />
+          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="commissionType" label={<FL text="Tipo de comisión" />}>
+                <Select
+                  placeholder="Sin comisión"
+                  allowClear
+                  options={COMMISSION_TYPE_GROUP_OPTIONS}
+                  style={{ borderRadius: 8 }}
+                  onChange={() => {
+                    if (!groupForm.getFieldValue('commissionType')) {
+                      groupForm.setFieldValue('commissionPct', undefined)
+                    }
+                  }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="commissionPct"
+                label={<FL text="% de comisión" />}
+                rules={groupCommissionType ? [{ required: true, message: 'Ingrese el porcentaje' }] : []}
+              >
+                <InputNumber
+                  min={0} max={100} step={0.5}
+                  suffix="%"
+                  placeholder="0.00"
+                  disabled={!groupCommissionType}
+                  style={{ width: '100%', borderRadius: 8 }}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="isActive" label={<FL text="Activo" />} valuePropName="checked" initialValue={true}>
             <Switch />
           </Form.Item>
         </Form>
