@@ -24,9 +24,9 @@ const STATUS_MAP: Record<string, { color: string; label: string }> = {
 }
 
 const LBL = (text: string) => (
-  <span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>{text}</span>
+  <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: 13 }}>{text}</span>
 )
-const INP_STYLE = { borderRadius: 8, borderColor: '#e9e9e7' } as const
+const INP_STYLE = { borderRadius: 8, borderColor: 'var(--sidebar-border)' } as const
 const MB = { marginBottom: 16 } as const
 
 export default function PurchasesPage() {
@@ -87,7 +87,7 @@ export default function PurchasesPage() {
     {
       title: 'N° OC', dataIndex: 'orderNumber', key: 'orderNumber',
       width: 140,
-      render: (v: string) => <code style={{ fontSize: 11, color: '#37352f' }}>{v}</code>,
+      render: (v: string) => <code style={{ fontSize: 11, color: token.colorText }}>{v}</code>,
     },
     {
       title: 'Proveedor', key: 'supplier',
@@ -153,14 +153,14 @@ export default function PurchasesPage() {
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         {[
           { title: 'Total órdenes',  value: list.length, icon: <ShoppingOutlined />,   color: token.colorPrimary },
-          { title: 'Pendientes',     value: pending,     icon: <ClockCircleOutlined />, color: '#fa8c16' },
+          { title: 'Pendientes',     value: pending,     icon: <ClockCircleOutlined />, color: token.colorWarning },
           { title: 'Recibidas',      value: received,    icon: <CheckCircleOutlined />, color: token.colorSuccess },
-          { title: 'Total gastado',  value: totalSpent,  icon: null,                   color: '#787774', prefix: '$', precision: 2 },
+          { title: 'Total gastado',  value: totalSpent,  icon: null,                   color: token.colorTextSecondary, prefix: '$', precision: 2 },
         ].map(kpi => (
           <Col xs={12} sm={6} key={kpi.title}>
             <Card size="small" style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
               <Statistic
-                title={<span style={{ fontSize: 12, color: '#888' }}>{kpi.title}</span>}
+                title={<span style={{ fontSize: 12, color: token.colorTextSecondary }}>{kpi.title}</span>}
                 value={kpi.value}
                 precision={kpi.precision}
                 prefix={kpi.prefix ?? (kpi.icon ? <span style={{ color: kpi.color, marginRight: 4 }}>{kpi.icon}</span> : undefined)}
@@ -225,12 +225,12 @@ export default function PurchasesPage() {
         okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={780}
         style={{ top: 40 }}
-        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
+        styles={{ header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Form form={newForm} layout="vertical" onFinish={createMutation.mutate} requiredMark={false}>
 
-          <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Encabezado</Text>
-          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
+          <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Encabezado</Text>
+          <Divider style={{ margin: '4px 0 16px', borderColor: token.colorBorderSecondary }} />
           <Row gutter={16}>
             <Col span={14}>
               <Form.Item name="supplierId" label={LBL('Proveedor')} rules={[{ required: true, message: 'Selecciona un proveedor' }]} style={MB}>
@@ -250,14 +250,14 @@ export default function PurchasesPage() {
             </Col>
           </Row>
 
-          <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Líneas de ítems</Text>
-          <Divider style={{ margin: '4px 0 12px', borderColor: '#e9e9e7' }} />
+          <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Líneas de ítems</Text>
+          <Divider style={{ margin: '4px 0 12px', borderColor: token.colorBorderSecondary }} />
 
           {/* Header fijo de las columnas */}
           <Row gutter={8} style={{ marginBottom: 6 }}>
-            <Col span={11}><Text style={{ fontSize: 11, color: '#787774', fontWeight: 600 }}>Producto</Text></Col>
-            <Col span={5}><Text style={{ fontSize: 11, color: '#787774', fontWeight: 600 }}>Cantidad</Text></Col>
-            <Col span={6}><Text style={{ fontSize: 11, color: '#787774', fontWeight: 600 }}>Costo unit.</Text></Col>
+            <Col span={11}><Text style={{ fontSize: 11, color: token.colorTextSecondary, fontWeight: 600 }}>Producto</Text></Col>
+            <Col span={5}><Text style={{ fontSize: 11, color: token.colorTextSecondary, fontWeight: 600 }}>Cantidad</Text></Col>
+            <Col span={6}><Text style={{ fontSize: 11, color: token.colorTextSecondary, fontWeight: 600 }}>Costo unit.</Text></Col>
           </Row>
 
           <Form.List name="lines" initialValue={[{}]}>
@@ -305,7 +305,7 @@ export default function PurchasesPage() {
                   size="small"
                   icon={<PlusOutlined />}
                   onClick={() => add({})}
-                  style={{ borderRadius: 8, borderColor: '#e9e9e7', color: '#787774', marginBottom: 16 }}
+                  style={{ borderRadius: 8, borderColor: token.colorBorderSecondary, color: token.colorTextSecondary, marginBottom: 16 }}
                 >
                   Agregar ítem
                 </Button>
@@ -313,10 +313,10 @@ export default function PurchasesPage() {
             )}
           </Form.List>
 
-          <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Observaciones</Text>
-          <Divider style={{ margin: '4px 0 12px', borderColor: '#e9e9e7' }} />
+          <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Observaciones</Text>
+          <Divider style={{ margin: '4px 0 12px', borderColor: token.colorBorderSecondary }} />
           <Form.Item name="notes" style={{ marginBottom: 0 }}>
-            <Input.TextArea rows={2} placeholder="Notas u observaciones..." style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
+            <Input.TextArea rows={2} placeholder="Notas u observaciones..." style={{ borderRadius: 8, borderColor: token.colorBorderSecondary }} />
           </Form.Item>
         </Form>
       </Modal>
@@ -332,7 +332,7 @@ export default function PurchasesPage() {
         okButtonProps={{ style: { background: token.colorSuccess, borderColor: token.colorSuccess, borderRadius: 8, fontWeight: 600 } }}
         width={600}
         style={{ top: 40 }}
-        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
+        styles={{ header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Form
           form={receiveForm}
@@ -345,11 +345,11 @@ export default function PurchasesPage() {
               <>
                 {/* Header */}
                 <Row gutter={8} style={{ marginBottom: 8, padding: '0 4px' }}>
-                  <Col span={12}><Text style={{ fontSize: 11, color: '#787774', fontWeight: 600 }}>PRODUCTO</Text></Col>
-                  <Col span={6}><Text style={{ fontSize: 11, color: '#787774', fontWeight: 600 }}>ORDENADO</Text></Col>
-                  <Col span={6}><Text style={{ fontSize: 11, color: '#787774', fontWeight: 600 }}>RECIBIDO</Text></Col>
+                  <Col span={12}><Text style={{ fontSize: 11, color: token.colorTextSecondary, fontWeight: 600 }}>PRODUCTO</Text></Col>
+                  <Col span={6}><Text style={{ fontSize: 11, color: token.colorTextSecondary, fontWeight: 600 }}>ORDENADO</Text></Col>
+                  <Col span={6}><Text style={{ fontSize: 11, color: token.colorTextSecondary, fontWeight: 600 }}>RECIBIDO</Text></Col>
                 </Row>
-                <Divider style={{ margin: '0 0 12px', borderColor: '#e9e9e7' }} />
+                <Divider style={{ margin: '0 0 12px', borderColor: token.colorBorderSecondary }} />
                 {fields.map(({ key, name }) => {
                   const line = receiveForm.getFieldValue(['lines', name])
                   return (
@@ -362,7 +362,7 @@ export default function PurchasesPage() {
                         <Form.Item name={[name, 'ordered']} hidden><Input /></Form.Item>
                       </Col>
                       <Col span={6}>
-                        <Text style={{ fontSize: 13, color: '#787774' }}>{line?.ordered ?? 0}</Text>
+                        <Text style={{ fontSize: 13, color: token.colorTextSecondary }}>{line?.ordered ?? 0}</Text>
                       </Col>
                       <Col span={6}>
                         <Form.Item name={[name, 'received']} noStyle rules={[{ required: true, message: 'Requerido' }]}>

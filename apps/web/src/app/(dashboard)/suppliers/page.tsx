@@ -26,10 +26,10 @@ const { Title, Text } = Typography
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const LBL = (text: string) => (
-  <span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>{text}</span>
+  <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: 13 }}>{text}</span>
 )
 
-const INP_STYLE = { borderRadius: 8, borderColor: '#e9e9e7' } as const
+const INP_STYLE = { borderRadius: 8, borderColor: 'var(--sidebar-border)' } as const
 const MB = { marginBottom: 16 } as const
 
 // ── Componente ────────────────────────────────────────────────────────────────
@@ -143,7 +143,7 @@ export default function SuppliersPage() {
           <div>
             <div style={{ fontWeight: 600, fontSize: 13, lineHeight: 1.3 }}>{r.name}</div>
             {r.contactName && (
-              <div style={{ fontSize: 11, color: '#888' }}>
+              <div style={{ fontSize: 11, color: token.colorTextSecondary }}>
                 <UserOutlined style={{ fontSize: 10 }} /> {r.contactName}
               </div>
             )}
@@ -170,13 +170,13 @@ export default function SuppliersPage() {
       render: (r: any) => (
         <Space direction="vertical" size={0}>
           {r.email && (
-            <div style={{ fontSize: 11, color: '#555', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <MailOutlined style={{ fontSize: 10, color: '#999' }} /> {r.email}
+            <div style={{ fontSize: 11, color: token.colorTextSecondary, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <MailOutlined style={{ fontSize: 10, color: token.colorTextSecondary }} /> {r.email}
             </div>
           )}
           {r.phone && (
-            <div style={{ fontSize: 11, color: '#555', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <PhoneOutlined style={{ fontSize: 10, color: '#999' }} /> {r.phone}
+            <div style={{ fontSize: 11, color: token.colorTextSecondary, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <PhoneOutlined style={{ fontSize: 10, color: token.colorTextSecondary }} /> {r.phone}
             </div>
           )}
           {!r.email && !r.phone && <Text type="secondary" style={{ fontSize: 12 }}>—</Text>}
@@ -237,12 +237,12 @@ export default function SuppliersPage() {
         {[
           { title: 'Total proveedores', value: total,      icon: <BankOutlined />,    color: token.colorPrimary },
           { title: 'Con crédito',       value: withCredit, icon: <CalendarOutlined />, color: token.colorSuccess },
-          { title: 'Contado',           value: total - withCredit, icon: <BankOutlined />, color: '#787774' },
+          { title: 'Contado',           value: total - withCredit, icon: <BankOutlined />, color: token.colorTextSecondary },
         ].map(kpi => (
           <Col xs={12} sm={8} key={kpi.title}>
             <Card size="small" style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
               <Statistic
-                title={<span style={{ fontSize: 12, color: '#888' }}>{kpi.title}</span>}
+                title={<span style={{ fontSize: 12, color: token.colorTextSecondary }}>{kpi.title}</span>}
                 value={kpi.value}
                 valueStyle={{ color: kpi.color, fontWeight: 700, fontSize: 24 }}
                 prefix={<span style={{ color: kpi.color, marginRight: 4 }}>{kpi.icon}</span>}
@@ -260,7 +260,7 @@ export default function SuppliersPage() {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <Input
-            prefix={<SearchOutlined style={{ color: '#bbb' }} />}
+            prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
             placeholder="Buscar por nombre, NIT, email..."
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -317,24 +317,24 @@ export default function SuppliersPage() {
         okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={680}
         style={{ top: 40 }}
-        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
+        styles={{ header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Form form={form} layout="vertical" onFinish={saveMutation.mutate} requiredMark={false}>
 
           {/* ── Identificación fiscal ───────────────────────────────────── */}
-          <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Identificación fiscal</Text>
-          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
+          <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Identificación fiscal</Text>
+          <Divider style={{ margin: '4px 0 16px', borderColor: token.colorBorderSecondary }} />
           <Row gutter={16}>
             <Col span={16}>
               <Form.Item name="name" label={LBL('Nombre / Razón social')} rules={[{ required: true, message: 'Campo requerido' }]} style={MB}>
-                <Input prefix={<BankOutlined style={{ color: '#ccc' }} />} style={INP_STYLE} />
+                <Input prefix={<BankOutlined style={{ color: token.colorTextQuaternary }} />} style={INP_STYLE} />
               </Form.Item>
             </Col>
             <Col span={8}>
               <Form.Item name="paymentTermDays" label={LBL('Días de crédito')} initialValue={0} style={MB}>
                 <Space.Compact style={{ width: '100%' }}>
                   <InputNumber min={0} style={{ width: '100%', borderRadius: 8 }} />
-                  <span style={{ display: 'flex', alignItems: 'center', padding: '0 11px', background: '#fafafa', border: '1px solid #d9d9d9', borderLeft: 0, borderRadius: '0 8px 8px 0', color: '#666', fontSize: 13 }}>días</span>
+                  <span style={{ display: 'flex', alignItems: 'center', padding: '0 11px', background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, borderLeft: 0, borderRadius: '0 8px 8px 0', color: token.colorTextSecondary, fontSize: 13 }}>días</span>
                 </Space.Compact>
               </Form.Item>
             </Col>
@@ -377,10 +377,10 @@ export default function SuppliersPage() {
           </Row>
 
           {/* ── Ubicación fiscal (DTE) ──────────────────────────────────── */}
-          <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             <EnvironmentOutlined style={{ marginRight: 4 }} />Ubicación fiscal (DTE)
           </Text>
-          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
+          <Divider style={{ margin: '4px 0 16px', borderColor: token.colorBorderSecondary }} />
           <Row gutter={16}>
             <Col span={8}>
               <Form.Item name="departamentoCod" label={LBL('Departamento')} style={MB}>
@@ -430,27 +430,27 @@ export default function SuppliersPage() {
           </Row>
 
           {/* ── Contacto ────────────────────────────────────────────────── */}
-          <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Contacto</Text>
-          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
+          <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Contacto</Text>
+          <Divider style={{ margin: '4px 0 16px', borderColor: token.colorBorderSecondary }} />
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="contactName" label={LBL('Nombre de contacto')} style={MB}>
-                <Input prefix={<UserOutlined style={{ color: '#ccc' }} />} style={INP_STYLE} />
+                <Input prefix={<UserOutlined style={{ color: token.colorTextQuaternary }} />} style={INP_STYLE} />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item name="phone" label={LBL('Teléfono')} style={MB}>
-                <Input prefix={<PhoneOutlined style={{ color: '#ccc' }} />} style={INP_STYLE} />
+                <Input prefix={<PhoneOutlined style={{ color: token.colorTextQuaternary }} />} style={INP_STYLE} />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item name="email" label={LBL('Correo electrónico')} rules={[{ type: 'email', message: 'Email inválido' }]} style={MB}>
-                <Input prefix={<MailOutlined style={{ color: '#ccc' }} />} style={INP_STYLE} />
+                <Input prefix={<MailOutlined style={{ color: token.colorTextQuaternary }} />} style={INP_STYLE} />
               </Form.Item>
             </Col>
             <Col span={24}>
               <Form.Item name="notes" label={LBL('Notas')} style={{ marginBottom: 0 }}>
-                <Input.TextArea rows={2} style={{ borderRadius: 8, borderColor: '#e9e9e7' }} placeholder="Observaciones adicionales..." />
+                <Input.TextArea rows={2} style={{ borderRadius: 8, borderColor: token.colorBorderSecondary }} placeholder="Observaciones adicionales..." />
               </Form.Item>
             </Col>
           </Row>

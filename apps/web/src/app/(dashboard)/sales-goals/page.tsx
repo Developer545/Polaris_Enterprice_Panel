@@ -93,7 +93,7 @@ export default function SalesGoalsPage() {
       title: 'Progreso', key: 'progress', width: 220,
       render: (r: any) => {
         const pct = r.progressPct ?? 0
-        const color = pct >= 100 ? '#52c41a' : pct >= 70 ? '#faad14' : PRIMARY
+        const color = pct >= 100 ? token.colorSuccess : pct >= 70 ? token.colorWarning : PRIMARY
         return (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -203,8 +203,8 @@ export default function SalesGoalsPage() {
           </Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card size="small" style={{ borderRadius: 12, border: '1px solid #6366f120', background: '#6366f106' }} styles={{ body: { padding: '12px 16px' } }}>
-            <Statistic title="Total vendido" value={totalSold} prefix={<DollarCircleOutlined style={{ color: '#6366f1' }} />} precision={2} valueStyle={{ color: '#6366f1', fontWeight: 700 }} />
+          <Card size="small" style={{ borderRadius: 12, border: `1px solid ${token.colorPrimary}33`, background: `${token.colorPrimary}0a` }} styles={{ body: { padding: '12px 16px' } }}>
+            <Statistic title="Total vendido" value={totalSold} prefix={<DollarCircleOutlined style={{ color: token.colorPrimary }} />} precision={2} valueStyle={{ color: token.colorPrimary, fontWeight: 700 }} />
           </Card>
         </Col>
       </Row>

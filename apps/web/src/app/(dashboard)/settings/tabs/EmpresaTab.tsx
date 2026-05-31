@@ -12,9 +12,9 @@ import { api } from '../../../../lib/api'
 const { Text } = Typography
 
 const LBL = (text: string) => (
-  <span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>{text}</span>
+  <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: 13 }}>{text}</span>
 )
-const INP = { borderRadius: 8, borderColor: '#e9e9e7' } as const
+const INP = { borderRadius: 8, borderColor: 'var(--sidebar-border)' } as const
 const MB = { marginBottom: 16 } as const
 
 interface Props { companyId: string }
@@ -104,15 +104,15 @@ export default function EmpresaTab({ companyId }: Props) {
       <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false}>
 
         {/* ── Información general ─────────────────────────────── */}
-        <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Información general
         </Text>
-        <Divider style={{ margin: '4px 0 20px', borderColor: '#e9e9e7' }} />
+        <Divider style={{ margin: '4px 0 20px', borderColor: token.colorBorderSecondary }} />
 
         <Row gutter={24}>
           <Col xs={24} md={14}>
             <Form.Item label={LBL('Razón Social')} name="name" rules={[{ required: true, message: 'Requerido' }]} style={MB}>
-              <Input prefix={<BankOutlined style={{ color: '#ccc' }} />} placeholder="Empresa S.A. de C.V." style={INP} />
+              <Input prefix={<BankOutlined style={{ color: token.colorTextQuaternary }} />} placeholder="Empresa S.A. de C.V." style={INP} />
             </Form.Item>
           </Col>
           <Col xs={24} md={10}>
@@ -200,26 +200,26 @@ export default function EmpresaTab({ companyId }: Props) {
             </Row>
 
             <Form.Item label={LBL('Dirección fiscal')} name="address" style={MB}>
-              <Input.TextArea rows={2} placeholder="Dirección fiscal de la empresa" style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
+              <Input.TextArea rows={2} placeholder="Dirección fiscal de la empresa" style={{ borderRadius: 8, borderColor: token.colorBorderSecondary }} />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
             <Form.Item label={LBL('Teléfono')} name="phone" style={MB}>
-              <Input prefix={<PhoneOutlined style={{ color: '#ccc' }} />} placeholder="2222-3333" style={INP} />
+              <Input prefix={<PhoneOutlined style={{ color: token.colorTextQuaternary }} />} placeholder="2222-3333" style={INP} />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
             <Form.Item label={LBL('Correo electrónico')} name="email" rules={[{ type: 'email', message: 'Email inválido' }]} style={MB}>
-              <Input prefix={<MailOutlined style={{ color: '#ccc' }} />} placeholder="info@empresa.com.sv" style={INP} />
+              <Input prefix={<MailOutlined style={{ color: token.colorTextQuaternary }} />} placeholder="info@empresa.com.sv" style={INP} />
             </Form.Item>
           </Col>
         </Row>
 
         {/* ── Facturación DTE ─────────────────────────────────── */}
-        <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Facturación Electrónica (DTE)
         </Text>
-        <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
+        <Divider style={{ margin: '4px 0 16px', borderColor: token.colorBorderSecondary }} />
 
         <Row gutter={24}>
           <Col xs={24} md={12}>
@@ -250,12 +250,12 @@ export default function EmpresaTab({ companyId }: Props) {
         <Row gutter={24}>
           <Col xs={24} md={12}>
             <Form.Item label={LBL('Usuario Hacienda (MH)')} name="haciendaUser" style={MB}>
-              <Input prefix={<LockOutlined style={{ color: '#ccc' }} />} placeholder="Usuario portal MH" style={INP} />
+              <Input prefix={<LockOutlined style={{ color: token.colorTextQuaternary }} />} placeholder="Usuario portal MH" style={INP} />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
             <Form.Item label={LBL('Contraseña Hacienda')} name="haciendaPassword" style={MB}>
-              <Input.Password prefix={<LockOutlined style={{ color: '#ccc' }} />} placeholder="Dejar vacío para no cambiar" style={INP} />
+              <Input.Password prefix={<LockOutlined style={{ color: token.colorTextQuaternary }} />} placeholder="Dejar vacío para no cambiar" style={INP} />
             </Form.Item>
           </Col>
           <Col xs={24} md={10}>
@@ -272,7 +272,7 @@ export default function EmpresaTab({ companyId }: Props) {
         </Row>
 
         {/* ── Botón guardar ─────────────────────────────────────── */}
-        <Divider style={{ margin: '8px 0 20px', borderColor: '#e9e9e7' }} />
+        <Divider style={{ margin: '8px 0 20px', borderColor: token.colorBorderSecondary }} />
         <Row justify="end">
           <Button
             type="primary"

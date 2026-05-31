@@ -390,7 +390,7 @@ export default function AccountsReceivablePage() {
         destroyOnClose
       >
         {abonoModal && (
-          <div style={{ marginBottom: 16, padding: '10px 14px', background: '#f9f9f8', borderRadius: 8 }}>
+          <div style={{ marginBottom: 16, padding: '10px 14px', background: token.colorFillAlter, borderRadius: 8 }}>
             <Text strong>{abonoModal.client?.name}</Text>
             <br />
             <Text type="secondary" style={{ fontSize: 12 }}>{abonoModal.description}</Text>

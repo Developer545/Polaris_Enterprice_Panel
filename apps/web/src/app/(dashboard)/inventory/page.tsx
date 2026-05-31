@@ -369,7 +369,7 @@ export default function InventoryPage() {
     {
       title:  'Valor en stock',
       value:  `$${Number(stats.valorStock ?? 0).toFixed(2)}`,
-      color:  '#52c41a',
+      color:  token.colorSuccess,
       icon:   <DollarOutlined />,
     },
     {
@@ -388,7 +388,7 @@ export default function InventoryPage() {
         const bg = Number(r.stock ?? 0) <= Number(r.minStock ?? 0)
           ? '#fff1f0' : `${avatarBg(r.name)}22`
         const fg = Number(r.stock ?? 0) <= Number(r.minStock ?? 0)
-          ? '#cf1322' : avatarBg(r.name)
+          ? token.colorError : avatarBg(r.name)
         const fraccionable = Number(r.conversionFactor ?? 1) > 1
         return (
           <Space size={10}>
@@ -441,7 +441,7 @@ export default function InventoryPage() {
         return (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-              <Text style={{ fontSize: 13, fontWeight: 600, color: status === 'exception' ? '#cf1322' : primary }}>
+              <Text style={{ fontSize: 13, fontWeight: 600, color: status === 'exception' ? token.colorError : primary }}>
                 {stock % 1 === 0 ? stock.toFixed(0) : stock.toFixed(2)} {unitLabel}
               </Text>
               {status === 'exception' && (
@@ -452,7 +452,7 @@ export default function InventoryPage() {
             </div>
             <Progress
               percent={pct} status={status} size="small" showInfo={false}
-              strokeColor={status === 'exception' ? '#ff4d4f' : status === 'normal' ? '#faad14' : primary}
+              strokeColor={status === 'exception' ? token.colorError : status === 'normal' ? token.colorWarning : primary}
               trailColor={token.colorFillSecondary}
             />
             <Text style={{ fontSize: 10, color: token.colorTextSecondary }}>
@@ -575,7 +575,7 @@ export default function InventoryPage() {
         <Space size={4}>
           <Text type="secondary" style={{ fontSize: 11 }}>{Number(r.quantityBefore ?? 0).toFixed(0)}</Text>
           <Text type="secondary">→</Text>
-          <Text strong style={{ fontSize: 12, color: Number(r.quantityAfter) < Number(r.quantityBefore) ? '#cf1322' : primary }}>
+          <Text strong style={{ fontSize: 12, color: Number(r.quantityAfter) < Number(r.quantityBefore) ? token.colorError : primary }}>
             {Number(r.quantityAfter ?? 0).toFixed(0)}
           </Text>
         </Space>
@@ -610,7 +610,7 @@ export default function InventoryPage() {
       render: (v: any, r: any) => {
         const esSalida = r.type === 'OUT'
         return (
-          <Text style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12, color: esSalida ? '#cf1322' : '#389e0d', fontWeight: 600 }}>
+          <Text style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12, color: esSalida ? token.colorError : token.colorSuccess, fontWeight: 600 }}>
             {esSalida ? '−' : '+'}{Math.abs(Number(v))}
           </Text>
         )
@@ -622,7 +622,7 @@ export default function InventoryPage() {
         <Space size={4}>
           <Text type="secondary" style={{ fontSize: 11 }}>{Number(r.quantityBefore ?? 0).toFixed(0)}</Text>
           <Text type="secondary">→</Text>
-          <Text strong style={{ fontSize: 12, color: Number(r.quantityAfter) < Number(r.quantityBefore) ? '#cf1322' : primary }}>
+          <Text strong style={{ fontSize: 12, color: Number(r.quantityAfter) < Number(r.quantityBefore) ? token.colorError : primary }}>
             {Number(r.quantityAfter ?? 0).toFixed(0)}
           </Text>
         </Space>
@@ -751,9 +751,9 @@ export default function InventoryPage() {
 
                   {/* Stock bajo alert */}
                   {stockBajoCount > 0 && !soloStockBajo && (
-                    <div style={{ background: '#fff1f0', border: '1px solid #ffccc7', borderRadius: 8, padding: '8px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <WarningOutlined style={{ color: '#ff4d4f' }} />
-                      <Text style={{ color: '#cf1322', fontSize: 13 }}>
+                    <div style={{ background: token.colorErrorBg, border: `1px solid ${token.colorErrorBorder}`, borderRadius: 8, padding: '8px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <WarningOutlined style={{ color: token.colorError }} />
+                      <Text style={{ color: token.colorError, fontSize: 13 }}>
                         {stockBajoCount} {stockBajoCount === 1 ? 'producto tiene' : 'productos tienen'} stock por debajo del mínimo.{' '}
                       </Text>
                       <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: primary, fontWeight: 600, fontSize: 13, padding: 0 }}
@@ -843,7 +843,7 @@ export default function InventoryPage() {
             <Row gutter={[16, 8]}>
               <Col span={6}>
                 <div style={{ fontSize: 11, color: token.colorTextSecondary }}>Stock actual</div>
-                <div style={{ fontWeight: 700, fontSize: 18, color: Number(kardexProduct.stock ?? 0) <= Number(kardexProduct.minStock ?? 0) ? '#cf1322' : primary }}>
+                <div style={{ fontWeight: 700, fontSize: 18, color: Number(kardexProduct.stock ?? 0) <= Number(kardexProduct.minStock ?? 0) ? token.colorError : primary }}>
                   {Number(kardexProduct.stock ?? 0) % 1 === 0 ? Number(kardexProduct.stock ?? 0).toFixed(0) : Number(kardexProduct.stock ?? 0).toFixed(2)}
                   <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 4 }}>{kardexProduct.saleUnit?.symbol ?? kardexProduct.saleUnit?.name ?? ''}</span>
                 </div>
@@ -893,7 +893,7 @@ export default function InventoryPage() {
             <Row gutter={16}>
               <Col span={12}>
                 <div style={{ fontSize: 11, color: token.colorTextSecondary }}>Stock actual</div>
-                <div style={{ fontWeight: 700, fontSize: 16, color: Number(adjustTarget.stock ?? 0) <= Number(adjustTarget.minStock ?? 0) ? '#cf1322' : primary }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: Number(adjustTarget.stock ?? 0) <= Number(adjustTarget.minStock ?? 0) ? token.colorError : primary }}>
                   {Number(adjustTarget.stock ?? 0) % 1 === 0 ? Number(adjustTarget.stock ?? 0).toFixed(0) : Number(adjustTarget.stock ?? 0).toFixed(2)}
                   <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 4 }}>{adjustTarget.saleUnit?.symbol ?? adjustTarget.saleUnit?.name ?? ''}</span>
                 </div>

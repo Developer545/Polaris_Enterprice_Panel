@@ -204,7 +204,7 @@ export default function PayrollPage() {
       render: (v: any) => {
         const n = Number(v ?? 0)
         return n > 0
-          ? <Text style={{ color: '#f47920', fontWeight: 600 }}>{fmt(n)}</Text>
+          ? <Text style={{ color: token.colorPrimary, fontWeight: 600 }}>{fmt(n)}</Text>
           : <Text type="secondary">$0.00</Text>
       },
     },
@@ -324,14 +324,14 @@ export default function PayrollPage() {
         message="Tasas según legislación El Salvador 2024. Para modificarlas, edita el archivo apps/api/src/modules/tenant/payroll/payroll-calculator.ts." />
       <Row gutter={[16, 16]}>
         <Col xs={24} md={12}>
-          <Card title={<span><SafetyOutlined style={{ color: '#1677ff', marginRight: 8 }} />ISSS — Seguro Social</span>} size="small">
+          <Card title={<span><SafetyOutlined style={{ color: token.colorInfo, marginRight: 8 }} />ISSS — Seguro Social</span>} size="small">
             <Space direction="vertical" style={{ width: '100%' }}>
               {[
                 { label: 'Tasa empleado', value: `${ISSS_RATE_EMP}%` },
                 { label: 'Tasa patronal', value: `${ISSS_RATE_PAT}%` },
                 { label: 'Tope salarial', value: `$${ISSS_TOPE.toFixed(2)}` },
               ].map(i => (
-                <div key={i.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div key={i.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
                   <Text type="secondary" style={{ fontSize: 13 }}>{i.label}</Text>
                   <Text strong style={{ fontSize: 13 }}>{i.value}</Text>
                 </div>
@@ -340,14 +340,14 @@ export default function PayrollPage() {
           </Card>
         </Col>
         <Col xs={24} md={12}>
-          <Card title={<span><BankOutlined style={{ color: '#52c41a', marginRight: 8 }} />AFP — Fondo de Pensiones</span>} size="small">
+          <Card title={<span><BankOutlined style={{ color: token.colorSuccess, marginRight: 8 }} />AFP — Fondo de Pensiones</span>} size="small">
             <Space direction="vertical" style={{ width: '100%' }}>
               {[
                 { label: 'Tasa empleado', value: `${AFP_RATE_EMP}%` },
                 { label: 'Tasa patronal', value: `${AFP_RATE_PAT}%` },
                 { label: 'Tope salarial', value: 'Sin tope' },
               ].map(i => (
-                <div key={i.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div key={i.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
                   <Text type="secondary" style={{ fontSize: 13 }}>{i.label}</Text>
                   <Text strong style={{ fontSize: 13 }}>{i.value}</Text>
                 </div>
@@ -356,13 +356,13 @@ export default function PayrollPage() {
           </Card>
         </Col>
         <Col xs={24} md={12}>
-          <Card title={<span><PercentageOutlined style={{ color: '#f5222d', marginRight: 8 }} />INSAFORP</span>} size="small">
+          <Card title={<span><PercentageOutlined style={{ color: token.colorError, marginRight: 8 }} />INSAFORP</span>} size="small">
             <Space direction="vertical" style={{ width: '100%' }}>
               {[
                 { label: 'Tasa patronal', value: `${INSAFORP_RATE}%` },
                 { label: 'Tope salarial', value: `$${INSAFORP_TOPE.toFixed(2)}` },
               ].map(i => (
-                <div key={i.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div key={i.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
                   <Text type="secondary" style={{ fontSize: 13 }}>{i.label}</Text>
                   <Text strong style={{ fontSize: 13 }}>{i.value}</Text>
                 </div>
@@ -371,7 +371,7 @@ export default function PayrollPage() {
           </Card>
         </Col>
         <Col span={24}>
-          <Card title={<span><PercentageOutlined style={{ color: '#f5222d', marginRight: 8 }} />Renta — ISR mensual 2024</span>} size="small">
+          <Card title={<span><PercentageOutlined style={{ color: token.colorError, marginRight: 8 }} />Renta — ISR mensual 2024</span>} size="small">
             <Alert type="info" showIcon style={{ marginBottom: 12 }}
               message="Base imponible = Salario Bruto − ISSS − AFP. Se aplica la tabla progresiva mensual." />
             <Table size="small" pagination={false} scroll={{ x: true }}
@@ -438,10 +438,10 @@ export default function PayrollPage() {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Card size="small" style={{ borderRadius: 10, borderLeft: '4px solid #f59e0b' }}>
+          <Card size="small" style={{ borderRadius: 10, borderLeft: `4px solid ${token.colorWarning}` }}>
             <Statistic title="Costo patronal (último)"
               value={lastPeriod ? fmt(Number(lastPeriod.totalIsss ?? 0) * (ISSS_RATE_PAT / ISSS_RATE_EMP)) : '—'}
-              valueStyle={{ fontSize: 18, color: '#f59e0b' }} />
+              valueStyle={{ fontSize: 18, color: token.colorWarning }} />
           </Card>
         </Col>
       </Row>
@@ -637,7 +637,7 @@ export default function PayrollPage() {
         okButtonProps={{ style: { background: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={520}
         style={{ top: 40 }}
-        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
+        styles={{ header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Form form={newForm} layout="vertical" requiredMark={false}
           onFinish={(values) => createMutation.mutate({

@@ -318,10 +318,10 @@ export default function ExpensesPage() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small" style={{ borderRadius: 10, borderTop: '3px solid #9ca3af' }}>
+          <Card size="small" style={{ borderRadius: 10, borderTop: `3px solid ${token.colorTextSecondary}` }}>
             <Statistic title="Gastos este año" value={fmt(totalAno)}
-              valueStyle={{ fontSize: 20, fontWeight: 700, color: '#9ca3af' }}
-              prefix={<DollarOutlined style={{ color: '#9ca3af' }} />} />
+              valueStyle={{ fontSize: 20, fontWeight: 700, color: token.colorTextSecondary }}
+              prefix={<DollarOutlined style={{ color: token.colorTextSecondary }} />} />
           </Card>
         </Col>
         <Col span={6}>
@@ -344,11 +344,11 @@ export default function ExpensesPage() {
                 <Space align="center" size={8}>
                   <div style={{ width: 10, height: 10, borderRadius: '50%', background: r.color, flexShrink: 0 }} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 11, color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 90 }}>
+                    <div style={{ fontSize: 11, color: token.colorTextSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 90 }}>
                       {r.nombre}
                     </div>
                     <div style={{ fontWeight: 700, fontSize: 13, color: r.color }}>{fmt(r.total)}</div>
-                    <div style={{ fontSize: 10, color: '#bbb' }}>{r.count} {r.count === 1 ? 'gasto' : 'gastos'}</div>
+                    <div style={{ fontSize: 10, color: token.colorTextQuaternary }}>{r.count} {r.count === 1 ? 'gasto' : 'gastos'}</div>
                   </div>
                 </Space>
               </Card>
@@ -362,9 +362,9 @@ export default function ExpensesPage() {
         styles={{ body: { padding: 0 } }}>
 
         {/* Toolbar */}
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${token.colorBorderSecondary}`, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <Input
-            prefix={<SearchOutlined style={{ color: '#bbb' }} />}
+            prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
             placeholder="Buscar descripción, categoría o notas..."
             allowClear value={search} onChange={e => setSearch(e.target.value)}
             style={{ width: 280 }}
@@ -426,7 +426,7 @@ export default function ExpensesPage() {
         okButtonProps={{ danger: true, style: { borderRadius: 8, fontWeight: 600 } }}
         width={500}
         style={{ top: 40 }}
-        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
+        styles={{ header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Form form={form} layout="vertical" requiredMark={false} onFinish={handleSaveExpense}>
           <Form.Item name="categoryId" label="Categoría">
@@ -486,8 +486,8 @@ export default function ExpensesPage() {
             {categories.map((c: any) => (
               <div key={c.id} style={{
                 display: 'flex', alignItems: 'center', padding: '8px 12px', borderRadius: 8,
-                border: `1px solid ${editCat?.id === c.id ? c.color : '#e9e9e7'}`,
-                background: editCat?.id === c.id ? c.color + '18' : '#fafafa',
+                border: `1px solid ${editCat?.id === c.id ? c.color : token.colorBorderSecondary}`,
+                background: editCat?.id === c.id ? c.color + '18' : token.colorFillAlter,
               }}>
                 <span style={{ width: 12, height: 12, borderRadius: '50%', background: c.color, marginRight: 10, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -535,7 +535,7 @@ export default function ExpensesPage() {
                 {COLORES_PRESET.map(col => (
                   <button key={col} onClick={() => setCatColor(col)} style={{
                     width: 24, height: 24, borderRadius: '50%', background: col, cursor: 'pointer', padding: 0,
-                    border: catColor === col ? '3px solid #37352f' : '2px solid transparent',
+                    border: catColor === col ? `3px solid ${token.colorText}` : '2px solid transparent',
                   }} />
                 ))}
                 <ColorPicker value={catColor} onChange={(_, hex) => setCatColor(hex)} size="small" />
@@ -543,7 +543,7 @@ export default function ExpensesPage() {
               {catColor && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ width: 14, height: 14, borderRadius: '50%', background: catColor, display: 'inline-block' }} />
-                  <Text style={{ fontSize: 12, color: '#888' }}>{catColor}</Text>
+                  <Text style={{ fontSize: 12, color: token.colorTextSecondary }}>{catColor}</Text>
                 </div>
               )}
             </Form.Item>

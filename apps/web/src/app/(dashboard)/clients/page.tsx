@@ -270,7 +270,7 @@ export default function ClientsPage() {
           <div>
             <div style={{ fontWeight: 600, fontSize: 13, lineHeight: 1.3 }}>{r.name}</div>
             {r.email && (
-              <div style={{ fontSize: 11, color: '#888', display: 'flex', alignItems: 'center', gap: 3 }}>
+              <div style={{ fontSize: 11, color: token.colorTextSecondary, display: 'flex', alignItems: 'center', gap: 3 }}>
                 <MailOutlined style={{ fontSize: 10 }} /> {r.email}
               </div>
             )}
@@ -298,7 +298,7 @@ export default function ClientsPage() {
       render: (r: any) =>
         r.numDocumento ? (
           <Space size={4}>
-            <IdcardOutlined style={{ color: '#999' }} />
+            <IdcardOutlined style={{ color: token.colorTextSecondary }} />
             <Text style={{ fontSize: 12 }}>
               <Text type="secondary" style={{ fontSize: 11 }}>{getDocLabel(r.tipoDocumento)}: </Text>
               {r.numDocumento}
@@ -337,7 +337,7 @@ export default function ClientsPage() {
       render: (r: any) =>
         r.departamentoCod ? (
           <Space size={4}>
-            <EnvironmentOutlined style={{ color: '#722ed1', fontSize: 12 }} />
+            <EnvironmentOutlined style={{ color: token.colorInfo, fontSize: 12 }} />
             <Text style={{ fontSize: 11 }}>
               {(departamentosApi as any[]).find((d: any) => d.codigo === r.departamentoCod)?.nombre ?? r.departamentoCod}
             </Text>
@@ -408,7 +408,7 @@ export default function ClientsPage() {
           { title: 'Total clientes', value: totalClients, icon: <TeamOutlined />, color: token.colorPrimary },
           { title: 'Activos', value: activeClients, icon: <UserOutlined />, color: token.colorSuccess },
           { title: 'Crédito Fiscal (CCF)', value: ccfClients, icon: <BankOutlined />, color: token.colorInfo },
-          { title: 'Consumidor Final (CF)', value: cfClients, icon: <UserOutlined />, color: '#722ed1' },
+          { title: 'Consumidor Final (CF)', value: cfClients, icon: <UserOutlined />, color: token.colorWarning },
         ].map((kpi) => (
           <Col xs={12} sm={6} key={kpi.title}>
             <Card
@@ -416,7 +416,7 @@ export default function ClientsPage() {
               style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
             >
               <Statistic
-                title={<span style={{ fontSize: 12, color: '#888' }}>{kpi.title}</span>}
+                title={<span style={{ fontSize: 12, color: token.colorTextSecondary }}>{kpi.title}</span>}
                 value={kpi.value}
                 valueStyle={{ color: kpi.color, fontWeight: 700, fontSize: 24 }}
                 prefix={<span style={{ color: kpi.color, marginRight: 4 }}>{kpi.icon}</span>}
@@ -435,7 +435,7 @@ export default function ClientsPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <Space wrap>
             <Input
-              prefix={<SearchOutlined style={{ color: '#bbb' }} />}
+              prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
               placeholder="Buscar por nombre, documento, email..."
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -513,7 +513,7 @@ export default function ClientsPage() {
         okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={680}
         style={{ top: 40 }}
-        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
+        styles={{ header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Form
           form={form}
@@ -523,7 +523,7 @@ export default function ClientsPage() {
           style={{ marginTop: 8 }}
         >
           {/* Tipo persona */}
-          <Form.Item name="tipoPersona" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Tipo de persona</span>} style={{ marginBottom: 16 }}>
+          <Form.Item name="tipoPersona" label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Tipo de persona</span>} style={{ marginBottom: 16 }}>
             <Radio.Group
               optionType="button"
               buttonStyle="solid"
@@ -534,31 +534,31 @@ export default function ClientsPage() {
             </Radio.Group>
           </Form.Item>
 
-          <Divider style={{ margin: '0 0 16px', borderColor: '#e9e9e7' }} />
+          <Divider style={{ margin: '0 0 16px', borderColor: token.colorBorderSecondary }} />
 
           {/* Datos básicos */}
-          <Typography.Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Datos básicos</Typography.Text>
-          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
+          <Typography.Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Datos básicos</Typography.Text>
+          <Divider style={{ margin: '4px 0 16px', borderColor: token.colorBorderSecondary }} />
           <Row gutter={16}>
             <Col span={tipoPersona === 'JURIDICA' ? 12 : 16}>
               <Form.Item
                 name="name"
-                label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>{tipoPersona === 'JURIDICA' ? 'Razón social' : 'Nombre completo'}</span>}
+                label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>{tipoPersona === 'JURIDICA' ? 'Razón social' : 'Nombre completo'}</span>}
                 rules={[{ required: true, message: 'Campo requerido' }]}
                 style={{ marginBottom: 16 }}
               >
-                <Input prefix={<UserOutlined style={{ color: '#ccc' }} />} style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
+                <Input prefix={<UserOutlined style={{ color: token.colorTextQuaternary }} />} style={{ borderRadius: 8, borderColor: token.colorBorderSecondary }} />
               </Form.Item>
             </Col>
             {tipoPersona === 'JURIDICA' && (
               <Col span={12}>
-                <Form.Item name="comercialName" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Nombre comercial</span>} style={{ marginBottom: 16 }}>
-                  <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
+                <Form.Item name="comercialName" label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Nombre comercial</span>} style={{ marginBottom: 16 }}>
+                  <Input style={{ borderRadius: 8, borderColor: token.colorBorderSecondary }} />
                 </Form.Item>
               </Col>
             )}
             <Col span={8}>
-              <Form.Item name="esCreditoFiscal" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Tipo factura</span>} valuePropName="checked" style={{ marginBottom: 16 }}>
+              <Form.Item name="esCreditoFiscal" label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Tipo factura</span>} valuePropName="checked" style={{ marginBottom: 16 }}>
                 <Switch
                   checkedChildren="CCF"
                   unCheckedChildren="CF"
@@ -573,7 +573,7 @@ export default function ClientsPage() {
               <Col span={12}>
                 <Form.Item
                   name="esGranContribuyente"
-                  label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Gran contribuyente</span>}
+                  label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Gran contribuyente</span>}
                   valuePropName="checked"
                   style={{ marginBottom: 16 }}
                 >
@@ -583,7 +583,7 @@ export default function ClientsPage() {
               <Col span={12}>
                 <Form.Item
                   name="retieneIva1"
-                  label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Retiene IVA 1%</span>}
+                  label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Retiene IVA 1%</span>}
                   tooltip="Aplica para clientes que actuan como agentes retenedores en CCF desde el umbral fiscal."
                   valuePropName="checked"
                   style={{ marginBottom: 16 }}
@@ -597,7 +597,7 @@ export default function ClientsPage() {
           {/* Documento */}
           <Row gutter={16}>
             <Col span={8}>
-              <Form.Item name="tipoDocumento" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Tipo documento</span>} style={{ marginBottom: 16 }}>
+              <Form.Item name="tipoDocumento" label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Tipo documento</span>} style={{ marginBottom: 16 }}>
                 <Select
                   options={tipoPersona === 'JURIDICA' ? TIPO_DOC_JURIDICA : TIPO_DOC_NATURAL}
                   placeholder="Seleccionar"
@@ -607,18 +607,18 @@ export default function ClientsPage() {
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="numDocumento" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Número documento</span>} style={{ marginBottom: 16 }}>
-                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
+              <Form.Item name="numDocumento" label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Número documento</span>} style={{ marginBottom: 16 }}>
+                <Input style={{ borderRadius: 8, borderColor: token.colorBorderSecondary }} />
               </Form.Item>
             </Col>
             <Col span={8}>
               <Form.Item
                 name="nrc"
-                label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>NRC</span>}
+                label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>NRC</span>}
                 tooltip={tipoPersona === 'JURIDICA' ? 'Número de Registro de Contribuyente' : undefined}
                 style={{ marginBottom: 16 }}
               >
-                <Input style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
+                <Input style={{ borderRadius: 8, borderColor: token.colorBorderSecondary }} />
               </Form.Item>
             </Col>
           </Row>
@@ -627,7 +627,7 @@ export default function ClientsPage() {
           {tipoPersona === 'JURIDICA' && (
             <Row gutter={16}>
               <Col span={24}>
-                <Form.Item name="actividadEconomicaCodigo" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Actividad económica</span>} style={{ marginBottom: 16 }}>
+                <Form.Item name="actividadEconomicaCodigo" label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Actividad económica</span>} style={{ marginBottom: 16 }}>
                   <Select
                     showSearch
                     placeholder="Buscar actividad..."
@@ -643,19 +643,19 @@ export default function ClientsPage() {
             </Row>
           )}
 
-          <Typography.Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Contacto y ubicación</Typography.Text>
-          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
+          <Typography.Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Contacto y ubicación</Typography.Text>
+          <Divider style={{ margin: '4px 0 16px', borderColor: token.colorBorderSecondary }} />
 
           {/* Contacto */}
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="phone" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Teléfono</span>} style={{ marginBottom: 16 }}>
-                <Input prefix={<PhoneOutlined style={{ color: '#ccc' }} />} style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
+              <Form.Item name="phone" label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Teléfono</span>} style={{ marginBottom: 16 }}>
+                <Input prefix={<PhoneOutlined style={{ color: token.colorTextQuaternary }} />} style={{ borderRadius: 8, borderColor: token.colorBorderSecondary }} />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="email" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Correo electrónico</span>} rules={[{ type: 'email', message: 'Email inválido' }]} style={{ marginBottom: 16 }}>
-                <Input prefix={<MailOutlined style={{ color: '#ccc' }} />} style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
+              <Form.Item name="email" label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Correo electrónico</span>} rules={[{ type: 'email', message: 'Email inválido' }]} style={{ marginBottom: 16 }}>
+                <Input prefix={<MailOutlined style={{ color: token.colorTextQuaternary }} />} style={{ borderRadius: 8, borderColor: token.colorBorderSecondary }} />
               </Form.Item>
             </Col>
           </Row>
@@ -663,7 +663,7 @@ export default function ClientsPage() {
           {/* Departamento / Municipio / Zona */}
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="departamentoCod" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Departamento</span>} style={{ marginBottom: 16 }}>
+              <Form.Item name="departamentoCod" label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Departamento</span>} style={{ marginBottom: 16 }}>
                 <Select
                   showSearch
                   placeholder="Seleccionar departamento"
@@ -678,7 +678,7 @@ export default function ClientsPage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="municipioCod" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Municipio</span>} style={{ marginBottom: 16 }}>
+              <Form.Item name="municipioCod" label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Municipio</span>} style={{ marginBottom: 16 }}>
                 <Select
                   showSearch
                   placeholder={departamentoCod ? 'Seleccionar municipio' : 'Primero elige departamento'}
@@ -694,7 +694,7 @@ export default function ClientsPage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="distritoCod" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Distrito</span>} style={{ marginBottom: 16 }}>
+              <Form.Item name="distritoCod" label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Distrito</span>} style={{ marginBottom: 16 }}>
                 <Select
                   showSearch
                   placeholder={departamentoCod ? 'Seleccionar distrito' : 'Primero elige departamento'}
@@ -719,9 +719,9 @@ export default function ClientsPage() {
                   padding: '8px 12px', marginBottom: 16,
                   border: `1px solid ${token.colorBorder}`,
                 }}>
-                  <EnvironmentOutlined style={{ color: '#722ed1', fontSize: 13 }} />
-                  <Text style={{ fontSize: 12, color: '#555' }}>Zona:</Text>
-                  <Text strong style={{ fontSize: 12, color: '#722ed1' }}>{zona}</Text>
+                  <EnvironmentOutlined style={{ color: token.colorInfo, fontSize: 13 }} />
+                  <Text style={{ fontSize: 12, color: token.colorTextSecondary }}>Zona:</Text>
+                  <Text strong style={{ fontSize: 12, color: token.colorInfo }}>{zona}</Text>
                   <Text type="secondary" style={{ fontSize: 11, marginLeft: 4 }}>(referencia geográfica)</Text>
                 </div>
               </Col>
@@ -731,14 +731,14 @@ export default function ClientsPage() {
           {/* Dirección */}
           <Row gutter={16}>
             <Col span={24}>
-              <Form.Item name="address" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Dirección</span>} style={{ marginBottom: 16 }}>
-                <Input prefix={<EnvironmentOutlined style={{ color: '#ccc' }} />} placeholder="Calle, colonia, referencia..." style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
+              <Form.Item name="address" label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Dirección</span>} style={{ marginBottom: 16 }}>
+                <Input prefix={<EnvironmentOutlined style={{ color: token.colorTextQuaternary }} />} placeholder="Calle, colonia, referencia..." style={{ borderRadius: 8, borderColor: token.colorBorderSecondary }} />
               </Form.Item>
             </Col>
           </Row>
 
           {/* Estado */}
-          <Form.Item name="isActive" label={<span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>Estado</span>} valuePropName="checked" initialValue={true} style={{ marginBottom: 0 }}>
+          <Form.Item name="isActive" label={<span style={{ color: token.colorText, fontWeight: 500, fontSize: 13 }}>Estado</span>} valuePropName="checked" initialValue={true} style={{ marginBottom: 0 }}>
             <Switch checkedChildren="Activo" unCheckedChildren="Inactivo" />
           </Form.Item>
         </Form>

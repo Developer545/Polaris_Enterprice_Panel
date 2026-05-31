@@ -500,10 +500,10 @@ export default function PosPage() {
     if (clientMode === 'cf') {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px' }}>
-          <Avatar style={{ background: '#8c8c8c', flexShrink: 0 }} size={32} icon={<UserOutlined />} />
+          <Avatar style={{ background: token.colorTextQuaternary, flexShrink: 0 }} size={32} icon={<UserOutlined />} />
           <div>
             <div style={{ fontWeight: 600, fontSize: 12 }}>Consumidor Final</div>
-            <div style={{ fontSize: 11, color: '#999' }}>Sin cliente específico</div>
+            <div style={{ fontSize: 11, color: token.colorTextSecondary }}>Sin cliente específico</div>
           </div>
           <Tag color="default" style={{ marginLeft: 'auto', fontSize: 10 }}>CF</Tag>
         </div>
@@ -515,7 +515,7 @@ export default function PosPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Input
             placeholder="Nombre del cliente *"
-            prefix={<UserOutlined style={{ color: '#ccc' }} />}
+            prefix={<UserOutlined style={{ color: token.colorTextQuaternary }} />}
             value={newClientName}
             onChange={e => setNewClientName(e.target.value)}
             size="small"
@@ -528,13 +528,13 @@ export default function PosPage() {
             type="email"
           />
           {newClientName.trim() && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: '#f5f5f5', borderRadius: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: token.colorFillAlter, borderRadius: 6 }}>
               <Avatar style={{ background: token.colorPrimary }} size={26}>
                 {newClientName[0]?.toUpperCase()}
               </Avatar>
               <div style={{ fontSize: 12 }}>
                 <div style={{ fontWeight: 600 }}>{newClientName}</div>
-                {newClientEmail && <div style={{ color: '#999', fontSize: 11 }}>{newClientEmail}</div>}
+                {newClientEmail && <div style={{ color: token.colorTextSecondary, fontSize: 11 }}>{newClientEmail}</div>}
               </div>
               <Tag color="blue" style={{ marginLeft: 'auto', fontSize: 10 }}>Nuevo</Tag>
             </div>
@@ -553,7 +553,7 @@ export default function PosPage() {
             <div style={{ fontWeight: 600, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {selectedClient.name}
             </div>
-            <div style={{ fontSize: 11, color: '#999' }}>
+            <div style={{ fontSize: 11, color: token.colorTextSecondary }}>
               {selectedClient.numDocumento ?? selectedClient.email ?? 'â€"'}
             </div>
           </div>
@@ -572,7 +572,7 @@ export default function PosPage() {
       <div>
         <Input
           placeholder="Buscar por nombre, DUI, NIT..."
-          prefix={<SearchOutlined style={{ color: '#ccc' }} />}
+          prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
           suffix={searchingClients ? <Spin size="small" /> : null}
           value={clientSearch}
           onChange={e => setClientSearch(e.target.value)}
@@ -580,13 +580,13 @@ export default function PosPage() {
           allowClear
         />
         {clientSearch.length >= 2 && clientResults.length > 0 && (
-          <div style={{ marginTop: 6, maxHeight: 140, overflowY: 'auto', border: '1px solid #f0f0f0', borderRadius: 6 }}>
+          <div style={{ marginTop: 6, maxHeight: 140, overflowY: 'auto', border: `1px solid ${token.colorBorderSecondary}`, borderRadius: 6 }}>
             {(clientResults as any[]).map((c: any) => (
               <div
                 key={c.id}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', transition: 'background 0.15s' }}
                 onClick={() => { setSelectedClient(c); setClientSearch('') }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#fafafa')}
+                onMouseEnter={e => (e.currentTarget.style.background = token.colorFillAlter)}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 <Avatar size={24} style={{ background: c.esCreditoFiscal ? token.colorInfo : token.colorSuccess, fontSize: 10, fontWeight: 700 }}>
@@ -594,7 +594,7 @@ export default function PosPage() {
                 </Avatar>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 500, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                  {c.numDocumento && <div style={{ fontSize: 10, color: '#999' }}>{c.numDocumento}</div>}
+                  {c.numDocumento && <div style={{ fontSize: 10, color: token.colorTextSecondary }}>{c.numDocumento}</div>}
                 </div>
                 {c.esCreditoFiscal && <Tag color="blue" style={{ fontSize: 10, margin: 0 }}>CCF</Tag>}
               </div>
@@ -602,7 +602,7 @@ export default function PosPage() {
           </div>
         )}
         {clientSearch.length >= 2 && !searchingClients && (clientResults as any[]).length === 0 && (
-          <div style={{ fontSize: 11, color: '#999', textAlign: 'center', padding: '8px 0' }}>
+          <div style={{ fontSize: 11, color: token.colorTextSecondary, textAlign: 'center', padding: '8px 0' }}>
             Sin resultados
           </div>
         )}
@@ -674,7 +674,7 @@ export default function PosPage() {
             </div>
           ) : (products as any[]).length === 0 ? (
             <Empty
-              description={<span style={{ color: '#ccc' }}>Sin productos. Busca o filtra por categoría.</span>}
+              description={<span style={{ color: token.colorTextQuaternary }}>Sin productos. Busca o filtra por categoría.</span>}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               style={{ padding: 48 }}
             />
@@ -810,7 +810,7 @@ export default function PosPage() {
         >
           {cart.length === 0 ? (
             <Empty
-              description={<span style={{ color: '#ccc' }}>Clic en productos para agregar</span>}
+              description={<span style={{ color: token.colorTextQuaternary }}>Clic en productos para agregar</span>}
               style={{ padding: 32 }}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
@@ -877,7 +877,7 @@ export default function PosPage() {
               size="small"
             />
             {invoiceSellerId && (
-              <div style={{ fontSize: 10, color: '#999', marginTop: 4 }}>
+              <div style={{ fontSize: 10, color: token.colorTextSecondary, marginTop: 4 }}>
                 Vendedor aplica a toda la factura. Se puede sobreescribir por ítem.
               </div>
             )}
@@ -900,11 +900,11 @@ export default function PosPage() {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#666' }}>Gravado:</span>
+              <span style={{ color: token.colorTextSecondary }}>Gravado:</span>
               <span>${totalGravada.toFixed(2)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#666' }}>IVA 13%:</span>
+              <span style={{ color: token.colorTextSecondary }}>IVA 13%:</span>
               <span>${totalIva.toFixed(2)}</span>
             </div>
             <Divider style={{ margin: '6px 0' }} />
@@ -932,7 +932,7 @@ export default function PosPage() {
         </Button>
 
         {tipoDte === '03' && !selectedClient && (
-          <div style={{ fontSize: 11, color: '#fa8c16', textAlign: 'center', marginTop: -8 }}>
+          <div style={{ fontSize: 11, color: token.colorWarning, textAlign: 'center', marginTop: -8 }}>
             CCF requiere cliente registrado con NIT/NRC
           </div>
         )}
@@ -954,7 +954,7 @@ export default function PosPage() {
       >
         {printCtx && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '8px 0' }}>
-            <div style={{ fontSize: 13, color: '#666', textAlign: 'center', marginBottom: 4 }}>
+            <div style={{ fontSize: 13, color: token.colorTextSecondary, textAlign: 'center', marginBottom: 4 }}>
               Venta registrada. Selecciona formato de impresion:
             </div>
             <Button type="primary" size="large" block icon={<PrinterOutlined />}
@@ -967,7 +967,7 @@ export default function PosPage() {
               onClick={() => { printCartaA4(printCtx); setPrintModal(false) }}>
               Carta A4 (Original)
             </Button>
-            <Button size="large" block type="text" style={{ borderRadius: 8, color: '#999' }}
+            <Button size="large" block type="text" style={{ borderRadius: 8, color: token.colorTextSecondary }}
               onClick={() => { setPrintModal(false); setLastSale(null) }}>
               Omitir
             </Button>
@@ -993,16 +993,16 @@ export default function PosPage() {
         okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={480}
         style={{ top: 40 }}
-        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
+        styles={{ header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Form form={payForm} layout="vertical" onFinish={submitSale}>
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             marginBottom: 16, padding: '10px 14px',
-            background: '#f9f9f8', borderRadius: 8, border: '1px solid #e9e9e7',
+            background: token.colorFillAlter, borderRadius: 8, border: `1px solid ${token.colorBorderSecondary}`,
           }}>
             <div>
-              <div style={{ fontSize: 12, color: '#999' }}>Total a cobrar</div>
+              <div style={{ fontSize: 12, color: token.colorTextSecondary }}>Total a cobrar</div>
               <div style={{ fontSize: 24, fontWeight: 700, color: token.colorPrimary }}>${totalPagar.toFixed(2)}</div>
             </div>
             <Tag color={tipoDte === '03' ? 'blue' : 'default'} style={{ fontSize: 13 }}>
@@ -1037,11 +1037,11 @@ export default function PosPage() {
           </Form.List>
 
           {/* Calculadora de vuelto */}
-          <div style={{ marginTop: 16, padding: '10px 14px', background: '#f9f9f8', borderRadius: 8, border: '1px solid #e9e9e7' }}>
-            <div style={{ fontSize: 12, color: '#666', marginBottom: 8, fontWeight: 500 }}>Calculadora de cambio (efectivo)</div>
+          <div style={{ marginTop: 16, padding: '10px 14px', background: token.colorFillAlter, borderRadius: 8, border: `1px solid ${token.colorBorderSecondary}` }}>
+            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginBottom: 8, fontWeight: 500 }}>Calculadora de cambio (efectivo)</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: '#999', marginBottom: 4 }}>Recibido del cliente</div>
+                <div style={{ fontSize: 11, color: token.colorTextSecondary, marginBottom: 4 }}>Recibido del cliente</div>
                 <InputNumber
                   prefix="$" min={0} precision={2} style={{ width: '100%' }}
                   value={recibidoEfectivo || undefined}
@@ -1050,7 +1050,7 @@ export default function PosPage() {
                 />
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: '#999', marginBottom: 4 }}>Vuelto</div>
+                <div style={{ fontSize: 11, color: token.colorTextSecondary, marginBottom: 4 }}>Vuelto</div>
                 {(() => {
                   const vuelto = parseFloat((recibidoEfectivo - totalPagar).toFixed(2))
                   const color = vuelto < 0 ? token.colorError : token.colorSuccess

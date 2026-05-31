@@ -35,7 +35,7 @@ function sumByFormaPago(paymentsByMethod: any[], codes: string[]): number {
 }
 
 const LBL = (text: string) => (
-  <span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>{text}</span>
+  <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: 13 }}>{text}</span>
 )
 
 export default function CashRegistersPage() {
@@ -198,7 +198,7 @@ export default function CashRegistersPage() {
         style={{
           marginBottom: 20, borderRadius: 12, border: 'none',
           boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-          background: activeRegister ? '#f6ffed' : '#fffbe6',
+          background: activeRegister ? token.colorSuccessBg : token.colorWarningBg,
           borderLeft: `4px solid ${activeRegister ? token.colorSuccess : token.colorWarning}`,
         }}
         styles={{ body: { padding: '14px 20px' } }}
@@ -207,7 +207,7 @@ export default function CashRegistersPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Badge status={activeRegister ? 'success' : 'warning'} />
             <div>
-              <Text style={{ fontWeight: 600, fontSize: 14, color: '#37352f' }}>
+              <Text style={{ fontWeight: 600, fontSize: 14, color: token.colorText }}>
                 {activeRegister ? 'Caja abierta' : 'Sin caja abierta'}
               </Text>
               {activeRegister && (
@@ -248,7 +248,7 @@ export default function CashRegistersPage() {
       {activeRegister && (
         <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
           {[
-            { title: 'Fondo inicial',  value: Number(activeRegister.openingBalance), icon: <WalletOutlined />,       color: '#787774', prefix: '$', precision: 2 },
+            { title: 'Fondo inicial',  value: Number(activeRegister.openingBalance), icon: <WalletOutlined />,       color: token.colorTextSecondary, prefix: '$', precision: 2 },
             { title: 'Ventas',         value: activeSummary?.salesCount ?? 0,        icon: <ShoppingCartOutlined />, color: primary,   prefix: undefined, precision: 0 },
             { title: 'Efectivo',       value: totalEfectivo,                         icon: <CalculatorOutlined />,   color: token.colorSuccess, prefix: '$', precision: 2 },
             { title: 'Tarjeta',        value: totalTarjeta,                          icon: <CreditCardOutlined />,   color: primary,   prefix: '$', precision: 2 },
@@ -281,9 +281,9 @@ export default function CashRegistersPage() {
         style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
         styles={{ body: { padding: 0 } }}
       >
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid #e9e9e7', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <FileTextOutlined style={{ color: '#787774' }} />
-          <Text style={{ fontWeight: 600, fontSize: 14, color: '#37352f' }}>Historial de Cajas</Text>
+        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${token.colorBorderSecondary}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <FileTextOutlined style={{ color: token.colorTextSecondary }} />
+          <Text style={{ fontWeight: 600, fontSize: 14, color: token.colorText }}>Historial de Cajas</Text>
         </div>
         <Table
           dataSource={registers as any[]}
@@ -314,7 +314,7 @@ export default function CashRegistersPage() {
         width={420}
         destroyOnHidden
         style={{ top: 40 }}
-        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
+        styles={{ header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 20 }}>
           Ingresa el efectivo con el que abres la caja (fondo de cambio).
@@ -343,7 +343,7 @@ export default function CashRegistersPage() {
             placeholder="Observaciones..."
             value={notasApertura}
             onChange={e => setNotasApertura(e.target.value)}
-            style={{ marginTop: 6, borderRadius: 8, borderColor: '#e9e9e7' }}
+            style={{ marginTop: 6, borderRadius: 8, borderColor: token.colorBorderSecondary }}
           />
         </div>
       </Modal>
@@ -362,51 +362,51 @@ export default function CashRegistersPage() {
         destroyOnHidden
         style={{ top: 24 }}
         styles={{
-          header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 },
+          header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, paddingBottom: 16 },
           body: { paddingTop: 16, maxHeight: '78vh', overflowY: 'auto' },
         }}
       >
         {activeRegister && (
           <>
             {/* Resumen sistema */}
-            <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Resumen del sistema
             </Text>
-            <Divider style={{ margin: '4px 0 14px', borderColor: '#e9e9e7' }} />
+            <Divider style={{ margin: '4px 0 14px', borderColor: token.colorBorderSecondary }} />
 
-            <Card size="small" style={{ marginBottom: 20, background: '#f9f9f8', borderRadius: 10, border: '1px solid #e9e9e7' }}
+            <Card size="small" style={{ marginBottom: 20, background: token.colorFillAlter, borderRadius: 10, border: `1px solid ${token.colorBorderSecondary}` }}
               styles={{ body: { padding: '12px 16px' } }}>
               <Row gutter={[8, 12]}>
                 <Col xs={12} md={8}>
-                  <Statistic title={<span style={{ fontSize: 11, color: '#888' }}>Fondo inicial</span>}
+                  <Statistic title={<span style={{ fontSize: 11, color: token.colorTextSecondary }}>Fondo inicial</span>}
                     value={Number(activeRegister.openingBalance)} prefix="$" precision={2}
                     valueStyle={{ fontSize: 16, fontWeight: 600 }} />
                 </Col>
                 <Col xs={12} md={8}>
-                  <Statistic title={<span style={{ fontSize: 11, color: '#888' }}>Ventas efectivo</span>}
+                  <Statistic title={<span style={{ fontSize: 11, color: token.colorTextSecondary }}>Ventas efectivo</span>}
                     value={totalEfectivo} prefix="$" precision={2}
                     valueStyle={{ fontSize: 16, fontWeight: 600 }} />
                 </Col>
                 <Col xs={24} md={8}>
-                  <Statistic title={<span style={{ fontSize: 11, color: '#888' }}>Esperado en caja</span>}
+                  <Statistic title={<span style={{ fontSize: 11, color: token.colorTextSecondary }}>Esperado en caja</span>}
                     value={montoEsperado} prefix="$" precision={2}
                     valueStyle={{ fontSize: 16, fontWeight: 700, color: primary }} />
                 </Col>
               </Row>
-              <Divider style={{ margin: '10px 0 10px', borderColor: '#e9e9e7' }} />
+              <Divider style={{ margin: '10px 0 10px', borderColor: token.colorBorderSecondary }} />
               <Row gutter={[8, 8]}>
                 <Col xs={8}>
-                  <Statistic title={<span style={{ fontSize: 11, color: '#888' }}>Tarjeta</span>}
+                  <Statistic title={<span style={{ fontSize: 11, color: token.colorTextSecondary }}>Tarjeta</span>}
                     value={totalTarjeta} prefix="$" precision={2}
                     valueStyle={{ fontSize: 14 }} />
                 </Col>
                 <Col xs={8}>
-                  <Statistic title={<span style={{ fontSize: 11, color: '#888' }}>Transferencia</span>}
+                  <Statistic title={<span style={{ fontSize: 11, color: token.colorTextSecondary }}>Transferencia</span>}
                     value={totalTransf} prefix="$" precision={2}
                     valueStyle={{ fontSize: 14 }} />
                 </Col>
                 <Col xs={8}>
-                  <Statistic title={<span style={{ fontSize: 11, color: '#888' }}>QR / Dinero elec.</span>}
+                  <Statistic title={<span style={{ fontSize: 11, color: token.colorTextSecondary }}>QR / Dinero elec.</span>}
                     value={sumByFormaPago(activeSummary?.paymentsByMethod, ['08', '09', '11', '12'])}
                     prefix="$" precision={2}
                     valueStyle={{ fontSize: 14 }} />
@@ -415,21 +415,21 @@ export default function CashRegistersPage() {
             </Card>
 
             {/* Arqueo físico */}
-            <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Conteo físico
             </Text>
-            <Divider style={{ margin: '4px 0 14px', borderColor: '#e9e9e7' }} />
+            <Divider style={{ margin: '4px 0 14px', borderColor: token.colorBorderSecondary }} />
 
             <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
               {/* Billetes */}
               <Col xs={24} sm={12}>
-                <Text style={{ fontSize: 12, fontWeight: 600, color: '#37352f' }}>Billetes</Text>
+                <Text style={{ fontSize: 12, fontWeight: 600, color: token.colorText }}>Billetes</Text>
                 <table style={{ width: '100%', marginTop: 8, borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid #e9e9e7' }}>
-                      <th style={{ textAlign: 'left', fontWeight: 500, color: '#787774', fontSize: 11, padding: '4px 0' }}>Denominación</th>
-                      <th style={{ textAlign: 'center', fontWeight: 500, color: '#787774', fontSize: 11 }}>Cant.</th>
-                      <th style={{ textAlign: 'right', fontWeight: 500, color: '#787774', fontSize: 11 }}>Subtotal</th>
+                    <tr style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+                      <th style={{ textAlign: 'left', fontWeight: 500, color: token.colorTextSecondary, fontSize: 11, padding: '4px 0' }}>Denominación</th>
+                      <th style={{ textAlign: 'center', fontWeight: 500, color: token.colorTextSecondary, fontSize: 11 }}>Cant.</th>
+                      <th style={{ textAlign: 'right', fontWeight: 500, color: token.colorTextSecondary, fontSize: 11 }}>Subtotal</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -437,7 +437,7 @@ export default function CashRegistersPage() {
                       const cant = arqueoBilletes[String(b)] || 0
                       return (
                         <tr key={b}>
-                          <td style={{ padding: '4px 0', fontSize: 12, color: '#37352f' }}>${b}.00</td>
+                          <td style={{ padding: '4px 0', fontSize: 12, color: token.colorText }}>${b}.00</td>
                           <td style={{ textAlign: 'center', padding: '2px 0' }}>
                             <InputNumber
                               size="small" style={{ width: 72, borderRadius: 6 }} min={0}
@@ -445,13 +445,13 @@ export default function CashRegistersPage() {
                               onChange={v => setArqueoBilletes(prev => ({ ...prev, [String(b)]: v || 0 }))}
                             />
                           </td>
-                          <td style={{ textAlign: 'right', fontSize: 12, color: cant > 0 ? '#37352f' : '#bbb' }}>
+                          <td style={{ textAlign: 'right', fontSize: 12, color: cant > 0 ? token.colorText : token.colorTextQuaternary }}>
                             ${(b * cant).toFixed(2)}
                           </td>
                         </tr>
                       )
                     })}
-                    <tr style={{ borderTop: '1px solid #e9e9e7' }}>
+                    <tr style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}>
                       <td colSpan={2} style={{ fontWeight: 700, paddingTop: 6, fontSize: 12 }}>Subtotal</td>
                       <td style={{ textAlign: 'right', fontWeight: 700, color: primary, paddingTop: 6, fontSize: 12 }}>
                         ${totalContadoBilletes.toFixed(2)}
@@ -463,13 +463,13 @@ export default function CashRegistersPage() {
 
               {/* Monedas */}
               <Col xs={24} sm={12}>
-                <Text style={{ fontSize: 12, fontWeight: 600, color: '#37352f' }}>Monedas</Text>
+                <Text style={{ fontSize: 12, fontWeight: 600, color: token.colorText }}>Monedas</Text>
                 <table style={{ width: '100%', marginTop: 8, borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid #e9e9e7' }}>
-                      <th style={{ textAlign: 'left', fontWeight: 500, color: '#787774', fontSize: 11, padding: '4px 0' }}>Denominación</th>
-                      <th style={{ textAlign: 'center', fontWeight: 500, color: '#787774', fontSize: 11 }}>Cant.</th>
-                      <th style={{ textAlign: 'right', fontWeight: 500, color: '#787774', fontSize: 11 }}>Subtotal</th>
+                    <tr style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+                      <th style={{ textAlign: 'left', fontWeight: 500, color: token.colorTextSecondary, fontSize: 11, padding: '4px 0' }}>Denominación</th>
+                      <th style={{ textAlign: 'center', fontWeight: 500, color: token.colorTextSecondary, fontSize: 11 }}>Cant.</th>
+                      <th style={{ textAlign: 'right', fontWeight: 500, color: token.colorTextSecondary, fontSize: 11 }}>Subtotal</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -477,7 +477,7 @@ export default function CashRegistersPage() {
                       const cant = arqueoMonedas[String(m)] || 0
                       return (
                         <tr key={m}>
-                          <td style={{ padding: '4px 0', fontSize: 12, color: '#37352f' }}>${m.toFixed(2)}</td>
+                          <td style={{ padding: '4px 0', fontSize: 12, color: token.colorText }}>${m.toFixed(2)}</td>
                           <td style={{ textAlign: 'center', padding: '2px 0' }}>
                             <InputNumber
                               size="small" style={{ width: 72, borderRadius: 6 }} min={0}
@@ -485,13 +485,13 @@ export default function CashRegistersPage() {
                               onChange={v => setArqueoMonedas(prev => ({ ...prev, [String(m)]: v || 0 }))}
                             />
                           </td>
-                          <td style={{ textAlign: 'right', fontSize: 12, color: cant > 0 ? '#37352f' : '#bbb' }}>
+                          <td style={{ textAlign: 'right', fontSize: 12, color: cant > 0 ? token.colorText : token.colorTextQuaternary }}>
                             ${(m * cant).toFixed(2)}
                           </td>
                         </tr>
                       )
                     })}
-                    <tr style={{ borderTop: '1px solid #e9e9e7' }}>
+                    <tr style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}>
                       <td colSpan={2} style={{ fontWeight: 700, paddingTop: 6, fontSize: 12 }}>Subtotal</td>
                       <td style={{ textAlign: 'right', fontWeight: 700, color: primary, paddingTop: 6, fontSize: 12 }}>
                         ${totalContadoMonedas.toFixed(2)}
@@ -503,27 +503,27 @@ export default function CashRegistersPage() {
             </Row>
 
             {/* Resultado diferencia */}
-            <Divider style={{ margin: '0 0 14px', borderColor: '#e9e9e7' }} />
+            <Divider style={{ margin: '0 0 14px', borderColor: token.colorBorderSecondary }} />
             <Card
               size="small"
               style={{
                 borderRadius: 10, marginBottom: 16,
-                border: `1px solid ${diferenciaCierre === 0 ? '#e9e9e7' : diferenciaCierre > 0 ? token.colorWarningBorder : token.colorErrorBorder}`,
-                background: diferenciaCierre === 0 ? '#f9f9f8' : diferenciaCierre > 0 ? token.colorWarningBg : token.colorErrorBg,
+                border: `1px solid ${diferenciaCierre === 0 ? token.colorBorderSecondary : diferenciaCierre > 0 ? token.colorWarningBorder : token.colorErrorBorder}`,
+                background: diferenciaCierre === 0 ? token.colorFillAlter : diferenciaCierre > 0 ? token.colorWarningBg : token.colorErrorBg,
               }}
               styles={{ body: { padding: '12px 16px' } }}
             >
               <Row justify="space-between" align="middle">
                 <Col>
-                  <div style={{ fontSize: 11, color: '#787774', marginBottom: 2 }}>Total contado</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: '#37352f' }}>${totalContado.toFixed(2)}</div>
+                  <div style={{ fontSize: 11, color: token.colorTextSecondary, marginBottom: 2 }}>Total contado</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: token.colorText }}>${totalContado.toFixed(2)}</div>
                 </Col>
                 <Col>
-                  <div style={{ fontSize: 11, color: '#787774', marginBottom: 2 }}>Esperado</div>
-                  <div style={{ fontSize: 18, color: '#37352f' }}>${montoEsperado.toFixed(2)}</div>
+                  <div style={{ fontSize: 11, color: token.colorTextSecondary, marginBottom: 2 }}>Esperado</div>
+                  <div style={{ fontSize: 18, color: token.colorText }}>${montoEsperado.toFixed(2)}</div>
                 </Col>
                 <Col style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 11, color: '#787774', marginBottom: 2 }}>Diferencia</div>
+                  <div style={{ fontSize: 11, color: token.colorTextSecondary, marginBottom: 2 }}>Diferencia</div>
                   <div style={{
                     fontSize: 22, fontWeight: 700,
                     color: diferenciaCierre === 0 ? token.colorSuccess
@@ -546,7 +546,7 @@ export default function CashRegistersPage() {
               {LBL('Notas de cierre (opcional)')}
               <Input.TextArea rows={2} placeholder="Observaciones del cierre..."
                 value={notasCierre} onChange={e => setNotasCierre(e.target.value)}
-                style={{ marginTop: 6, borderRadius: 8, borderColor: '#e9e9e7' }} />
+                style={{ marginTop: 6, borderRadius: 8, borderColor: token.colorBorderSecondary }} />
             </div>
           </>
         )}
@@ -570,7 +570,7 @@ export default function CashRegistersPage() {
         width={600}
         destroyOnHidden
         style={{ top: 40 }}
-        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
+        styles={{ header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         {detailRecord && (() => {
           const pm   = detailSummary?.paymentsByMethod ?? []
@@ -583,13 +583,13 @@ export default function CashRegistersPage() {
 
           return (
             <>
-              <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Información del turno
               </Text>
-              <Divider style={{ margin: '4px 0 14px', borderColor: '#e9e9e7' }} />
+              <Divider style={{ margin: '4px 0 14px', borderColor: token.colorBorderSecondary }} />
 
               <Descriptions size="small" column={2} style={{ marginBottom: 16 }}
-                styles={{ label: { color: '#787774', fontSize: 12 }, content: { fontSize: 13 } }}>
+                styles={{ label: { color: token.colorTextSecondary, fontSize: 12 }, content: { fontSize: 13 } }}>
                 <Descriptions.Item label="Estado">
                   {detailRecord.closedAt
                     ? <Tag style={{ borderRadius: 4 }}>Cerrada</Tag>
@@ -612,49 +612,49 @@ export default function CashRegistersPage() {
                 </Descriptions.Item>
               </Descriptions>
 
-              <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Resumen financiero
               </Text>
-              <Divider style={{ margin: '4px 0 14px', borderColor: '#e9e9e7' }} />
+              <Divider style={{ margin: '4px 0 14px', borderColor: token.colorBorderSecondary }} />
 
-              <Card size="small" style={{ marginBottom: 12, background: '#f9f9f8', borderRadius: 10, border: '1px solid #e9e9e7' }}
+              <Card size="small" style={{ marginBottom: 12, background: token.colorFillAlter, borderRadius: 10, border: `1px solid ${token.colorBorderSecondary}` }}
                 styles={{ body: { padding: '12px 16px' } }}>
                 <Row gutter={[8, 12]}>
                   <Col xs={12} sm={6}>
-                    <Statistic title={<span style={{ fontSize: 11, color: '#888' }}>Fondo inicial</span>}
+                    <Statistic title={<span style={{ fontSize: 11, color: token.colorTextSecondary }}>Fondo inicial</span>}
                       value={Number(detailRecord.openingBalance)} prefix="$" precision={2}
                       valueStyle={{ fontSize: 14 }} />
                   </Col>
                   <Col xs={12} sm={6}>
-                    <Statistic title={<span style={{ fontSize: 11, color: '#888' }}>Efectivo</span>}
+                    <Statistic title={<span style={{ fontSize: 11, color: token.colorTextSecondary }}>Efectivo</span>}
                       value={efec} prefix="$" precision={2}
                       valueStyle={{ fontSize: 14 }} />
                   </Col>
                   <Col xs={12} sm={6}>
-                    <Statistic title={<span style={{ fontSize: 11, color: '#888' }}>Tarjeta</span>}
+                    <Statistic title={<span style={{ fontSize: 11, color: token.colorTextSecondary }}>Tarjeta</span>}
                       value={tarj} prefix="$" precision={2}
                       valueStyle={{ fontSize: 14 }} />
                   </Col>
                   <Col xs={12} sm={6}>
-                    <Statistic title={<span style={{ fontSize: 11, color: '#888' }}>Transfer. / QR</span>}
+                    <Statistic title={<span style={{ fontSize: 11, color: token.colorTextSecondary }}>Transfer. / QR</span>}
                       value={tran + qr} prefix="$" precision={2}
                       valueStyle={{ fontSize: 14 }} />
                   </Col>
                 </Row>
-                <Divider style={{ margin: '10px 0', borderColor: '#e9e9e7' }} />
+                <Divider style={{ margin: '10px 0', borderColor: token.colorBorderSecondary }} />
                 <Row gutter={[8, 8]}>
                   <Col xs={8}>
-                    <Statistic title={<span style={{ fontSize: 11, color: '#888' }}>Total ventas</span>}
+                    <Statistic title={<span style={{ fontSize: 11, color: token.colorTextSecondary }}>Total ventas</span>}
                       value={tVentas} prefix="$" precision={2}
                       valueStyle={{ fontSize: 14, color: primary, fontWeight: 700 }} />
                   </Col>
                   <Col xs={8}>
-                    <Statistic title={<span style={{ fontSize: 11, color: '#888' }}>Esperado en caja</span>}
+                    <Statistic title={<span style={{ fontSize: 11, color: token.colorTextSecondary }}>Esperado en caja</span>}
                       value={Number(detailRecord.montoEsperado ?? 0)} prefix="$" precision={2}
                       valueStyle={{ fontSize: 14 }} />
                   </Col>
                   <Col xs={8}>
-                    <Statistic title={<span style={{ fontSize: 11, color: '#888' }}>Contado</span>}
+                    <Statistic title={<span style={{ fontSize: 11, color: token.colorTextSecondary }}>Contado</span>}
                       value={Number(detailRecord.closingBalance ?? 0)} prefix="$" precision={2}
                       valueStyle={{ fontSize: 14 }} />
                   </Col>
@@ -664,8 +664,8 @@ export default function CashRegistersPage() {
               {diff != null && (
                 <Card size="small" style={{
                   marginBottom: 12, borderRadius: 10,
-                  border: `1px solid ${diff === 0 ? '#e9e9e7' : diff > 0 ? token.colorWarningBorder : token.colorErrorBorder}`,
-                  background: diff === 0 ? '#f9f9f8' : diff > 0 ? token.colorWarningBg : token.colorErrorBg,
+                  border: `1px solid ${diff === 0 ? token.colorBorderSecondary : diff > 0 ? token.colorWarningBorder : token.colorErrorBorder}`,
+                  background: diff === 0 ? token.colorFillAlter : diff > 0 ? token.colorWarningBg : token.colorErrorBg,
                 }}
                   styles={{ body: { padding: '10px 16px' } }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -684,9 +684,9 @@ export default function CashRegistersPage() {
               )}
 
               {detailRecord.notes && (
-                <Card size="small" style={{ borderRadius: 10, border: '1px solid #e9e9e7' }}
+                <Card size="small" style={{ borderRadius: 10, border: `1px solid ${token.colorBorderSecondary}` }}
                   styles={{ body: { padding: '10px 16px' } }}>
-                  <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Notas</Text>
+                  <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Notas</Text>
                   <div style={{ marginTop: 6 }}><Text style={{ fontSize: 13 }}>{detailRecord.notes}</Text></div>
                 </Card>
               )}

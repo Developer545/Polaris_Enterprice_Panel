@@ -350,7 +350,7 @@ export default function SalesPage() {
       render: (_: any, r: any) => {
         const s = r.dteDocument?.status
         if (!s) return <Tag style={{ borderRadius: 4, fontSize: 11 }}>Sin DTE</Tag>
-        const info = DTE_STATUS[s] ?? { badge: 'default' as const, label: s, color: '#888' }
+        const info = DTE_STATUS[s] ?? { badge: 'default' as const, label: s, color: token.colorTextSecondary }
         return <Badge status={info.badge} text={<Text style={{ fontSize: 12 }}>{info.label}</Text>} />
       },
     },
@@ -375,7 +375,7 @@ export default function SalesPage() {
           {['01', '03'].includes(r.tipoDte) && r.dteDocument?.status === 'ACCEPTED' && !r.dteDocument?.opEspecialCodigoGeneracion && (
             <Tooltip title="Operacion Especial (Tipo 17)">
               <Button
-                type="text" size="small" icon={<FundOutlined style={{ color: '#13c2c2' }} />}
+                type="text" size="small" icon={<FundOutlined style={{ color: token.colorInfo }} />}
                 onClick={() => { setOpEspecialModal(r); opEspecialForm.resetFields() }}
               />
             </Tooltip>
@@ -383,7 +383,7 @@ export default function SalesPage() {
           {r.tipoDte === '03' && r.dteDocument?.status === 'ACCEPTED' && !r.dteDocument?.retornoCodigoGeneracion && (
             <Tooltip title="Emitir Evento de Retorno (Tipo 18)">
               <Button
-                type="text" size="small" icon={<RollbackOutlined style={{ color: '#722ed1' }} />}
+                type="text" size="small" icon={<RollbackOutlined style={{ color: token.colorPrimary }} />}
                 onClick={() => { setRetornoModal(r); retornoForm.resetFields() }}
               />
             </Tooltip>
@@ -427,9 +427,9 @@ export default function SalesPage() {
       <Row gutter={[14, 14]} style={{ marginBottom: 20 }}>
         {[
           { title: 'Total facturado', value: `$${totalAmount.toFixed(2)}`, color: token.colorPrimary,  icon: <DollarOutlined />        },
-          { title: 'IVA generado',    value: `$${totalIva.toFixed(2)}`,    color: '#52c41a',           icon: <CalculatorOutlined />     },
-          { title: 'Aceptados DTE',   value: countAccepted,                color: '#52c41a',           icon: <CheckCircleOutlined />    },
-          { title: 'Pendientes DTE',  value: countPending,                 color: '#fa8c16',           icon: <ClockCircleOutlined />    },
+          { title: 'IVA generado',    value: `$${totalIva.toFixed(2)}`,    color: token.colorSuccess,      icon: <CalculatorOutlined />     },
+          { title: 'Aceptados DTE',   value: countAccepted,                color: token.colorSuccess,      icon: <CheckCircleOutlined />    },
+          { title: 'Pendientes DTE',  value: countPending,                 color: token.colorWarning,      icon: <ClockCircleOutlined />    },
           { title: 'Anulados',        value: countAnnulled,                color: token.colorError,    icon: <WarningOutlined />        },
         ].map(k => (
           <Col xs={12} sm={8} md={8} lg={Math.floor(24 / 5)} key={k.title}>
@@ -589,7 +589,7 @@ export default function SalesPage() {
               key="pdf"
               icon={<FilePdfOutlined />}
               loading={pdfLoading}
-              style={{ borderRadius: 8, color: '#cf1322', borderColor: '#cf1322' }}
+              style={{ borderRadius: 8, color: token.colorError, borderColor: token.colorError }}
               onClick={() => handleDownloadPdf(saleDetail.id, saleDetail.dteDocument?.numeroControl)}
             >
               Descargar PDF
@@ -902,12 +902,12 @@ export default function SalesPage() {
       {/* ── Modal Operacion Especial (Tipo 17) ───────────────────────────── */}
       <Modal
         open={!!opEspecialModal}
-        title={<Space style={{ color: '#13c2c2' }}><FundOutlined />Operacion Especial (Tipo 17)</Space>}
+        title={<Space style={{ color: token.colorInfo }}><FundOutlined />Operacion Especial (Tipo 17)</Space>}
         onCancel={() => { setOpEspecialModal(null); opEspecialForm.resetFields() }}
         onOk={() => opEspecialForm.submit()}
         confirmLoading={opEspecialMutation.isPending}
         okText="Enviar evento a Hacienda"
-        okButtonProps={{ style: { background: '#13c2c2', borderColor: '#13c2c2', borderRadius: 8, fontWeight: 600 } }}
+        okButtonProps={{ style: { background: token.colorInfo, borderColor: token.colorInfo, borderRadius: 8, fontWeight: 600 } }}
         cancelButtonProps={{ style: { borderRadius: 8 } }}
         width={640}
         destroyOnClose
@@ -917,7 +917,7 @@ export default function SalesPage() {
           Evento de operacion especial para el DTE{' '}
           <Text strong>{opEspecialModal?.dteDocument?.numeroControl ?? opEspecialModal?.id?.substring(0, 8)}</Text>
           {' '}por{' '}
-          <Text strong style={{ color: '#13c2c2' }}>
+          <Text strong style={{ color: token.colorInfo }}>
             ${Number(opEspecialModal?.totalPagar ?? 0).toFixed(2)}
           </Text>.
         </Text>
@@ -991,12 +991,12 @@ export default function SalesPage() {
       {/* ── Modal Evento Retorno (Tipo 18) ────────────────────────────────── */}
       <Modal
         open={!!retornoModal}
-        title={<Space style={{ color: '#722ed1' }}><RollbackOutlined />Evento de Retorno (Tipo 18)</Space>}
+        title={<Space style={{ color: token.colorPrimary }}><RollbackOutlined />Evento de Retorno (Tipo 18)</Space>}
         onCancel={() => { setRetornoModal(null); retornoForm.resetFields() }}
         onOk={() => retornoForm.submit()}
         confirmLoading={retornoMutation.isPending}
         okText="Enviar evento a Hacienda"
-        okButtonProps={{ style: { background: '#722ed1', borderColor: '#722ed1', borderRadius: 8, fontWeight: 600 } }}
+        okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         cancelButtonProps={{ style: { borderRadius: 8 } }}
         width={640}
         destroyOnClose
@@ -1006,7 +1006,7 @@ export default function SalesPage() {
           Evento de retorno de bienes para el CCF{' '}
           <Text strong>{retornoModal?.dteDocument?.numeroControl ?? retornoModal?.id?.substring(0, 8)}</Text>
           {' '}por un total de{' '}
-          <Text strong style={{ color: '#722ed1' }}>
+          <Text strong style={{ color: token.colorPrimary }}>
             ${Number(retornoModal?.totalPagar ?? 0).toFixed(2)}
           </Text>.
         </Text>

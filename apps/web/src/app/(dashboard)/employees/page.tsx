@@ -59,7 +59,7 @@ function avatarColor(id: string) {
 
 // ── Label helper ──────────────────────────────────────────────────────────────
 function FL({ text }: { text: string }) {
-  return <span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>{text}</span>
+  return <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: 13 }}>{text}</span>
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -276,7 +276,7 @@ export default function EmployeesPage() {
             <div style={{ fontSize: 11, color: token.colorTextSecondary }}>
               {r.cargo?.nombre ?? r.position ?? '—'}
               {r.group?.name && (
-                <span style={{ marginLeft: 6, color: '#6366f1' }}>· {r.group.name}</span>
+                <span style={{ marginLeft: 6, color: token.colorPrimary }}>· {r.group.name}</span>
               )}
             </div>
           </div>
@@ -385,7 +385,7 @@ export default function EmployeesPage() {
   const DatosForm = () => (
     <Form form={form} layout="vertical" onFinish={saveMutation.mutate} requiredMark={false}
       initialValues={{ afpInstitution: 'CONFIA', salaryType: 'MONTHLY', status: 'ACTIVE' }}>
-      <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Datos personales</Text>
+      <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Datos personales</Text>
       <Divider style={{ margin: '4px 0 16px' }} />
       <Row gutter={16}>
         <Col span={12}>
@@ -463,7 +463,7 @@ export default function EmployeesPage() {
         </Col>
       </Row>
 
-      <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Cargo y planilla</Text>
+      <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Cargo y planilla</Text>
       <Divider style={{ margin: '4px 0 16px' }} />
       <Row gutter={16}>
         <Col span={12}>
@@ -515,7 +515,7 @@ export default function EmployeesPage() {
         </Col>
       </Row>
 
-      <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Grupo y comisiones</Text>
+      <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Grupo y comisiones</Text>
       <Divider style={{ margin: '4px 0 16px' }} />
       <Row gutter={16}>
         <Col span={12}>
@@ -580,7 +580,7 @@ export default function EmployeesPage() {
         <Avatar
           size={120}
           src={drawerEmp?.photoUrl || undefined}
-          style={{ background: drawerEmp?.id ? avatarColor(drawerEmp.id) : '#ccc', fontSize: 40, fontWeight: 700 }}>
+          style={{ background: drawerEmp?.id ? avatarColor(drawerEmp.id) : token.colorTextQuaternary, fontSize: 40, fontWeight: 700 }}>
           {drawerEmp && !drawerEmp.photoUrl && getInitials(drawerEmp)}
         </Avatar>
       </Spin>
@@ -705,17 +705,17 @@ export default function EmployeesPage() {
           </Card>
         </Col>
         <Col xs={6} sm={3}>
-          <Card size="small" style={{ borderRadius: 12, border: `1px solid ${'#6366f1'}20`, background: `${'#6366f1'}06` }} styles={{ body: { padding: '12px 16px' } }}>
+          <Card size="small" style={{ borderRadius: 12, border: `1px solid ${token.colorPrimary}33`, background: `${token.colorPrimary}0a` }} styles={{ body: { padding: '12px 16px' } }}>
             <Statistic title="Cargos" value={totalCargos}
-              prefix={<TrophyOutlined style={{ color: '#6366f1' }} />}
-              valueStyle={{ color: '#6366f1', fontWeight: 700 }} />
+              prefix={<TrophyOutlined style={{ color: token.colorPrimary }} />}
+              valueStyle={{ color: token.colorPrimary, fontWeight: 700 }} />
           </Card>
         </Col>
         <Col xs={6} sm={3}>
-          <Card size="small" style={{ borderRadius: 12, border: `1px solid ${'#0891b2'}20`, background: `${'#0891b2'}06` }} styles={{ body: { padding: '12px 16px' } }}>
+          <Card size="small" style={{ borderRadius: 12, border: `1px solid ${token.colorInfo}33`, background: `${token.colorInfo}0a` }} styles={{ body: { padding: '12px 16px' } }}>
             <Statistic title="Grupos" value={totalGroups}
-              prefix={<ApartmentOutlined style={{ color: '#0891b2' }} />}
-              valueStyle={{ color: '#0891b2', fontWeight: 700 }} />
+              prefix={<ApartmentOutlined style={{ color: token.colorInfo }} />}
+              valueStyle={{ color: token.colorInfo, fontWeight: 700 }} />
           </Card>
         </Col>
       </Row>

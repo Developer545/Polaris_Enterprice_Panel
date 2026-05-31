@@ -71,7 +71,7 @@ const DTE_CATALOG = [
     name: 'Venta Simplificada (provisional)',
     desc: 'Ventas anónimas sin datos de receptor. Código provisional — sujeto a cambio cuando MH formalice CAT-003.',
     required: false,
-    color: '#8c8c8c',
+    color: 'var(--text-secondary)',
     requiresCCF: false,
   },
 ] as const
@@ -122,13 +122,13 @@ function Section({ icon, title, subtitle, children }: {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-          background: '#f1f1ef', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', fontSize: 16, color: '#37352f',
+          background: 'var(--sidebar-item-hover-bg)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', fontSize: 16, color: 'var(--text-primary)',
         }}>
           {icon}
         </div>
         <div>
-          <Text strong style={{ fontSize: 14, color: '#37352f', display: 'block' }}>{title}</Text>
+          <Text strong style={{ fontSize: 14, color: 'var(--text-primary)', display: 'block' }}>{title}</Text>
           <Text type="secondary" style={{ fontSize: 12 }}>{subtitle}</Text>
         </div>
       </div>
@@ -376,8 +376,8 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
               <div key={dt.code} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '12px 14px', borderRadius: 8,
-                border: `1px solid ${isEnabled && !blocked ? '#e9e9e7' : '#f0f0f0'}`,
-                background: isEnabled && !blocked ? '#fff' : '#fafafa',
+                border: `1px solid var(--sidebar-border)`,
+                background: isEnabled && !blocked ? 'var(--bg-surface)' : 'var(--sidebar-item-hover-bg)',
                 opacity: blocked ? 0.5 : 1,
                 transition: 'all 0.15s',
               }}>
@@ -394,12 +394,12 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
                   {dt.abbr}
                 </Tag>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#37352f' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                     {dt.name}
                     {dt.required && <Tag color="blue" style={{ marginLeft: 8, fontSize: 10 }}>Siempre activo</Tag>}
                     {blocked && <Tag color="orange" style={{ marginLeft: 8, fontSize: 10 }}>Requiere CCF</Tag>}
                   </div>
-                  <div style={{ fontSize: 12, color: '#9b9b99', marginTop: 2 }}>{dt.desc}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{dt.desc}</div>
                 </div>
               </div>
             )
@@ -456,7 +456,7 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
             label="Ambiente DTE"
             initialValue="TEST"
             extra={
-              <span style={{ fontSize: 11, color: '#787774' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
                 Use <b>Pruebas</b> hasta tener todo configurado correctamente. Cambie a <b>Producción</b>
                 solo cuando Hacienda habilite su NIT para facturación en vivo.
               </span>
@@ -479,7 +479,7 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
               extra={<span style={{ fontSize: 11 }}>Dejar vacío para mantener el actual</span>}
             >
               <Input
-                prefix={<LockOutlined style={{ color: '#c7c7c5' }} />}
+                prefix={<LockOutlined style={{ color: 'var(--sidebar-muted)' }} />}
                 placeholder={company?.haciendaConfigured ? '••••••• (guardado)' : 'NIT de la empresa'}
                 autoComplete="off"
               />
@@ -491,7 +491,7 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
               extra={<span style={{ fontSize: 11 }}>Dejar vacío para mantener la actual</span>}
             >
               <Input.Password
-                prefix={<LockOutlined style={{ color: '#c7c7c5' }} />}
+                prefix={<LockOutlined style={{ color: 'var(--sidebar-muted)' }} />}
                 placeholder={company?.haciendaConfigured ? '••••••• (guardado)' : 'Contraseña MH'}
                 autoComplete="new-password"
                 iconRender={v => v ? <EyeOutlined /> : <EyeInvisibleOutlined />}
@@ -533,10 +533,10 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
               title: 'Sucursal',
               render: (r: BranchData) => (
                 <Space>
-                  <ShopOutlined style={{ color: '#9b9b99' }} />
+                  <ShopOutlined style={{ color: 'var(--text-secondary)' }} />
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: '#37352f' }}>{r.name}</div>
-                    {r.address && <div style={{ fontSize: 11, color: '#9b9b99' }}>{r.address}</div>}
+                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{r.name}</div>
+                    {r.address && <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{r.address}</div>}
                   </div>
                 </Space>
               ),
@@ -602,15 +602,15 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
                 rowKey="id"
                 size="small"
                 pagination={false}
-                style={{ borderRadius: 8, border: '1px solid #e9e9e7' }}
+                style={{ borderRadius: 8, border: '1px solid var(--sidebar-border)' }}
                 rowClassName={(r) => (!r.codEstableMH || !r.codPuntoVentaMH) ? '' : ''}
               />
 
               <div style={{ marginTop: 12 }}>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   <InfoCircleOutlined style={{ marginRight: 4 }} />
-                  Formato esperado: Establecimiento = <code style={{ background: '#f1f1ef', padding: '1px 5px', borderRadius: 4 }}>M001</code>
-                  {' · '}Punto de venta = <code style={{ background: '#f1f1ef', padding: '1px 5px', borderRadius: 4 }}>P001</code>
+                  Formato esperado: Establecimiento = <code style={{ background: 'var(--sidebar-item-hover-bg)', padding: '1px 5px', borderRadius: 4 }}>M001</code>
+                  {' · '}Punto de venta = <code style={{ background: 'var(--sidebar-item-hover-bg)', padding: '1px 5px', borderRadius: 4 }}>P001</code>
                   {' '}(4 caracteres, asignados por Hacienda por sucursal)
                 </Text>
               </div>
@@ -681,7 +681,7 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
             style={{ maxWidth: 340 }}
           >
             <Input.Password
-              prefix={<LockOutlined style={{ color: '#c7c7c5' }} />}
+              prefix={<LockOutlined style={{ color: 'var(--sidebar-muted)' }} />}
               placeholder={company?.certConfigured ? '••••••• (guardado)' : 'Contraseña del archivo .p12'}
               autoComplete="new-password"
               iconRender={v => v ? <EyeOutlined /> : <EyeInvisibleOutlined />}
@@ -796,13 +796,13 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
                 {dbInfo.label}
               </Tag>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                Tenant: <code style={{ background: '#f1f1ef', padding: '1px 6px', borderRadius: 4 }}>
+                Tenant: <code style={{ background: 'var(--sidebar-item-hover-bg)', padding: '1px 6px', borderRadius: 4 }}>
                   {tenantInfo?.slug}
                 </code>
               </Text>
             </div>
 
-            <Paragraph style={{ fontSize: 13, color: '#787774', margin: '0 0 16px' }}>
+            <Paragraph style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px' }}>
               {dbInfo.description}
             </Paragraph>
 
@@ -820,17 +820,17 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
                   style={{ marginBottom: 16, borderRadius: 8 }}
                 />
                 <div style={{
-                  background: '#f7f6f3',
-                  border: '1px solid #e9e9e7',
+                  background: 'var(--sidebar-item-hover-bg)',
+                  border: '1px solid var(--sidebar-border)',
                   borderRadius: 8,
                   padding: '12px 16px',
                   fontSize: 12,
-                  color: '#787774',
+                  color: 'var(--text-secondary)',
                 }}>
-                  <Text strong style={{ fontSize: 12, color: '#37352f', display: 'block', marginBottom: 4 }}>
+                  <Text strong style={{ fontSize: 12, color: 'var(--text-primary)', display: 'block', marginBottom: 4 }}>
                     Formato de URL esperado:
                   </Text>
-                  <code style={{ fontFamily: 'monospace', color: '#37352f' }}>
+                  <code style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>
                     postgresql://usuario:contraseña@servidor:5432/nombre_bd
                   </code>
                 </div>
@@ -855,7 +855,7 @@ export default function IntegracionesTab({ companyId }: { companyId: string }) {
                 Para cambiar la estrategia de base de datos (ej. migrar a base de datos propia),
                 contacta a{' '}
                 <Text strong style={{ fontSize: 12 }}>soporte@speeddan.com</Text>
-                {' '}con el ID de tenant: <code style={{ background: '#f1f1ef', padding: '1px 6px', borderRadius: 4 }}>{tenantInfo?.slug}</code>
+                {' '}con el ID de tenant: <code style={{ background: 'var(--sidebar-item-hover-bg)', padding: '1px 6px', borderRadius: 4 }}>{tenantInfo?.slug}</code>
               </Text>
             </div>
           </>

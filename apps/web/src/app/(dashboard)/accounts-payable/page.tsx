@@ -301,7 +301,7 @@ export default function AccountsPayablePage() {
           }}
           rowClassName={(r: any) => isOverdue(r) ? 'ant-table-row-danger' : ''}
           onRow={(r: any) => ({
-            style: isOverdue(r) ? { background: '#fff1f0' } : {},
+            style: isOverdue(r) ? { background: token.colorErrorBg } : {},
           })}
           locale={{ emptyText: 'Sin cuentas por pagar' }}
         />

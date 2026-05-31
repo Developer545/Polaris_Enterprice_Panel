@@ -31,7 +31,6 @@ type NavGroup = {
   key: string
   label: string
   icon: React.ReactNode
-  color: string
   items: NavItem[]
 }
 
@@ -42,7 +41,6 @@ const NAV_GROUPS: NavGroup[] = [
     key: 'ventas',
     label: 'Ventas',
     icon: <ShoppingCartOutlined />,
-    color: 'var(--brand-primary)',
     items: [
       { key: '/',                    label: 'Dashboard',           icon: <DashboardOutlined />, module: 'dashboard' },
       { key: '/panel-central',       label: 'Panel central',       icon: <BankOutlined />, module: 'dashboard', ownerOnly: true },
@@ -56,7 +54,6 @@ const NAV_GROUPS: NavGroup[] = [
     key: 'clientes',
     label: 'Clientes',
     icon: <TeamOutlined />,
-    color: '#1677ff',
     items: [
       { key: '/clients',   label: 'Clientes',   icon: <TeamOutlined />, module: 'clientes' },
       { key: '/products',  label: 'Productos',  icon: <AppstoreOutlined />, module: 'productos' },
@@ -68,7 +65,6 @@ const NAV_GROUPS: NavGroup[] = [
     key: 'rrhh',
     label: 'Recursos Humanos',
     icon: <IdcardOutlined />,
-    color: 'var(--ant-color-success)',
     items: [
       { key: '/employees',   label: 'Empleados',       icon: <IdcardOutlined />, module: 'empleados' },
       { key: '/payroll',     label: 'Planilla',        icon: <CalculatorOutlined />, module: 'planilla' },
@@ -79,7 +75,6 @@ const NAV_GROUPS: NavGroup[] = [
     key: 'compras',
     label: 'Compras',
     icon: <ShoppingOutlined />,
-    color: '#722ed1',
     items: [
       { key: '/suppliers',        label: 'Proveedores',       icon: <BankOutlined />, module: 'proveedores' },
       { key: '/purchases',        label: 'Órdenes de compra', icon: <ShoppingOutlined />, module: 'compras' },
@@ -91,7 +86,6 @@ const NAV_GROUPS: NavGroup[] = [
     key: 'config',
     label: 'Configuración',
     icon: <SettingOutlined />,
-    color: '#eb2f96',
     items: [
       { key: '/settings',    label: 'Configuración', icon: <SettingOutlined /> },
     ],
@@ -121,6 +115,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const router = useRouter()
   const { token } = antTheme.useToken()
+
+  const groupColorMap: Record<string, string> = {
+    ventas:   token.colorPrimary,
+    clientes: token.colorInfo,
+    rrhh:     token.colorSuccess,
+    compras:  token.colorWarning,
+    config:   token.colorTextSecondary,
+  }
+  const gc = (key: string) => groupColorMap[key] ?? token.colorPrimary
 
   // Si es owner, redirigir al panel ejecutivo (evita que lleguen a la vista de sucursal)
   useEffect(() => {
@@ -276,8 +279,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         margin: '2px 8px',
                         borderRadius: 8,
                         cursor: 'pointer',
-                        color: hasActive ? group.color : 'var(--sidebar-muted)',
-                        background: hasActive ? `${group.color}18` : 'transparent',
+                        color: hasActive ? gc(group.key) : 'var(--sidebar-muted)',
+                        background: hasActive ? `${gc(group.key)}18` : 'transparent',
                         fontSize: 16,
                         transition: 'all 0.2s',
                       }}
@@ -299,7 +302,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ color: group.color, fontSize: 14 }}>{group.icon}</span>
+                      <span style={{ color: gc(group.key), fontSize: 14 }}>{group.icon}</span>
                       <Text style={{ color: 'var(--sidebar-fg)', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                         {group.label}
                       </Text>

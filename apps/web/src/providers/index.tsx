@@ -47,11 +47,13 @@ function AntConfigProvider({ children }: { children: ReactNode }) {
       colorPrimary,
       colorBgLayout:        theme.vars['--bg-page'],
       colorBgContainer:     theme.vars['--bg-surface'],
+      colorBgElevated:      theme.vars['--bg-surface'],
       colorText:            theme.vars['--text-primary'],
       colorTextSecondary:   theme.vars['--text-secondary'],
       colorBorder:          theme.vars['--sidebar-border'],
       colorBorderSecondary: theme.vars['--sidebar-border'],
       colorFillAlter:       theme.vars['--sidebar-item-hover-bg'],
+      colorFill:            theme.vars['--sidebar-item-hover-bg'],
     },
     components: {
       Table: {
@@ -59,6 +61,26 @@ function AntConfigProvider({ children }: { children: ReactNode }) {
         rowHoverBg: theme.vars['--sidebar-item-hover-bg'],
       },
       Card: { colorBorderSecondary: theme.vars['--sidebar-border'] },
+      Modal: {
+        contentBg: theme.vars['--bg-surface'],
+        headerBg:  theme.vars['--bg-surface'],
+      },
+      Drawer: {
+        colorBgElevated: theme.vars['--bg-surface'],
+      },
+      Select: {
+        colorBgContainer:    theme.vars['--bg-surface'],
+        colorBgElevated:     theme.vars['--bg-surface'],
+        optionSelectedBg:    theme.vars['--sidebar-item-active-bg'],
+        optionActiveBg:      theme.vars['--sidebar-item-hover-bg'],
+      },
+      DatePicker: {
+        colorBgContainer:    theme.vars['--bg-surface'],
+        colorBgElevated:     theme.vars['--bg-surface'],
+      },
+      Input: {
+        colorBgContainer:    theme.vars['--bg-surface'],
+      },
     },
   }
 

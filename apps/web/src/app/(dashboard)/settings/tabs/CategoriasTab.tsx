@@ -12,8 +12,8 @@ import { api } from '../../../../lib/api'
 
 const { Text } = Typography
 
-const LBL = (text: string) => <span style={{ color: '#37352f', fontWeight: 500, fontSize: 13 }}>{text}</span>
-const INP = { borderRadius: 8, borderColor: '#e9e9e7' } as const
+const LBL = (text: string) => <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: 13 }}>{text}</span>
+const INP = { borderRadius: 8, borderColor: 'var(--sidebar-border)' } as const
 const MB = { marginBottom: 16 } as const
 
 interface Props { companyId: string }
@@ -108,7 +108,7 @@ export default function CategoriasTab({ companyId }: Props) {
       {/* Toolbar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
-          <Text style={{ fontWeight: 600, fontSize: 14, color: '#37352f' }}>Categorías</Text>
+          <Text style={{ fontWeight: 600, fontSize: 14, color: token.colorText }}>Categorías</Text>
           <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>({(categories as any[]).length} registradas)</Text>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}
@@ -120,7 +120,7 @@ export default function CategoriasTab({ companyId }: Props) {
       {/* Tabla */}
       <Card
         size="small"
-        style={{ borderRadius: 12, border: '1px solid #e9e9e7', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
+        style={{ borderRadius: 12, border: `1px solid ${token.colorBorderSecondary}`, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
         styles={{ body: { padding: 0 } }}
       >
         <Table
@@ -145,18 +145,18 @@ export default function CategoriasTab({ companyId }: Props) {
         okButtonProps={{ style: { background: token.colorPrimary, borderColor: token.colorPrimary, borderRadius: 8, fontWeight: 600 } }}
         width={480}
         style={{ top: 40 }}
-        styles={{ header: { borderBottom: '1px solid #e9e9e7', paddingBottom: 16 }, body: { paddingTop: 16 } }}
+        styles={{ header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
         <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false}>
 
-          <Text style={{ fontSize: 11, color: '#787774', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Datos de la categoría</Text>
-          <Divider style={{ margin: '4px 0 16px', borderColor: '#e9e9e7' }} />
+          <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Datos de la categoría</Text>
+          <Divider style={{ margin: '4px 0 16px', borderColor: token.colorBorderSecondary }} />
 
           <Form.Item label={LBL('Nombre')} name="name" rules={[{ required: true, min: 2, message: 'Mínimo 2 caracteres' }]} style={MB}>
-            <Input prefix={<AppstoreOutlined style={{ color: '#ccc' }} />} placeholder="Nombre de la categoría" style={INP} />
+            <Input prefix={<AppstoreOutlined style={{ color: token.colorTextQuaternary }} />} placeholder="Nombre de la categoría" style={INP} />
           </Form.Item>
           <Form.Item label={LBL('Descripción')} name="description" style={MB}>
-            <Input.TextArea rows={2} placeholder="Descripción opcional" style={{ borderRadius: 8, borderColor: '#e9e9e7' }} />
+            <Input.TextArea rows={2} placeholder="Descripción opcional" style={{ borderRadius: 8, borderColor: token.colorBorderSecondary }} />
           </Form.Item>
           <Form.Item label={LBL('Color identificador')} name="color" style={{ marginBottom: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -164,7 +164,7 @@ export default function CategoriasTab({ companyId }: Props) {
                 type="color"
                 defaultValue={editing?.color ?? token.colorPrimary}
                 onChange={e => form.setFieldValue('color', e.target.value)}
-                style={{ width: 42, height: 34, padding: 2, border: '1px solid #e9e9e7', borderRadius: 8, cursor: 'pointer' }}
+                style={{ width: 42, height: 34, padding: 2, border: `1px solid ${token.colorBorderSecondary}`, borderRadius: 8, cursor: 'pointer' }}
               />
               <Text type="secondary" style={{ fontSize: 12 }}>Se muestra como indicador visual en listas y reportes</Text>
             </div>

@@ -196,7 +196,7 @@ export default function PanelCentralPage() {
               { title: 'N° ventas',        value: p?.countVentas ?? 0,       icon: <FileTextOutlined />, color: token.colorPrimary },
               { title: 'DTE aceptados',    value: `${p?.dteAceptados ?? 0} / ${p?.dteTotales ?? 0}`, icon: <FileTextOutlined />, color: token.colorSuccess, badge: `${p?.tasaDte ?? 0}%` },
               { title: 'Clientes nuevos',  value: p?.clientesNuevos ?? 0,    icon: <UserOutlined />,    color: token.colorInfo },
-              { title: 'Empleados activos',value: p?.empleadosActivos ?? 0,  icon: <TeamOutlined />,    color: '#722ed1' },
+              { title: 'Empleados activos',value: p?.empleadosActivos ?? 0,  icon: <TeamOutlined />,    color: token.colorInfo },
               { title: 'Bajo mínimo',      value: p?.itemsBajoMinimo ?? 0,   icon: <WarningOutlined />, color: (p?.itemsBajoMinimo ?? 0) > 0 ? token.colorWarning : token.colorTextQuaternary },
               { title: 'Sucursales',       value: p?.totalSucursales ?? 0,   icon: <ShopOutlined />,    color: token.colorInfo },
             ].map(k => (
