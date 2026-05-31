@@ -262,17 +262,42 @@ export default function ProductsPage() {
       },
     },
     {
-      title: 'Precio', key: 'precio', width: 130, align: 'right',
+      title: 'Precios', key: 'precio', width: 155, align: 'right',
       render: (r: any) => (
         <Space direction="vertical" size={1} style={{ alignItems: 'flex-end' }}>
-          <Text strong style={{ color: token.colorPrimary, fontSize: 13 }}>${Number(r.price).toFixed(2)}</Text>
-          {r.commissionAmount != null && Number(r.commissionAmount) > 0 && (
-            <Tooltip title={`Comisión fija: $${Number(r.commissionAmount).toFixed(2)}/und`}>
-              <Tag icon={<DollarOutlined />} color="orange" style={{ fontSize: 10, margin: 0, borderRadius: 4, lineHeight: '18px', padding: '0 5px', cursor: 'default' }}>
-                Com. ${Number(r.commissionAmount).toFixed(2)}
-              </Tag>
-            </Tooltip>
-          )}
+          <Tooltip title="Precio estándar">
+            <Text strong style={{ color: token.colorPrimary, fontSize: 13 }}>${Number(r.price).toFixed(2)}</Text>
+          </Tooltip>
+          <Space size={2} wrap style={{ justifyContent: 'flex-end' }}>
+            {r.priceWholesale != null && Number(r.priceWholesale) > 0 && (
+              <Tooltip title={`Mayoreo: $${Number(r.priceWholesale).toFixed(2)}`}>
+                <Tag color="blue" style={{ fontSize: 9, margin: 0, borderRadius: 4, lineHeight: '16px', padding: '0 4px', cursor: 'default' }}>
+                  May ${Number(r.priceWholesale).toFixed(2)}
+                </Tag>
+              </Tooltip>
+            )}
+            {r.priceDistribution != null && Number(r.priceDistribution) > 0 && (
+              <Tooltip title={`Distribución: $${Number(r.priceDistribution).toFixed(2)}`}>
+                <Tag color="purple" style={{ fontSize: 9, margin: 0, borderRadius: 4, lineHeight: '16px', padding: '0 4px', cursor: 'default' }}>
+                  Dist ${Number(r.priceDistribution).toFixed(2)}
+                </Tag>
+              </Tooltip>
+            )}
+            {r.priceSpecial != null && Number(r.priceSpecial) > 0 && (
+              <Tooltip title={`Especial: $${Number(r.priceSpecial).toFixed(2)}`}>
+                <Tag color="gold" style={{ fontSize: 9, margin: 0, borderRadius: 4, lineHeight: '16px', padding: '0 4px', cursor: 'default' }}>
+                  Esp ${Number(r.priceSpecial).toFixed(2)}
+                </Tag>
+              </Tooltip>
+            )}
+            {r.commissionAmount != null && Number(r.commissionAmount) > 0 && (
+              <Tooltip title={`Comisión fija: $${Number(r.commissionAmount).toFixed(2)}/und`}>
+                <Tag icon={<DollarOutlined />} color="orange" style={{ fontSize: 9, margin: 0, borderRadius: 4, lineHeight: '16px', padding: '0 4px', cursor: 'default' }}>
+                  Com ${Number(r.commissionAmount).toFixed(2)}
+                </Tag>
+              </Tooltip>
+            )}
+          </Space>
         </Space>
       ),
     },
