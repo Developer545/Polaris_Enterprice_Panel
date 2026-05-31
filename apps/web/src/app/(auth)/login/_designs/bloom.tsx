@@ -9,51 +9,60 @@ const FEATURES = [
   'Reportes financieros en tiempo real',
 ]
 
-const AC = '#FB7185'
-
 export default function LoginBloom({ companyId }: { companyId?: string }) {
   return (
     <LoginSplitBase companyId={companyId}>
       <div style={{
         width: '100%', height: '100%',
-        background: '#0d0508',
-        backgroundImage: [
-          'radial-gradient(ellipse 80% 60% at 20% 30%, rgba(244,63,94,0.25) 0%, transparent 60%)',
-          'radial-gradient(ellipse 60% 50% at 80% 75%, rgba(251,113,133,0.18) 0%, transparent 55%)',
-          'linear-gradient(rgba(244,63,94,0.07) 1px, transparent 1px)',
-          'linear-gradient(90deg, rgba(244,63,94,0.07) 1px, transparent 1px)',
-        ].join(', '),
-        backgroundSize: 'auto, auto, 48px 48px, 48px 48px',
+        background: 'var(--lp-dk-bg,#090914)',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-        padding: '52px', position: 'relative',
+        padding: '52px', position: 'relative', overflow: 'hidden',
       }}>
 
+        {/* Hexagonal mesh SVG pattern */}
+        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.6 }} viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <pattern id="hex" x="0" y="0" width="20" height="17.32" patternUnits="userSpaceOnUse">
+              <polygon points="10,1 19,5.5 19,14.5 10,19 1,14.5 1,5.5" fill="none" style={{ stroke: 'var(--lp-a15,#7C3AED26)' }} strokeWidth="0.5" />
+            </pattern>
+          </defs>
+          <rect width="100" height="100" fill="url(#hex)" />
+        </svg>
+
+        {/* Central radial glow */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(ellipse 70% 55% at 40% 45%, var(--lp-a25,#7C3AED40) 0%, transparent 65%)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* Content */}
         <div style={{ position: 'relative', zIndex: 2 }}>
 
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 52 }}>
             <div style={{
               width: 42, height: 42, borderRadius: 10,
-              background: 'rgba(244,63,94,0.18)',
-              border: '1px solid rgba(244,63,94,0.4)',
+              background: 'var(--lp-a20,#7C3AED33)',
+              border: '1px solid var(--lp-a30,#7C3AED4D)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2Z" stroke={AC} strokeWidth="1.5" fill="rgba(244,63,94,0.2)" />
-                <path d="M12 6L17 8.5V13.5L12 16L7 13.5V8.5L12 6Z" fill="rgba(251,113,133,0.3)" stroke="rgba(253,164,175,0.8)" strokeWidth="0.75" />
+                <path d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2Z" style={{ stroke: 'var(--lp-1,#7C3AED)', fill: 'var(--lp-a20,#7C3AED33)' }} strokeWidth="1.5" />
+                <path d="M12 6L17 8.5V13.5L12 16L7 13.5V8.5L12 6Z" style={{ fill: 'var(--lp-a30,#7C3AED4D)', stroke: 'var(--lp-2,#A78BFA)' }} strokeWidth="0.75" />
               </svg>
             </div>
             <div>
-              <div style={{ color: '#F1F0FF', fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+              <div style={{ color: 'var(--lp-dk-txt-h,#F1F0FF)', fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                 Polaris Enterprise
               </div>
-              <div style={{ color: '#6B7AA0', fontSize: 12, marginTop: 2 }}>
+              <div style={{ color: 'var(--lp-dk-txt-b,#6B7AA0)', fontSize: 12, marginTop: 2 }}>
                 Sistema ERP · El Salvador
               </div>
             </div>
           </div>
 
-          <div style={{ height: 1, background: 'rgba(244,63,94,0.25)', marginBottom: 36 }} />
+          <div style={{ height: 1, background: 'var(--lp-a25,#7C3AED40)', marginBottom: 36 }} />
 
           {/* Features */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -61,15 +70,15 @@ export default function LoginBloom({ companyId }: { companyId?: string }) {
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{
                   width: 20, height: 20, borderRadius: '50%',
-                  background: 'rgba(244,63,94,0.18)',
-                  border: '1px solid rgba(244,63,94,0.35)',
+                  background: 'var(--lp-a15,#7C3AED26)',
+                  border: '1px solid var(--lp-a25,#7C3AED40)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
                   <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                    <path d="M1 4l2.5 2.5L9 1" stroke={AC} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M1 4l2.5 2.5L9 1" style={{ stroke: 'var(--lp-1,#7C3AED)' }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
-                <span style={{ color: '#94A3B8', fontSize: 13, lineHeight: 1.4 }}>{f}</span>
+                <span style={{ color: 'var(--lp-dk-txt-b,#94A3B8)', fontSize: 13, lineHeight: 1.4 }}>{f}</span>
               </div>
             ))}
           </div>
@@ -89,7 +98,7 @@ export default function LoginBloom({ companyId }: { companyId?: string }) {
           </div>
         </div>
 
-        <div style={{ position: 'relative', zIndex: 2, color: '#334155', fontSize: 11, letterSpacing: '0.03em' }}>
+        <div style={{ position: 'relative', zIndex: 2, color: 'var(--lp-dk-txt-b,#334155)', fontSize: 11, letterSpacing: '0.03em' }}>
           © {new Date().getFullYear()} Polaris Enterprise
         </div>
       </div>

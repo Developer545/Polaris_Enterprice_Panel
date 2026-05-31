@@ -9,24 +9,25 @@ const FEATURES = [
   'Reportes financieros en tiempo real',
 ]
 
-const AC = '#818CF8'
-
 export default function LoginAurora({ companyId }: { companyId?: string }) {
   return (
     <LoginSplitBase companyId={companyId}>
+      <style>{`
+        @keyframes blob-1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(30px,-20px) scale(1.08)} 66%{transform:translate(-15px,25px) scale(0.96)} }
+        @keyframes blob-2 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-25px,30px) scale(0.95)} 66%{transform:translate(20px,-15px) scale(1.05)} }
+        @keyframes blob-3 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(15px,20px) scale(1.06)} 66%{transform:translate(-20px,-25px) scale(0.97)} }
+      `}</style>
       <div style={{
         width: '100%', height: '100%',
-        background: '#090914',
-        backgroundImage: [
-          'radial-gradient(ellipse 80% 60% at 20% 30%, rgba(99,102,241,0.28) 0%, transparent 60%)',
-          'radial-gradient(ellipse 60% 50% at 80% 75%, rgba(139,92,246,0.20) 0%, transparent 55%)',
-          'linear-gradient(rgba(99,102,241,0.08) 1px, transparent 1px)',
-          'linear-gradient(90deg, rgba(99,102,241,0.08) 1px, transparent 1px)',
-        ].join(', '),
-        backgroundSize: 'auto, auto, 48px 48px, 48px 48px',
+        background: 'var(--lp-dk-bg,#090914)',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-        padding: '52px', position: 'relative',
+        padding: '52px', position: 'relative', overflow: 'hidden',
       }}>
+
+        {/* Animated blobs */}
+        <div style={{ position: 'absolute', width: 380, height: 380, borderRadius: '50%', background: 'var(--lp-a20,#7C3AED33)', filter: 'blur(80px)', top: '5%', left: '10%', animation: 'blob-1 8s ease-in-out infinite', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', width: 300, height: 300, borderRadius: '50%', background: 'var(--lp-a15,#7C3AED26)', filter: 'blur(60px)', bottom: '15%', right: '5%', animation: 'blob-2 10s ease-in-out infinite', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', width: 220, height: 220, borderRadius: '50%', background: 'var(--lp-a10,#7C3AED1A)', filter: 'blur(50px)', top: '55%', left: '40%', animation: 'blob-3 12s ease-in-out infinite', pointerEvents: 'none' }} />
 
         {/* Content */}
         <div style={{ position: 'relative', zIndex: 2 }}>
@@ -35,26 +36,26 @@ export default function LoginAurora({ companyId }: { companyId?: string }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 52 }}>
             <div style={{
               width: 42, height: 42, borderRadius: 10,
-              background: 'rgba(99,102,241,0.18)',
-              border: '1px solid rgba(99,102,241,0.4)',
+              background: 'var(--lp-a20,#7C3AED33)',
+              border: '1px solid var(--lp-a30,#7C3AED4D)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2Z" stroke={AC} strokeWidth="1.5" fill="rgba(99,102,241,0.2)" />
-                <path d="M12 6L17 8.5V13.5L12 16L7 13.5V8.5L12 6Z" fill="rgba(129,140,248,0.3)" stroke="rgba(165,180,252,0.8)" strokeWidth="0.75" />
+                <path d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2Z" style={{ stroke: 'var(--lp-1,#7C3AED)', fill: 'var(--lp-a20,#7C3AED33)' }} strokeWidth="1.5" />
+                <path d="M12 6L17 8.5V13.5L12 16L7 13.5V8.5L12 6Z" style={{ fill: 'var(--lp-a30,#7C3AED4D)', stroke: 'var(--lp-2,#A78BFA)' }} strokeWidth="0.75" />
               </svg>
             </div>
             <div>
-              <div style={{ color: '#F1F0FF', fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+              <div style={{ color: 'var(--lp-dk-txt-h,#F1F0FF)', fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                 Polaris Enterprise
               </div>
-              <div style={{ color: '#6B7AA0', fontSize: 12, marginTop: 2 }}>
+              <div style={{ color: 'var(--lp-dk-txt-b,#6B7AA0)', fontSize: 12, marginTop: 2 }}>
                 Sistema ERP · El Salvador
               </div>
             </div>
           </div>
 
-          <div style={{ height: 1, background: 'rgba(99,102,241,0.25)', marginBottom: 36 }} />
+          <div style={{ height: 1, background: 'var(--lp-a25,#7C3AED40)', marginBottom: 36 }} />
 
           {/* Features */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -62,15 +63,15 @@ export default function LoginAurora({ companyId }: { companyId?: string }) {
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{
                   width: 20, height: 20, borderRadius: '50%',
-                  background: 'rgba(99,102,241,0.18)',
-                  border: '1px solid rgba(99,102,241,0.35)',
+                  background: 'var(--lp-a15,#7C3AED26)',
+                  border: '1px solid var(--lp-a25,#7C3AED40)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
                   <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                    <path d="M1 4l2.5 2.5L9 1" stroke={AC} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M1 4l2.5 2.5L9 1" style={{ stroke: 'var(--lp-1,#7C3AED)' }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
-                <span style={{ color: '#94A3B8', fontSize: 13, lineHeight: 1.4 }}>{f}</span>
+                <span style={{ color: 'var(--lp-dk-txt-b,#94A3B8)', fontSize: 13, lineHeight: 1.4 }}>{f}</span>
               </div>
             ))}
           </div>
@@ -90,7 +91,7 @@ export default function LoginAurora({ companyId }: { companyId?: string }) {
           </div>
         </div>
 
-        <div style={{ position: 'relative', zIndex: 2, color: '#334155', fontSize: 11, letterSpacing: '0.03em' }}>
+        <div style={{ position: 'relative', zIndex: 2, color: 'var(--lp-dk-txt-b,#334155)', fontSize: 11, letterSpacing: '0.03em' }}>
           © {new Date().getFullYear()} Polaris Enterprise
         </div>
       </div>

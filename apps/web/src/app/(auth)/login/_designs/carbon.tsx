@@ -1,57 +1,23 @@
 'use client'
-import { LoginSplitBase } from './_shared/LoginSplitBase'
-
-const FEATURES = ['Facturación DTE certificada MH','Multi-sucursal y multi-usuarios','Planilla ISSS · AFP · Renta ISR','Inventario y punto de venta','Reportes financieros en tiempo real']
+import { LoginFullBase } from './_shared/LoginFullBase'
 
 export default function LoginCarbon({ companyId }: { companyId?: string }) {
-  const accent = '#94A3B8'
-
   return (
-    <LoginSplitBase companyId={companyId}>
-      <div style={{
-        width: '100%', height: '100%',
-        background: '#0a0a0a',
-        backgroundImage: 'radial-gradient(rgba(148,163,184,0.06) 1px, transparent 1px)',
-        backgroundSize: '32px 32px',
-        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-        padding: '52px', position: 'relative',
-      }}>
-        {/* Logo */}
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 52 }}>
-            <div style={{ width: 42, height: 42, borderRadius: 10, background: accent+'18', border: `1px solid ${accent}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2Z" stroke={accent} strokeWidth="1.5" fill={accent+'22'} />
-                <path d="M12 6L17 8.5V13.5L12 16L7 13.5V8.5L12 6Z" fill={accent+'35'} stroke={accent+'cc'} strokeWidth="0.75" />
-              </svg>
-            </div>
-            <div>
-              <div style={{ color: '#F1F0FF', fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>Polaris Enterprise</div>
-              <div style={{ color: '#6B7AA0', fontSize: 12, marginTop: 2 }}>Sistema ERP · El Salvador</div>
-            </div>
-          </div>
-          <div style={{ height: 1, background: accent+'28', marginBottom: 36 }} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {FEATURES.map(f => (
-              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 20, height: 20, borderRadius: '50%', background: accent+'18', border: `1px solid ${accent}38`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke={accent} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                </div>
-                <span style={{ color: '#94A3B8', fontSize: 13, lineHeight: 1.4 }}>{f}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 44 }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 99, padding: '5px 12px' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', animation: 'lp-pulse 2s ease-in-out infinite', flexShrink: 0 }} />
-              <span style={{ color: '#6EE7B7', fontSize: 11, fontWeight: 500, letterSpacing: '0.04em' }}>Todos los sistemas operativos</span>
-            </span>
-          </div>
-        </div>
-        <div style={{ position: 'relative', zIndex: 2, color: '#1E293B', fontSize: 11, letterSpacing: '0.03em' }}>
-          © {new Date().getFullYear()} Polaris Enterprise
-        </div>
+    <LoginFullBase
+      companyId={companyId}
+      formDark={false}
+      cardStyle={{
+        background: '#FFFFFF',
+        border: '1px solid rgba(0,0,0,0.06)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.08)',
+        backdropFilter: 'none',
+      }}
+    >
+      {/* Pure light background */}
+      <div style={{ width: '100%', height: '100%', background: 'var(--lp-bg,#F8F9FA)' }}>
+        {/* Subtle top accent line */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, var(--lp-1,#7C3AED), var(--lp-2,#A78BFA))' }} />
       </div>
-    </LoginSplitBase>
+    </LoginFullBase>
   )
 }

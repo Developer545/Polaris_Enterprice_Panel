@@ -9,50 +9,51 @@ const FEATURES = [
   'Reportes financieros en tiempo real',
 ]
 
-const AC = '#2DD4BF'
-
 export default function LoginSpring({ companyId }: { companyId?: string }) {
   return (
     <LoginSplitBase companyId={companyId}>
       <div style={{
         width: '100%', height: '100%',
-        background: '#030e10',
-        backgroundImage: [
-          'radial-gradient(ellipse 80% 60% at 20% 30%, rgba(20,184,166,0.25) 0%, transparent 60%)',
-          'radial-gradient(ellipse 60% 50% at 80% 75%, rgba(45,212,191,0.15) 0%, transparent 55%)',
-          'repeating-linear-gradient(45deg, rgba(20,184,166,0.06) 0, rgba(20,184,166,0.06) 1px, transparent 0, transparent 50%)',
-        ].join(', '),
-        backgroundSize: 'auto, auto, 24px 24px',
+        background: 'var(--lp-dk-bg,#090914)',
+        backgroundImage: 'radial-gradient(var(--lp-a20,#7C3AED33) 1px, transparent 1px)',
+        backgroundSize: '32px 32px',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-        padding: '52px', position: 'relative',
+        padding: '52px', position: 'relative', overflow: 'hidden',
       }}>
 
+        {/* Accent glow */}
+        <div style={{ position: 'absolute', width: 300, height: 300, borderRadius: '50%', background: 'var(--lp-a20,#7C3AED33)', filter: 'blur(100px)', top: '20%', left: '20%', pointerEvents: 'none' }} />
+
+        {/* Vignette overlay */}
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 85% 85% at 50% 50%, transparent 40%, var(--lp-dk-bg,#090914) 100%)', pointerEvents: 'none', zIndex: 1 }} />
+
+        {/* Content */}
         <div style={{ position: 'relative', zIndex: 2 }}>
 
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 52 }}>
             <div style={{
               width: 42, height: 42, borderRadius: 10,
-              background: 'rgba(20,184,166,0.18)',
-              border: '1px solid rgba(20,184,166,0.4)',
+              background: 'var(--lp-a20,#7C3AED33)',
+              border: '1px solid var(--lp-a30,#7C3AED4D)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2Z" stroke={AC} strokeWidth="1.5" fill="rgba(20,184,166,0.2)" />
-                <path d="M12 6L17 8.5V13.5L12 16L7 13.5V8.5L12 6Z" fill="rgba(45,212,191,0.3)" stroke="rgba(94,234,212,0.8)" strokeWidth="0.75" />
+                <path d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2Z" style={{ stroke: 'var(--lp-1,#7C3AED)', fill: 'var(--lp-a20,#7C3AED33)' }} strokeWidth="1.5" />
+                <path d="M12 6L17 8.5V13.5L12 16L7 13.5V8.5L12 6Z" style={{ fill: 'var(--lp-a30,#7C3AED4D)', stroke: 'var(--lp-2,#A78BFA)' }} strokeWidth="0.75" />
               </svg>
             </div>
             <div>
-              <div style={{ color: '#F1F0FF', fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+              <div style={{ color: 'var(--lp-dk-txt-h,#F1F0FF)', fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                 Polaris Enterprise
               </div>
-              <div style={{ color: '#6B7AA0', fontSize: 12, marginTop: 2 }}>
+              <div style={{ color: 'var(--lp-dk-txt-b,#6B7AA0)', fontSize: 12, marginTop: 2 }}>
                 Sistema ERP · El Salvador
               </div>
             </div>
           </div>
 
-          <div style={{ height: 1, background: 'rgba(20,184,166,0.25)', marginBottom: 36 }} />
+          <div style={{ height: 1, background: 'var(--lp-a25,#7C3AED40)', marginBottom: 36 }} />
 
           {/* Features */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -60,15 +61,15 @@ export default function LoginSpring({ companyId }: { companyId?: string }) {
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{
                   width: 20, height: 20, borderRadius: '50%',
-                  background: 'rgba(20,184,166,0.18)',
-                  border: '1px solid rgba(20,184,166,0.35)',
+                  background: 'var(--lp-a15,#7C3AED26)',
+                  border: '1px solid var(--lp-a25,#7C3AED40)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
                   <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                    <path d="M1 4l2.5 2.5L9 1" stroke={AC} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M1 4l2.5 2.5L9 1" style={{ stroke: 'var(--lp-1,#7C3AED)' }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
-                <span style={{ color: '#94A3B8', fontSize: 13, lineHeight: 1.4 }}>{f}</span>
+                <span style={{ color: 'var(--lp-dk-txt-b,#94A3B8)', fontSize: 13, lineHeight: 1.4 }}>{f}</span>
               </div>
             ))}
           </div>
@@ -88,7 +89,7 @@ export default function LoginSpring({ companyId }: { companyId?: string }) {
           </div>
         </div>
 
-        <div style={{ position: 'relative', zIndex: 2, color: '#334155', fontSize: 11, letterSpacing: '0.03em' }}>
+        <div style={{ position: 'relative', zIndex: 2, color: 'var(--lp-dk-txt-b,#334155)', fontSize: 11, letterSpacing: '0.03em' }}>
           © {new Date().getFullYear()} Polaris Enterprise
         </div>
       </div>
