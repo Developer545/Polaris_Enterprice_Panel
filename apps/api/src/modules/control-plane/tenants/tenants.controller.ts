@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Patch, Body, Param, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common'
 import {
   TenantsService,
   CreateTenantSchema,
@@ -6,6 +6,9 @@ import {
   UpdateModulesSchema,
   UpdateDteTypesSchema,
   ProvisionTenantSchema,
+  CreateTenantUserSchema,
+  CreateTenantRoleSchema,
+  UpdateTenantRoleSchema,
   type CreateTenantDto,
   type UpdateTenantDto,
   type UpdateModulesDto,
@@ -84,5 +87,52 @@ export class TenantsController {
   @Get(':id/users')
   getTenantUsers(@Param('id') id: string) {
     return this.tenantsService.getTenantUsers(id)
+  }
+
+  @Post(':id/users')
+  @RequireAdminRoles('SUPER_ADMIN')
+  createTenantUser(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(CreateTenantUserSchema)) dto: any,
+  ) {
+    return this.tenantsService.createTenantUser(id, dto)
+  }
+
+  @Get(':id/roles')
+  getTenantRoles(@Param('id') id: string) {
+    return this.tenantsService.getTenantRoles(id)
+  }
+
+  @Post(':id/roles')
+  @RequireAdminRoles('SUPER_ADMIN')
+  createTenantRole(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(CreateTenantRoleSchema)) dto: any,
+  ) {
+    return this.tenantsService.createTenantRole(id, dto)
+  }
+
+  @Put(':id/roles/:roleId')
+  @RequireAdminRoles('SUPER_ADMIN')
+  updateTenantRole(
+    @Param('id') id: string,
+    @Param('roleId') roleId: string,
+    @Body(new ZodValidationPipe(UpdateTenantRoleSchema)) dto: any,
+  ) {
+    return this.tenantsService.updateTenantRole(id, roleId, dto)
+  }
+
+  @Delete(':id/roles/:roleId')
+  @RequireAdminRoles('SUPER_ADMIN')
+  deleteTenantRole(
+    @Param('id') id: string,
+    @Param('roleId') roleId: string,
+  ) {
+    return this.tenantsService.deleteTenantRole(id, roleId)
+  }
+
+  @Get(':id/companies')
+  getTenantCompanies(@Param('id') id: string) {
+    return this.tenantsService.getTenantCompanies(id)
   }
 }

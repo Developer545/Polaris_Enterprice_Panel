@@ -44,11 +44,36 @@ export const ProvisionTenantSchema = z.object({
   adminPassword: z.string().min(8),
 })
 
+export const CreateTenantUserSchema = z.object({
+  name:      z.string().min(2),
+  email:     z.string().email(),
+  password:  z.string().min(6),
+  companyId: z.string().min(1),
+  roleId:    z.string().min(1),
+  phone:     z.string().optional(),
+})
+
+export const CreateTenantRoleSchema = z.object({
+  name:        z.string().min(2),
+  companyId:   z.string().min(1),
+  description: z.string().optional(),
+  permissions: z.record(z.string(), z.boolean()).default({}),
+})
+
+export const UpdateTenantRoleSchema = z.object({
+  name:        z.string().min(2).optional(),
+  description: z.string().optional(),
+  permissions: z.record(z.string(), z.boolean()).optional(),
+})
+
 export type CreateTenantDto = z.infer<typeof CreateTenantSchema>
 export type UpdateTenantDto = z.infer<typeof UpdateTenantSchema>
 export type UpdateModulesDto = z.infer<typeof UpdateModulesSchema>
 export type UpdateDteTypesDto = z.infer<typeof UpdateDteTypesSchema>
 export type ProvisionTenantDto = z.infer<typeof ProvisionTenantSchema>
+export type CreateTenantUserDto = z.infer<typeof CreateTenantUserSchema>
+export type CreateTenantRoleDto = z.infer<typeof CreateTenantRoleSchema>
+export type UpdateTenantRoleDto = z.infer<typeof UpdateTenantRoleSchema>
 
 // Default module configuration for new tenants
 const DEFAULT_MODULES: Record<string, boolean> = moduleMapFromIds(BASE_MODULES)
@@ -267,6 +292,137 @@ export class TenantsService {
   async addCompany(tenantId: string, companyRef: string, name: string) {
     return this.cpClient.tenantCompany.create({
       data: { tenantId, companyRef, name },
+    })
+  }
+
+  // ─── Tenant users management (admin panel) ───────────────────────────────────
+
+  async createTenantUser(tenantId: string, dto: CreateTenantUserDto) {
+    const tenant = await this.cpClient.tenant.findUnique({
+      where: { id: tenantId },
+      select: { dbStrategy: true, dbUrl: true },
+    })
+    if (!tenant) throw new NotFoundException('Tenant no encontrado')
+    const db = this.getTenantDb(tenant)
+
+    const exists = await db.user.findFirst({
+      where: { tenantId, email: dto.email, companyId: dto.companyId },
+    })
+    if (exists) throw new ConflictException('Ya existe un usuario con ese email en esta empresa')
+
+    const password = await bcrypt.hash(dto.password, 12)
+
+    const user = await db.user.create({
+      data: {
+        tenantId,
+        companyId: dto.companyId,
+        email:     dto.email,
+        password,
+        name:      dto.name,
+        phone:     dto.phone,
+        roleId:    dto.roleId,
+        isActive:  true,
+      },
+    })
+
+    return { id: user.id, name: user.name, email: user.email, companyId: user.companyId, roleId: user.roleId }
+  }
+
+  // ─── Tenant roles management (admin panel) ───────────────────────────────────
+
+  async getTenantRoles(tenantId: string) {
+    const tenant = await this.cpClient.tenant.findUnique({
+      where: { id: tenantId },
+      select: { dbStrategy: true, dbUrl: true },
+    })
+    if (!tenant) throw new NotFoundException('Tenant no encontrado')
+    const db = this.getTenantDb(tenant)
+    return db.role.findMany({
+      where: { tenantId },
+      select: {
+        id: true, name: true, description: true, permissions: true,
+        isSystem: true, createdAt: true,
+        company: { select: { id: true, name: true } },
+        _count: { select: { users: true } },
+      },
+      orderBy: [{ company: { name: 'asc' } }, { name: 'asc' }],
+    })
+  }
+
+  async createTenantRole(tenantId: string, dto: CreateTenantRoleDto) {
+    const tenant = await this.cpClient.tenant.findUnique({
+      where: { id: tenantId },
+      select: { dbStrategy: true, dbUrl: true },
+    })
+    if (!tenant) throw new NotFoundException('Tenant no encontrado')
+    const db = this.getTenantDb(tenant)
+
+    const exists = await db.role.findFirst({
+      where: { tenantId, companyId: dto.companyId, name: dto.name },
+    })
+    if (exists) throw new ConflictException('Ya existe un rol con ese nombre en esta empresa')
+
+    return db.role.create({
+      data: {
+        tenantId,
+        companyId:   dto.companyId,
+        name:        dto.name,
+        description: dto.description,
+        permissions: dto.permissions,
+      },
+    })
+  }
+
+  async updateTenantRole(tenantId: string, roleId: string, dto: UpdateTenantRoleDto) {
+    const tenant = await this.cpClient.tenant.findUnique({
+      where: { id: tenantId },
+      select: { dbStrategy: true, dbUrl: true },
+    })
+    if (!tenant) throw new NotFoundException('Tenant no encontrado')
+    const db = this.getTenantDb(tenant)
+
+    const role = await db.role.findFirst({ where: { id: roleId, tenantId } })
+    if (!role) throw new NotFoundException('Rol no encontrado en este tenant')
+    if (role.isSystem) throw new BadRequestException('Roles del sistema no se pueden modificar')
+
+    return db.role.update({ where: { id: roleId }, data: dto as any })
+  }
+
+  async deleteTenantRole(tenantId: string, roleId: string) {
+    const tenant = await this.cpClient.tenant.findUnique({
+      where: { id: tenantId },
+      select: { dbStrategy: true, dbUrl: true },
+    })
+    if (!tenant) throw new NotFoundException('Tenant no encontrado')
+    const db = this.getTenantDb(tenant)
+
+    const role = await db.role.findFirst({
+      where: { id: roleId, tenantId },
+      include: { _count: { select: { users: true } } },
+    })
+    if (!role) throw new NotFoundException('Rol no encontrado en este tenant')
+    if (role.isSystem) throw new BadRequestException('Roles del sistema no se pueden eliminar')
+    if ((role as any)._count.users > 0) {
+      throw new ConflictException('No se puede eliminar un rol que tiene usuarios asignados')
+    }
+
+    await db.role.delete({ where: { id: roleId } })
+    return { ok: true }
+  }
+
+  // ─── Tenant companies list (for user-creation selector) ──────────────────────
+
+  async getTenantCompanies(tenantId: string) {
+    const tenant = await this.cpClient.tenant.findUnique({
+      where: { id: tenantId },
+      select: { dbStrategy: true, dbUrl: true },
+    })
+    if (!tenant) throw new NotFoundException('Tenant no encontrado')
+    const db = this.getTenantDb(tenant)
+    return db.company.findMany({
+      where: { tenantId },
+      select: { id: true, name: true, comercialName: true },
+      orderBy: { name: 'asc' },
     })
   }
 }
