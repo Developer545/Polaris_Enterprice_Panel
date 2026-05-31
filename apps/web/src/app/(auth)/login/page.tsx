@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import ThemeSelector from '@/components/theme/ThemeSelector'
 import Aurora  from './_designs/aurora'
 import Bloom   from './_designs/bloom'
 import Cloud   from './_designs/cloud'
@@ -34,9 +35,10 @@ function isSavedKey(v: unknown): v is DesignKey {
 }
 
 export default function LoginPage() {
-  const [active, setActive] = useState<DesignKey>(DEFAULT)
-  const [open,   setOpen]   = useState(false)
-  const [ready,  setReady]  = useState(false)
+  const [active,      setActive]      = useState<DesignKey>(DEFAULT)
+  const [open,        setOpen]        = useState(false)
+  const [themeOpen,   setThemeOpen]   = useState(false)
+  const [ready,       setReady]       = useState(false)
 
   useEffect(() => {
     try {
@@ -136,6 +138,30 @@ export default function LoginPage() {
           </div>
         </div>
       )}
+
+      {/* ── Appearance button (bottom-left) ── */}
+      <button
+        onClick={() => setThemeOpen(true)}
+        title="Personalizar apariencia"
+        style={{
+          position: 'fixed', bottom: 20, left: 20, zIndex: 9999,
+          width: 36, height: 36, borderRadius: '50%', border: 'none',
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+        }}
+      >
+        {/* Palette icon */}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="rgba(255,255,255,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="13.5" cy="6.5" r=".5" fill="rgba(255,255,255,0.9)" stroke="none"/>
+          <circle cx="17.5" cy="10.5" r=".5" fill="rgba(255,255,255,0.9)" stroke="none"/>
+          <circle cx="8.5" cy="7.5" r=".5" fill="rgba(255,255,255,0.9)" stroke="none"/>
+          <circle cx="6.5" cy="12.5" r=".5" fill="rgba(255,255,255,0.9)" stroke="none"/>
+          <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+        </svg>
+      </button>
+      <ThemeSelector open={themeOpen} onClose={() => setThemeOpen(false)} />
 
       <style>{`
         @keyframes slideUp {
