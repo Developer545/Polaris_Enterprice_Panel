@@ -480,6 +480,9 @@ export class PosService {
       dteDocument: { isNot: { status: 'ANNULLED' } as any },
     }
 
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
+    const lastDayOfMonth  = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
+
     const [salesAgg, activeClientsAgg, expensesAgg] = await Promise.all([
       db.sale.aggregate({
         where: saleWhere,
@@ -535,7 +538,148 @@ export class PosService {
       last7Days = Object.entries(dayMap).map(([day, total]) => ({ day, total }))
     }
 
-    return { totalSales, countSales, activeClients, totalExpenses, last7Days }
+    // ── Extended stats (always computed, based on current month regardless of period) ──
+
+    // Top 5 products/services by revenue this month
+    const topItemsRaw = await db.saleItem.groupBy({
+      by: ['productId'],
+      where: {
+        sale: {
+          tenantId,
+          companyId,
+          ...branchScope,
+          createdAt: { gte: firstDayOfMonth, lte: lastDayOfMonth },
+          dteDocument: { isNot: { status: 'ANNULLED' } as any },
+        },
+      },
+      _sum: { ventaGravada: true, ventaExenta: true, ventaNoSuj: true },
+      orderBy: { _sum: { ventaGravada: 'desc' } },
+      take: 5,
+    })
+
+    const productIds = topItemsRaw.map(r => r.productId)
+    const productsForTop = productIds.length > 0
+      ? await db.service.findMany({
+          where: { id: { in: productIds }, tenantId, companyId },
+          select: { id: true, name: true },
+        })
+      : []
+
+    const productNameMap = new Map(productsForTop.map(p => [p.id, p.name]))
+    const topProducts: { name: string; total: number }[] = topItemsRaw
+      .map(r => ({
+        name: productNameMap.get(r.productId) ?? 'Desconocido',
+        total: Number(r._sum.ventaGravada ?? 0) + Number(r._sum.ventaExenta ?? 0) + Number(r._sum.ventaNoSuj ?? 0),
+      }))
+      .sort((a, b) => b.total - a.total)
+
+    // Last 6 months of sales (for area chart)
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    const last6Months: { month: string; total: number }[] = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      last6Months.push({ month: monthNames[d.getMonth()], total: 0 })
+    }
+
+    const sales6MonthsFrom = new Date(now.getFullYear(), now.getMonth() - 5, 1, 0, 0, 0)
+    const salesLast6Months = await db.sale.findMany({
+      where: {
+        tenantId,
+        companyId,
+        ...branchScope,
+        createdAt: { gte: sales6MonthsFrom, lte: new Date() },
+        dteDocument: { isNot: { status: 'ANNULLED' } as any },
+      },
+      select: { createdAt: true, totalPagar: true },
+    })
+
+    for (const s of salesLast6Months) {
+      const monthIdx = 5 - (now.getMonth() - s.createdAt.getMonth() + (now.getFullYear() - s.createdAt.getFullYear()) * 12)
+      if (monthIdx >= 0 && monthIdx < 6) {
+        last6Months[monthIdx].total += Number(s.totalPagar ?? 0)
+      }
+    }
+
+    // Expenses by category this month
+    const expensesByCatRaw = await db.expense.groupBy({
+      by: ['categoryId'],
+      where: {
+        tenantId,
+        companyId,
+        ...branchScope,
+        date: { gte: firstDayOfMonth, lte: lastDayOfMonth },
+      },
+      _sum: { amount: true },
+    })
+
+    const catIds = expensesByCatRaw.map(r => r.categoryId).filter((id): id is string => id !== null)
+    const categories = catIds.length > 0
+      ? await db.expenseCategory.findMany({
+          where: { id: { in: catIds }, tenantId, companyId },
+          select: { id: true, name: true, color: true },
+        })
+      : []
+
+    const catMap = new Map(categories.map(c => [c.id, c]))
+    const expensesByCategory: { name: string; color: string; total: number }[] = expensesByCatRaw
+      .map(r => {
+        const cat = r.categoryId ? catMap.get(r.categoryId) : null
+        return {
+          name: cat?.name ?? 'Sin categoría',
+          color: cat?.color ?? '#8c8c8c',
+          total: Number(r._sum.amount ?? 0),
+        }
+      })
+      .sort((a, b) => b.total - a.total)
+
+    // Low stock items — Prisma doesn't support column-to-column comparisons,
+    // so we fetch all rows with minStock > 0 and filter in JS
+    const allLowStockCandidates = await db.branchInventory.findMany({
+      where: { tenantId, companyId, minStock: { gt: 0 } },
+      include: { product: { select: { name: true } } },
+    })
+    const filteredLowStock = allLowStockCandidates.filter(
+      r => Number(r.stock) <= Number(r.minStock)
+    )
+    const lowStock = {
+      count: filteredLowStock.length,
+      items: filteredLowStock.slice(0, 10).map(r => ({
+        productName: r.product.name,
+        stock: Number(r.stock),
+        minStock: Number(r.minStock),
+      })),
+    }
+
+    // DTE status summary for current month
+    const dteDocs = await db.dteDocument.findMany({
+      where: {
+        tenantId,
+        companyId,
+        createdAt: { gte: firstDayOfMonth, lte: lastDayOfMonth },
+      },
+      select: { status: true },
+    })
+
+    const monthSalesCount = await db.sale.count({
+      where: {
+        tenantId,
+        companyId,
+        ...branchScope,
+        createdAt: { gte: firstDayOfMonth, lte: lastDayOfMonth },
+        dteDocument: { isNot: { status: 'ANNULLED' } as any },
+      },
+    })
+    const dteStatusCounts = { ACCEPTED: 0, PENDING: 0, QUEUED: 0, REJECTED: 0, NO_DTE: 0, CONTINGENCY: 0 }
+    for (const doc of dteDocs) {
+      const s = doc.status as string
+      if (s in dteStatusCounts) (dteStatusCounts as any)[s]++
+    }
+    dteStatusCounts.NO_DTE = Math.max(0, monthSalesCount - dteDocs.length)
+
+    return {
+      totalSales, countSales, activeClients, totalExpenses, last7Days,
+      topProducts, last6Months, expensesByCategory, lowStock, dteStatus: dteStatusCounts,
+    }
   }
 
   /**
