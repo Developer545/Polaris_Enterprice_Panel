@@ -6,7 +6,7 @@ import {
 } from 'antd'
 import {
   ArrowLeftOutlined, AppstoreOutlined, FileTextOutlined,
-  BranchesOutlined, TeamOutlined,
+  BranchesOutlined, TeamOutlined, SafetyOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -15,6 +15,7 @@ import ModulosTab from './tabs/ModulosTab'
 import DocumentosFiscalesTab from './tabs/DocumentosFiscalesTab'
 import SucursalesTab from './tabs/SucursalesTab'
 import UsuariosTab from './tabs/UsuariosTab'
+import RolesTab from './tabs/RolesTab'
 
 const STATUS_COLOR: Record<string, string> = {
   TRIAL: 'blue', ACTIVE: 'green', SUSPENDED: 'red', CANCELLED: 'default',
@@ -68,6 +69,11 @@ function TenantDetailContent({ id }: { id: string }) {
       key: 'usuarios',
       label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><TeamOutlined /> Usuarios</span>,
       children: <UsuariosTab tenantId={id} />,
+    },
+    {
+      key: 'roles',
+      label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><SafetyOutlined /> Roles</span>,
+      children: <RolesTab tenantId={id} />,
     },
   ]
 

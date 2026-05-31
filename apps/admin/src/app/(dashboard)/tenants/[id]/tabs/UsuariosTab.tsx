@@ -1,7 +1,11 @@
 'use client'
-import { Table, Badge, Typography, Tag, Alert, Tooltip, Card, Avatar, Space } from 'antd'
-import { MailOutlined } from '@ant-design/icons'
-import { useQuery } from '@tanstack/react-query'
+import {
+  Table, Badge, Typography, Tag, Alert, Tooltip, Card, Avatar,
+  Space, Button, Modal, Form, Input, Select, App,
+} from 'antd'
+import { MailOutlined, PlusOutlined } from '@ant-design/icons'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../../../lib/api'
 import dayjs from 'dayjs'
 
@@ -11,10 +15,48 @@ const CARD_SHADOW = { borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rg
 interface Props { tenantId: string }
 
 export default function UsuariosTab({ tenantId }: Props) {
+  const { message } = App.useApp()
+  const queryClient = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const [form] = Form.useForm()
+
   const { data = [], isLoading, isError } = useQuery({
     queryKey: ['admin', 'tenant', tenantId, 'users'],
     queryFn: () => api.get(`/api/control-plane/tenants/${tenantId}/users`).then((r) => r.data),
   })
+
+  const { data: companies = [], isLoading: loadingCompanies } = useQuery({
+    queryKey: ['admin', 'tenant', tenantId, 'companies'],
+    queryFn: () => api.get(`/api/control-plane/tenants/${tenantId}/companies`).then((r) => r.data),
+    enabled: open,
+  })
+
+  const { data: roles = [], isLoading: loadingRoles } = useQuery({
+    queryKey: ['admin', 'tenant', tenantId, 'roles'],
+    queryFn: () => api.get(`/api/control-plane/tenants/${tenantId}/roles`).then((r) => r.data),
+    enabled: open,
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (values: Record<string, string>) =>
+      api.post(`/api/control-plane/tenants/${tenantId}/users`, values).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tenant', tenantId, 'users'] })
+      message.success('Usuario creado correctamente')
+      setOpen(false)
+      form.resetFields()
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message ?? 'Error al crear usuario'
+      message.error(msg)
+    },
+  })
+
+  const handleSubmit = () => {
+    form.validateFields().then((values) => {
+      createMutation.mutate(values)
+    })
+  }
 
   if (isError) {
     return (
@@ -100,13 +142,23 @@ export default function UsuariosTab({ tenantId }: Props) {
 
   return (
     <div style={{ padding: '20px 24px' }}>
-      <div style={{ marginBottom: 14 }}>
-        <Text style={{ fontWeight: 600, fontSize: 14, color: '#37352f' }}>Usuarios del tenant</Text>
-        <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>({data.length} registrados)</Text>
-        <br />
-        <Text type="secondary" style={{ fontSize: 12 }}>Vista de solo lectura — se gestionan desde el sistema del cliente</Text>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div>
+          <Text style={{ fontWeight: 600, fontSize: 14, color: '#37352f' }}>Usuarios del tenant</Text>
+          <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>({data.length} registrados)</Text>
+        </div>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          size="small"
+          onClick={() => setOpen(true)}
+        >
+          Nuevo usuario
+        </Button>
       </div>
 
+      {/* Table */}
       <Card size="small" style={CARD_SHADOW} styles={{ body: { padding: 0 } }}>
         <Table
           size="small"
@@ -125,6 +177,79 @@ export default function UsuariosTab({ tenantId }: Props) {
           locale={{ emptyText: 'Sin usuarios registrados' }}
         />
       </Card>
+
+      {/* Modal crear usuario */}
+      <Modal
+        title="Crear usuario"
+        open={open}
+        onOk={handleSubmit}
+        onCancel={() => { setOpen(false); form.resetFields() }}
+        okText="Crear usuario"
+        cancelText="Cancelar"
+        confirmLoading={createMutation.isPending}
+        destroyOnClose
+        width={480}
+      >
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item
+            name="companyId"
+            label="Empresa"
+            rules={[{ required: true, message: 'Selecciona una empresa' }]}
+          >
+            <Select
+              placeholder="Seleccionar empresa"
+              loading={loadingCompanies}
+              showSearch
+              optionFilterProp="label"
+              options={(companies as any[]).map((c) => ({ value: c.id, label: c.name }))}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="roleId"
+            label="Rol"
+            rules={[{ required: true, message: 'Selecciona un rol' }]}
+          >
+            <Select
+              placeholder="Seleccionar rol"
+              loading={loadingRoles}
+              showSearch
+              optionFilterProp="label"
+              options={(roles as any[]).map((r) => ({ value: r.id, label: r.name }))}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="name"
+            label="Nombre completo"
+            rules={[{ required: true, message: 'Ingresa el nombre completo' }]}
+          >
+            <Input placeholder="Ej: Juan Pérez" />
+          </Form.Item>
+
+          <Form.Item
+            name="email"
+            label="Correo electrónico"
+            rules={[
+              { required: true, message: 'Ingresa el correo electrónico' },
+              { type: 'email', message: 'Ingresa un correo válido' },
+            ]}
+          >
+            <Input type="email" placeholder="usuario@empresa.com" />
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            label="Contraseña"
+            rules={[
+              { required: true, message: 'Ingresa una contraseña' },
+              { min: 6, message: 'Mínimo 6 caracteres' },
+            ]}
+          >
+            <Input.Password placeholder="Mínimo 6 caracteres" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   )
 }
