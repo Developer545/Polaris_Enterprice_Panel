@@ -1,7 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Layout, Avatar, Dropdown, Typography, theme as antTheme, Select, Space, Tooltip, DatePicker } from 'antd'
-import { LogoutOutlined, ShopOutlined, ReloadOutlined } from '@ant-design/icons'
+import { LogoutOutlined, ShopOutlined, ReloadOutlined, BgColorsOutlined } from '@ant-design/icons'
+import ThemeSelector from '../../components/theme/ThemeSelector'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
@@ -27,6 +28,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
   const [from,         setFromState]   = useState<string>(defaultFrom())
   const [to,           setToState]     = useState<string>(defaultTo())
   const [branchFilter, setBranchState] = useState<string>('all')
+  const [themeOpen,    setThemeOpen]   = useState(false)
 
   // Protección: si no es owner, redirigir al dashboard normal
   useEffect(() => {
@@ -153,6 +155,17 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
             />
           </Tooltip>
         </Space>
+
+        {/* Tema */}
+        <Tooltip title="Cambiar tema">
+          <button
+            onClick={() => setThemeOpen(true)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: token.colorText, padding: '4px 8px', borderRadius: 6, flexShrink: 0 }}
+          >
+            <BgColorsOutlined />
+          </button>
+        </Tooltip>
+        <ThemeSelector open={themeOpen} onClose={() => setThemeOpen(false)} />
 
         {/* Usuario */}
         <Dropdown menu={userMenu} placement="bottomRight" trigger={['click']}>
