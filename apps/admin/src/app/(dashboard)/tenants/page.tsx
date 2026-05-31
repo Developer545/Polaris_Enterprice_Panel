@@ -36,6 +36,22 @@ export default function TenantsPage() {
   const [form] = Form.useForm()
   const [provisionForm] = Form.useForm()
 
+  const [slugDirty, setSlugDirty] = useState(false)
+
+  // Auto-genera slug único desde el nombre: "García Market S.A." → "garcia-market-sa-x4k2"
+  function generateSlug(name: string): string {
+    const base = name
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita acentos
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .slice(0, 28)
+    const suffix = Math.random().toString(36).slice(2, 6) // 4 chars aleatorios
+    return `${base}-${suffix}`
+  }
+
   const [search, setSearch] = useState('')
   const [drawerOpen, setDrawerOpen]     = useState(false)
   const [provisionOpen, setProvisionOpen] = useState(false)
@@ -254,11 +270,11 @@ export default function TenantsPage() {
       <Drawer
         title={<Space><PlusOutlined /><span>Nuevo Tenant</span></Space>}
         open={drawerOpen}
-        onClose={() => { setDrawerOpen(false); form.resetFields() }}
+        onClose={() => { setDrawerOpen(false); form.resetFields(); setSlugDirty(false) }}
         width={520}
         footer={
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <Button onClick={() => { setDrawerOpen(false); form.resetFields() }}>Cancelar</Button>
+            <Button onClick={() => { setDrawerOpen(false); form.resetFields(); setSlugDirty(false) }}>Cancelar</Button>
             <Button type="primary" loading={createMutation.isPending} onClick={() => form.submit()}>
               Crear tenant
             </Button>
@@ -274,19 +290,44 @@ export default function TenantsPage() {
           <Row gutter={12}>
             <Col span={12}>
               <Form.Item name="name" label="Nombre empresa" rules={[{ required: true, message: 'Requerido' }]}>
-                <Input placeholder="Empresa ABC S.A. de C.V." />
+                <Input
+                  placeholder="Empresa ABC S.A. de C.V."
+                  onChange={e => {
+                    if (!slugDirty) {
+                      form.setFieldValue('slug', generateSlug(e.target.value))
+                    }
+                  }}
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item
                 name="slug"
                 label="Slug (identificador único)"
+                extra={<span style={{ fontSize: 11, color: '#9b9b99' }}>Auto-generado · editable · solo minúsculas, números y guiones</span>}
                 rules={[
                   { required: true },
                   { pattern: /^[a-z0-9-]+$/, message: 'Solo minúsculas, números y guiones' },
+                  { min: 4, message: 'Mínimo 4 caracteres' },
                 ]}
               >
-                <Input placeholder="empresa-abc" style={{ fontFamily: 'monospace' }} />
+                <Input
+                  placeholder="empresa-abc-x4k2"
+                  style={{ fontFamily: 'monospace' }}
+                  onChange={() => setSlugDirty(true)}
+                  suffix={
+                    <Tooltip title="Regenerar slug">
+                      <span
+                        style={{ cursor: 'pointer', color: '#9254de', fontSize: 12 }}
+                        onClick={() => {
+                          const name = form.getFieldValue('name') || ''
+                          form.setFieldValue('slug', generateSlug(name))
+                          setSlugDirty(false)
+                        }}
+                      >↺</span>
+                    </Tooltip>
+                  }
+                />
               </Form.Item>
             </Col>
           </Row>

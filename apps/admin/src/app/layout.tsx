@@ -4,7 +4,7 @@ import { Providers } from '../providers'
 
 export const metadata: Metadata = {
   title: 'Polaris Enterprise — Admin',
-  description: 'Polaris Enterprise · Panel Administrativo · Speeddan System',
+  description: 'Polaris Enterprise · Panel Administrativo · Polaris Enterprise',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

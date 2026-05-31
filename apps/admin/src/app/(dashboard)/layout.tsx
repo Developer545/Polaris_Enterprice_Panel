@@ -150,7 +150,7 @@ function AdminDashboardContent({ children }: { children: React.ReactNode }) {
                 Polaris Enterprise
               </div>
               <div style={{ color: '#9b9b99', fontSize: 11 }}>
-                Admin · Speeddan
+                Admin · Polaris
               </div>
             </div>
           )}
@@ -280,7 +280,7 @@ function AdminDashboardContent({ children }: { children: React.ReactNode }) {
                     Super Admin
                   </div>
                   <div style={{ color: '#9b9b99', fontSize: 11, whiteSpace: 'nowrap' }}>
-                    Speeddan System
+                    Polaris Enterprise
                   </div>
                 </div>
               </div>

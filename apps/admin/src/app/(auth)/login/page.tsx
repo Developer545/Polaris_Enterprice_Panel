@@ -71,7 +71,7 @@ function LoginContent() {
             Polaris Enterprise
           </Typography.Title>
           <Typography.Text style={{ color: '#9b9b99', fontSize: 13 }}>
-            Speeddan System · Acceso restringido
+            Polaris Enterprise · Acceso restringido
           </Typography.Text>
         </div>
 
@@ -90,7 +90,7 @@ function LoginContent() {
           <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: 'Email inválido' }]}>
             <Input
               prefix={<UserOutlined style={{ color: '#c7c7c5' }} />}
-              placeholder="admin@speeddan.com"
+              placeholder="admin@polarisenterprisesv.com"
               style={{ height: 40 }}
             />
           </Form.Item>
