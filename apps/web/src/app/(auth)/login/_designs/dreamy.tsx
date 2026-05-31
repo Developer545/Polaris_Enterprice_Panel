@@ -86,6 +86,9 @@ export default function LoginDreamy() {
       }}
     >
       <style>{`
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
+        html, body { margin: 0; padding: 0; overflow: hidden; }
         @keyframes twinkle {
           0%, 100% { opacity: 0.2; transform: scale(1); }
           50% { opacity: 1; transform: scale(1.4); }

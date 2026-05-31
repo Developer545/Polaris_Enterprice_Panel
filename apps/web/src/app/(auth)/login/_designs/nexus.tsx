@@ -61,6 +61,9 @@ export default function LoginNexus() {
   return (
     <>
       <style>{`
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
+        html, body { margin: 0; padding: 0; overflow: hidden; }
         .nexus-wrap {
           min-height: 100vh;
           background-color: #030610;

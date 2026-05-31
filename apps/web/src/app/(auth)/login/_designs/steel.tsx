@@ -61,6 +61,9 @@ export default function LoginSteel() {
   return (
     <>
       <style>{`
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
+        html, body { margin: 0; padding: 0; overflow: hidden; }
         .steel-wrap {
           min-height: 100vh;
           display: flex;

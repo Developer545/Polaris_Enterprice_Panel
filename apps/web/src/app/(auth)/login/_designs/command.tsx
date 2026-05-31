@@ -61,6 +61,9 @@ export default function LoginCommand() {
   return (
     <>
       <style>{`
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
+        html, body { margin: 0; padding: 0; overflow: hidden; }
         .command-wrap {
           min-height: 100vh;
           background: #0D1117;

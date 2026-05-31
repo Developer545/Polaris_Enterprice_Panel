@@ -75,6 +75,8 @@ export default function LoginBloom() {
       <style>{`
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
 
         @keyframes floatBloom {
           0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -195,7 +197,7 @@ export default function LoginBloom() {
           flex: 1, background: '#ffffff',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '40px 60px', position: 'relative',
-          overflowY: 'auto',
+          overflow: 'hidden',
         }}>
           {/* Acento decorativo superior */}
           <div style={{

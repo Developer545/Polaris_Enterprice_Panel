@@ -160,6 +160,9 @@ export default function LoginPetal() {
         )}
 
         <style>{`
+          * { scrollbar-width: none; -ms-overflow-style: none; }
+          *::-webkit-scrollbar { display: none; }
+          html, body { margin: 0; padding: 0; overflow: hidden; }
           .petal-input .ant-input-affix-wrapper,
           .petal-input .ant-input {
             background: #FFF5F8 !important;

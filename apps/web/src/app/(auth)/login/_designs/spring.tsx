@@ -87,6 +87,9 @@ export default function LoginSpring() {
       }}
     >
       <style>{`
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
+        html, body { margin: 0; padding: 0; overflow: hidden; }
         .spring-input .ant-input-affix-wrapper,
         .spring-input .ant-input {
           background: #F0FFF4 !important;

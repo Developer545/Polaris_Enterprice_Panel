@@ -68,6 +68,8 @@ export default function LoginCloud() {
       <style>{`
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
 
         @keyframes floatCloud {
           0%, 100% { transform: translateY(0) scale(1); }
@@ -158,8 +160,6 @@ export default function LoginCloud() {
           boxShadow: '0 8px 40px rgba(155,142,196,0.2), 0 2px 8px rgba(0,0,0,0.04)',
           padding: '44px 48px',
           animation: 'fadeUp 0.6s ease both',
-          overflowY: 'auto',
-          maxHeight: '96vh',
         }}>
           {/* Header de la card */}
           <div style={{ textAlign: 'center', marginBottom: 32 }}>

@@ -80,6 +80,9 @@ export default function LoginVelvet() {
       }}
     >
       <style>{`
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
+        html, body { margin: 0; padding: 0; overflow: hidden; }
         .velvet-input .ant-input-affix-wrapper,
         .velvet-input .ant-input {
           background: rgba(255,255,255,0.06) !important;

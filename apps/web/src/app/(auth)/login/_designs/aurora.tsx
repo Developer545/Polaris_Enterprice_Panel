@@ -68,6 +68,8 @@ export default function LoginAurora() {
       <style>{`
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
 
         @keyframes waveShift {
           0%   { transform: translateX(0) translateY(0); }
@@ -208,8 +210,6 @@ export default function LoginAurora() {
             borderTop: '4px solid #fb923c',
             padding: '40px 44px',
             animation: 'fadeUp 0.6s ease 0.1s both',
-            overflowY: 'auto',
-            maxHeight: '85vh',
           }}>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>

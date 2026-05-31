@@ -84,6 +84,9 @@ export default function LoginCandy() {
       }}
     >
       <style>{`
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        *::-webkit-scrollbar { display: none; }
+        html, body { margin: 0; padding: 0; overflow: hidden; }
         .candy-input .ant-input-affix-wrapper,
         .candy-input .ant-input {
           background: #FFF5F8 !important;
