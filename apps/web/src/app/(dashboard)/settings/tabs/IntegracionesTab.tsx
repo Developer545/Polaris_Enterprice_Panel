@@ -10,7 +10,7 @@ import {
   CheckCircleOutlined, ExclamationCircleOutlined, UploadOutlined,
   LockOutlined, EyeInvisibleOutlined, EyeOutlined,
   InfoCircleOutlined, SyncOutlined, ShopOutlined, WarningOutlined,
-  FileTextOutlined,
+  FileTextOutlined, MailOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../../lib/api'
