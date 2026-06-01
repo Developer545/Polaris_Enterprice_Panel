@@ -148,6 +148,8 @@ export default function ProductsPage() {
         conversionFactor: rest.conversionFactor ?? 1,
         saleUnitId:       rest.fraccionable ? rest.saleUnitId : null,
         purchaseUnit:     rest.purchaseUnit || null,
+        imageUrl:         rest.imageUrl || null,   // '' → null para pasar validación Zod .url()
+        emoji:            rest.emoji    || null,
       }
       return editProd?.id
         ? api.put(`/api/products/${editProd.id}`, dto)
@@ -488,7 +490,7 @@ export default function ProductsPage() {
                     <IconOrImagePicker
                       emoji={getFieldValue('emoji')}
                       imageUrl={getFieldValue('imageUrl')}
-                      onChange={({ emoji, imageUrl }) => setFieldsValue({ emoji: emoji ?? '', imageUrl: imageUrl ?? '' })}
+                      onChange={({ emoji, imageUrl }) => setFieldsValue({ emoji: emoji ?? null, imageUrl: imageUrl ?? null })}
                       folder="polaris/productos"
                     />
                   )}
