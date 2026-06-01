@@ -167,20 +167,14 @@ export class UploadService {
 
     if (!cloudName || !apiKey || !apiSecret) return []
 
-    const searchFolder = folder ?? 'polaris'
-    const url = `https://api.cloudinary.com/v1_1/${cloudName}/resources/search`
+    const prefix = folder ?? 'polaris'
+    const auth   = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')
+
+    // Admin API — no requiere activar Search API en Cloudinary
+    const url = `https://api.cloudinary.com/v1_1/${cloudName}/resources/image?type=upload&prefix=${encodeURIComponent(prefix)}&max_results=100`
 
     const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Basic ${Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')}`,
-      },
-      body: JSON.stringify({
-        expression: `folder:${searchFolder}*`,
-        max_results: 100,
-        sort_by: [{ created_at: 'desc' }],
-      }),
+      headers: { Authorization: `Basic ${auth}` },
     })
 
     if (!res.ok) return []
