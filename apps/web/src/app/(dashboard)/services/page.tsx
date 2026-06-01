@@ -71,8 +71,8 @@ export default function ServicesPage() {
 
   // ── Queries ──────────────────────────────────────────────────────────────
   const { data: allProducts = [], isLoading } = useQuery<any[]>({
-    queryKey: ['products', companyId],
-    queryFn: () => api.get('/api/products', { params: { companyId } }).then(r => r.data),
+    queryKey: ['products-all', companyId],
+    queryFn: () => api.get('/api/products', { params: { companyId, limit: 500 } }).then(r => r.data.data ?? []),
     enabled: !!companyId,
   })
 
@@ -107,7 +107,22 @@ export default function ServicesPage() {
   // ── Mutations — servicios ─────────────────────────────────────────────────
   const saveMutation = useMutation({
     mutationFn: (values: any) => {
-      const dto = { ...values, tipoItem: '2' }
+      const dto: Record<string, any> = {
+        name:              values.name,
+        categoryId:        values.categoryId || null,
+        description:       values.description || null,
+        sku:               values.sku         || null,
+        tipoItem:          '2',
+        uniMedida:         Number(values.uniMedida ?? 99),
+        price:             Number(values.price),
+        cost:              Number(values.cost ?? 0),
+        priceWholesale:    values.priceWholesale    != null ? Number(values.priceWholesale)    : null,
+        priceDistribution: values.priceDistribution != null ? Number(values.priceDistribution) : null,
+        priceSpecial:      values.priceSpecial      != null ? Number(values.priceSpecial)      : null,
+        commissionAmount:  values.commissionAmount  != null ? Number(values.commissionAmount)  : null,
+        imageUrl:          values.imageUrl || null,
+        emoji:             values.emoji    || null,
+      }
       return editing?.id
         ? api.put(`/api/products/${editing.id}`, dto)
         : api.post('/api/products', { ...dto, companyId })
@@ -115,6 +130,7 @@ export default function ServicesPage() {
     onSuccess: () => {
       message.success(editing?.id ? 'Servicio actualizado' : 'Servicio creado')
       qc.invalidateQueries({ queryKey: ['products'] })
+      qc.invalidateQueries({ queryKey: ['products-all'] })
       setDrawerOpen(false)
       setEditing(null)
     },
@@ -126,6 +142,7 @@ export default function ServicesPage() {
     onSuccess: () => {
       message.success('Servicio eliminado')
       qc.invalidateQueries({ queryKey: ['products'] })
+      qc.invalidateQueries({ queryKey: ['products-all'] })
     },
     onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error'),
   })
