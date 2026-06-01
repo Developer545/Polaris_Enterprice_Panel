@@ -20,6 +20,20 @@ import { z } from 'zod'
 export class AccountsPayableController {
   constructor(private readonly svc: AccountsPayableService) {}
 
+  // Static routes MUST come before dynamic :id routes to avoid being shadowed.
+
+  @Get('aging')
+  @RequirePermissions(PERMISSIONS.ACCOUNTS_PAYABLE_VIEW)
+  getAging(@CurrentUser() user: JwtAccessPayload, @Query('companyId') companyId?: string) {
+    return this.svc.getAging(companyId ?? user.companyId, user)
+  }
+
+  @Post('mark-overdue')
+  @RequirePermissions(PERMISSIONS.ACCOUNTS_PAYABLE_EDIT)
+  markOverdue(@CurrentUser() user: JwtAccessPayload, @Query('companyId') companyId?: string) {
+    return this.svc.markOverdue(companyId ?? user.companyId, user)
+  }
+
   @Get()
   @RequirePermissions(PERMISSIONS.ACCOUNTS_PAYABLE_VIEW)
   findAll(
@@ -65,17 +79,5 @@ export class AccountsPayableController {
     @CurrentUser() user: JwtAccessPayload,
   ) {
     return this.svc.registerPayment(id, dto, user)
-  }
-
-  @Post('mark-overdue')
-  @RequirePermissions(PERMISSIONS.ACCOUNTS_PAYABLE_EDIT)
-  markOverdue(@CurrentUser() user: JwtAccessPayload, @Query('companyId') companyId?: string) {
-    return this.svc.markOverdue(companyId ?? user.companyId, user)
-  }
-
-  @Get('aging')
-  @RequirePermissions(PERMISSIONS.ACCOUNTS_PAYABLE_VIEW)
-  getAging(@CurrentUser() user: JwtAccessPayload, @Query('companyId') companyId?: string) {
-    return this.svc.getAging(companyId ?? user.companyId, user)
   }
 }

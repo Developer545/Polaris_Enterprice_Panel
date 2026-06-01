@@ -430,6 +430,7 @@ model Sale {
   totalDescuento   Decimal       @default(0) @db.Decimal(10, 2)
   totalPagar       Decimal       @db.Decimal(10, 2)
   notes            String?
+  idempotencyKey   String?       // client UUID, prevents double-submit
   // Documento relacionado (para NC tipo 05 y ND tipo 06)
   docRelTipoDte          String?  // Tipo DTE del documento original (ej. '03')
   docRelNumeroControl    String?  // Número de control del original
@@ -445,6 +446,7 @@ model Sale {
   accountReceivable  AccountReceivable?
   commissionRecords  CommissionRecord[]
 
+  @@unique([tenantId, idempotencyKey])
   @@index([tenantId, companyId, branchId])
   @@index([tenantId, companyId, createdAt])
   @@index([tenantId, companyId, cashRegisterId])

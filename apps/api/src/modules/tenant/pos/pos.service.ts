@@ -37,6 +37,7 @@ export const CreateSaleSchema = z.object({
   })),
   notes: z.string().optional(),
   emitDte: z.boolean().default(true),
+  idempotencyKey: z.string().uuid().optional(),
 })
 
 export type CreateSaleDto = z.infer<typeof CreateSaleSchema>
@@ -140,6 +141,19 @@ export class PosService {
     const db = this.getDb()
     this.assertCompanyAccess(user, dto.companyId)
     this.assertBranchAccess(user, dto.branchId)
+
+    // Idempotency: return existing sale if same key already processed
+    if (dto.idempotencyKey) {
+      const existing = await db.sale.findFirst({
+        where: { tenantId, idempotencyKey: dto.idempotencyKey },
+        include: {
+          items: true,
+          payments: true,
+          dteDocument: true,
+        },
+      })
+      if (existing) return existing
+    }
 
     // Validate cash register is open
     const register = await db.cashRegister.findFirst({
@@ -282,6 +296,7 @@ export class PosService {
           tipoDte: dto.tipoDte,
           condicionOperacion: dto.condicionOperacion,
           notes: dto.notes,
+          idempotencyKey: dto.idempotencyKey ?? null,
           // Totals
           totalNoSuj: new Decimal(summary.totalNoSuj),
           totalExenta: new Decimal(summary.totalExenta),

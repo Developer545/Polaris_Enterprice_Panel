@@ -182,7 +182,7 @@ export class AccountsPayableService {
         tenantId,
         companyId,
         ...buildBranchWhere(user),
-        status: 'PENDING',
+        status: { in: ['PENDING', 'PARTIAL'] },
         dueDate: { lt: now },
       },
       data: { status: 'OVERDUE' },

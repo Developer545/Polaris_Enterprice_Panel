@@ -98,6 +98,7 @@ export default function PosPage() {
   const [lastSale, setLastSale] = useState<any>(null)
   const [printModal, setPrintModal] = useState(false)
   const [invoiceSellerId, setInvoiceSellerId] = useState<string | null>(null)
+  const [saleIdempotencyKey, setSaleIdempotencyKey] = useState<string>('')
 
   const { companyId, branchId } = useAppContext()
 
@@ -380,6 +381,7 @@ export default function PosPage() {
     }
     payForm.setFieldsValue({ payments: [{ formaPago: '01', amount: totalPagar.toFixed(2) }] })
     setRecibidoEfectivo(0)
+    setSaleIdempotencyKey(crypto.randomUUID())
     setPayModal(true)
   }
 
@@ -420,6 +422,7 @@ export default function PosPage() {
       })),
       payments: values.payments,
       emitDte: true,
+      idempotencyKey: saleIdempotencyKey,
     })
   }
 
