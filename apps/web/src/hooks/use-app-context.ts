@@ -6,19 +6,31 @@ function readLS(key: string) {
   return localStorage.getItem(key) ?? ''
 }
 
+/** Parses branchIds JSON array and returns the first element as branchId. */
+function readFirstBranchId(): string {
+  if (typeof window === 'undefined') return ''
+  try {
+    const raw = localStorage.getItem('branchIds')
+    if (!raw) return ''
+    const arr = JSON.parse(raw)
+    return Array.isArray(arr) && arr.length > 0 ? arr[0] : ''
+  } catch {
+    return ''
+  }
+}
+
 /**
  * Returns companyId and branchId stored in localStorage after login.
- * Lazy initializer reads synchronously on first client render so React Query
- * fires with the real key immediately — no loading flash on navigation.
+ * branchId is derived from branchIds[0] (login stores array, not singular).
  */
 export function useAppContext() {
   const [companyId, setCompanyId] = useState<string>(() => readLS('companyId'))
-  const [branchId,  setBranchId]  = useState<string>(() => readLS('branchId'))
+  const [branchId,  setBranchId]  = useState<string>(() => readFirstBranchId())
 
   // Keep in sync if localStorage changes in the same tab (e.g. after login)
   useEffect(() => {
     const id = readLS('companyId')
-    const br = readLS('branchId')
+    const br = readFirstBranchId()
     if (id) setCompanyId(id)
     if (br) setBranchId(br)
   }, [])
