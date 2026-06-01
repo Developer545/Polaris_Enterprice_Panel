@@ -64,6 +64,7 @@ export class ExpensesService {
       where: { tenantId, companyId, isActive: true },
       include: { _count: { select: { expenses: true } } },
       orderBy: { name: 'asc' },
+      take: 500,
     })
   }
 

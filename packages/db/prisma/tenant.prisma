@@ -173,6 +173,7 @@ model Branch {
   employees          Employee[]
 
   @@index([tenantId, companyId])
+  @@index([tenantId, companyId, isActive])
 }
 
 // ─── Auth & Users ────────────────────────────────────────────────────────────
@@ -222,6 +223,8 @@ model User {
 
   @@unique([email, companyId])
   @@index([tenantId, companyId])
+  @@index([tenantId, companyId, isActive])
+  @@index([roleId])
 }
 
 model UserBranch {
@@ -284,6 +287,7 @@ model Client {
   @@index([tenantId, companyId, branchId])
   @@index([tenantId, companyId, numDocumento])
   @@index([tenantId, companyId, nrc])
+  @@index([tenantId, companyId, isActive])
 }
 
 // ─── Services / Products ─────────────────────────────────────────────────────
@@ -346,6 +350,8 @@ model Service {
   @@index([tenantId, companyId])
   @@index([tenantId, companyId, sku])
   @@index([tenantId, companyId, barcode])
+  @@index([tenantId, companyId, isActive, categoryId])
+  @@index([categoryId])
 }
 
 // ─── Units of Measure (fraccionable products) ─────────────────────────────────
@@ -450,6 +456,9 @@ model Sale {
   @@index([tenantId, companyId, branchId])
   @@index([tenantId, companyId, createdAt])
   @@index([tenantId, companyId, cashRegisterId])
+  @@index([tenantId, companyId, branchId, createdAt])
+  @@index([tenantId, clientId])
+  @@index([sellerId])
 }
 
 model SaleItem {
@@ -471,6 +480,9 @@ model SaleItem {
   sellerId     String?  // vendedor específico de este ítem (override del vendedor de la venta)
   seller       Employee? @relation("SaleItemSeller", fields: [sellerId], references: [id])
   priceType    String?  // 'STANDARD'|'WHOLESALE'|'DISTRIBUTION'|'SPECIAL'
+
+  @@index([saleId])
+  @@index([productId])
 }
 
 model Payment {
@@ -584,6 +596,7 @@ model Supplier {
   accountsPayable AccountPayable[]
 
   @@index([tenantId, companyId])
+  @@index([tenantId, companyId, isActive])
 }
 
 model PurchaseOrder {
@@ -618,6 +631,8 @@ model PurchaseOrder {
 
   @@index([tenantId, companyId])
   @@index([tenantId, companyId, createdAt])
+  @@index([tenantId, companyId, status, createdAt])
+  @@index([supplierId])
 }
 
 model PurchaseOrderItem {
@@ -631,6 +646,9 @@ model PurchaseOrderItem {
   unitCost        Decimal       @db.Decimal(10, 4)
   total           Decimal       @db.Decimal(10, 2)
   receivedQty     Decimal       @default(0) @db.Decimal(10, 4)
+
+  @@index([purchaseOrderId])
+  @@index([productId])
 }
 
 model AccountPayable {
@@ -660,6 +678,8 @@ model AccountPayable {
   @@index([tenantId, companyId])
   @@index([tenantId, companyId, branchId])
   @@index([tenantId, companyId, status])
+  @@index([tenantId, companyId, status, dueDate])
+  @@index([supplierId])
 }
 
 model ApPayment {
@@ -763,6 +783,9 @@ model Employee {
 
   @@index([tenantId, companyId])
   @@index([tenantId, companyId, branchId])
+  @@index([tenantId, companyId, status])
+  @@index([groupId])
+  @@index([cargoId])
 }
 
 model EmployeeCargo {
@@ -859,6 +882,7 @@ model PayrollItem {
 
   @@index([payrollPeriodId])
   @@index([employeeId])
+  @@index([payrollPeriodId, employeeId])
 }
 
 // ─── Sales Goals & Commissions ───────────────────────────────────────────────
@@ -909,6 +933,8 @@ model CommissionRecord {
   @@index([tenantId, companyId])
   @@index([tenantId, companyId, employeeId])
   @@index([tenantId, companyId, isPaid])
+  @@index([tenantId, companyId, employeeId, isPaid])
+  @@index([saleId])
   @@map("commission_records")
 }
 
@@ -1015,6 +1041,7 @@ model InventoryMovement {
   @@index([tenantId, productId])
   @@index([tenantId, companyId, createdAt])
   @@index([tenantId, companyId, type])
+  @@index([tenantId, companyId, branchId, createdAt])
 }
 
 // ─── Phase 5: CxC — Cuentas por Cobrar ───────────────────────────────────────
@@ -1062,8 +1089,10 @@ model AccountReceivable {
   @@index([tenantId, companyId])
   @@index([tenantId, companyId, branchId])
   @@index([tenantId, companyId, status])
+  @@index([tenantId, companyId, status, dueDate])
   @@index([tenantId, companyId, dueDate])
   @@index([tenantId, clientId])
+  @@index([clientId])
 }
 
 model ArPayment {

@@ -23,6 +23,7 @@ export class CatalogsService {
       where: { isActive: true },
       select: { id: true, codigo: true, nombre: true },
       orderBy: { nombre: 'asc' },
+      take: 500,
     })
   }
 
@@ -33,6 +34,7 @@ export class CatalogsService {
       where: { departamentoCod, isActive: true },
       select: { id: true, codigo: true, nombre: true, departamentoCod: true },
       orderBy: { nombre: 'asc' },
+      take: 500,
     })
   }
 
@@ -45,6 +47,7 @@ export class CatalogsService {
       },
       select: { id: true, codigo: true, nombre: true, departamentoCod: true, municipioCod: true },
       orderBy: { nombre: 'asc' },
+      take: 500,
     })
   }
 
@@ -55,6 +58,7 @@ export class CatalogsService {
       where: { isActive: true },
       select: { id: true, codigo: true, nombre: true },
       orderBy: { nombre: 'asc' },
+      take: 500,
     })
   }
 

@@ -56,6 +56,7 @@ export class BranchesService {
         _count: { select: { users: true, cashRegisters: true } },
       },
       orderBy: [{ company: { name: 'asc' } }, { name: 'asc' }],
+      take: 500,
     })
   }
 

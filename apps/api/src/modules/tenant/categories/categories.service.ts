@@ -42,6 +42,7 @@ export class CategoriesService {
         _count: { select: { services: true } },
       },
       orderBy: { name: 'asc' },
+      take: 500,
     })
   }
 

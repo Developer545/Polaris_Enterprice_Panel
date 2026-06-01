@@ -79,6 +79,9 @@ model Tenant {
   companies        TenantCompany[]
   auditLogs        PlatformAuditLog[]
   licenses         License[]
+
+  @@index([status])
+  @@index([planId])
 }
 
 // Maps tenant → companies created in the tenant DB
@@ -154,6 +157,7 @@ model License {
   commands       LicenseCommand[]
 
   @@index([tenantId])
+  @@index([status, expiresAt])
 }
 
 // Registro diario de DTE emitidos por cada licencia (heartbeat nocturno)
@@ -204,4 +208,5 @@ model PlatformAuditLog {
 
   @@index([tenantId])
   @@index([adminId])
+  @@index([tenantId, createdAt])
 }

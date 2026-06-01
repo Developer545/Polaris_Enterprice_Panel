@@ -201,18 +201,19 @@ export class PayrollService {
     return db.$transaction(async (tx) => {
       await tx.payrollItem.createMany({ data: itemsData })
 
-      // Link commission records to payroll items + mark paid
+      // Link commission records to payroll items + mark paid (batched)
       const createdItems = await tx.payrollItem.findMany({
         where: { payrollPeriodId: periodId },
         select: { id: true, employeeId: true },
       })
-      for (const pi of createdItems) {
-        const commData = commsByEmp[pi.employeeId]
-        if (!commData || commData.ids.length === 0) continue
-        await tx.commissionRecord.updateMany({
-          where: { id: { in: commData.ids } },
+      const commUpdates = createdItems
+        .filter(pi => commsByEmp[pi.employeeId]?.ids.length > 0)
+        .map(pi => tx.commissionRecord.updateMany({
+          where: { id: { in: commsByEmp[pi.employeeId].ids } },
           data: { isPaid: true, payrollItemId: pi.id },
-        })
+        }))
+      if (commUpdates.length > 0) {
+        await Promise.all(commUpdates)
       }
 
       return tx.payrollPeriod.update({
