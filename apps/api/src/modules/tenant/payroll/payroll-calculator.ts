@@ -1,7 +1,12 @@
 /**
  * payroll-calculator.ts
  * Pure functions — no NestJS dependencies, fully testable.
- * Implements El Salvador payroll deductions for 2024.
+ * Implements El Salvador payroll deductions.
+ *
+ * ⚠️  ACTUALIZACIÓN ANUAL:
+ *  1. Agregar entrada en ISR_TABLES con el año fiscal nuevo
+ *  2. Las tasas ISSS/AFP/INSAFORP se actualizan en sus constantes si cambian
+ *  3. Fuente oficial: https://www.dgii.gob.sv/tablas-de-retencion/
  */
 
 export interface PayrollCalcParams {
@@ -12,6 +17,7 @@ export interface PayrollCalcParams {
   aguinaldo?: number
   otrosIngresos?: number
   afpInstitution?: string | null
+  fiscalYear?: number   // defaults to current year; set for retroactive calculations
 }
 
 export interface PayrollCalc {
@@ -62,23 +68,49 @@ function calcAfpPatronal(totalBruto: number): number {
   return round2(totalBruto * AFP_PATRONAL_RATE)
 }
 
-// ─── ISR / Renta — tabla mensual 2024 ────────────────────────────────────────
-/**
- * Base gravable = totalBruto - isssEmpleado - afpEmpleado
- * Tramos mensuales:
- *   0     – 487.50  → 0%
- *   487.51– 915.00  → (base - 487.50) × 10%
- *   915.01– 1,395.83→ (base - 915.00) × 20% + 42.75
- *   1,395.84–4,064.58→(base - 1,395.83) × 25% + 138.92
- *   > 4,064.58       → (base - 4,064.58) × 30% + 808.06
- */
-function calcRenta(baseGravable: number): number {
-  if (baseGravable <= 487.50) return 0
-  if (baseGravable <= 915.00) return round2((baseGravable - 487.50) * 0.10)
-  if (baseGravable <= 1395.83) return round2((baseGravable - 915.00) * 0.20 + 42.75)
-  if (baseGravable <= 4064.58) return round2((baseGravable - 1395.83) * 0.25 + 138.92)
-  return round2((baseGravable - 4064.58) * 0.30 + 808.06)
+// ─── ISR / Renta — tablas mensuales por año fiscal ───────────────────────────
+// Fuente: DGII El Salvador — Tablas de Retención del Impuesto sobre la Renta
+// Tramo: { desde, hasta (null = sin límite), tasa, cuotaFija }
+
+interface IsrTramo {
+  desde: number
+  hasta: number | null
+  tasa: number
+  cuotaFija: number
 }
+
+const ISR_TABLES: Record<number, IsrTramo[]> = {
+  // ── 2024 ──────────────────────────────────────────────────────────────────
+  2024: [
+    { desde: 0,       hasta: 487.50,   tasa: 0,    cuotaFija: 0       },
+    { desde: 487.51,  hasta: 915.00,   tasa: 0.10, cuotaFija: 0       },
+    { desde: 915.01,  hasta: 1395.83,  tasa: 0.20, cuotaFija: 42.75   },
+    { desde: 1395.84, hasta: 4064.58,  tasa: 0.25, cuotaFija: 138.92  },
+    { desde: 4064.59, hasta: null,      tasa: 0.30, cuotaFija: 808.06  },
+  ],
+  // ── 2025 — actualizar cuando DGII publique nuevas tablas ──────────────────
+  // 2025: [...],
+}
+
+function getIsrTable(year: number): IsrTramo[] {
+  // Usar tabla del año exacto; si no existe, usar la más reciente disponible
+  if (ISR_TABLES[year]) return ISR_TABLES[year]
+  const available = Object.keys(ISR_TABLES).map(Number).sort((a, b) => b - a)
+  return ISR_TABLES[available[0]]
+}
+
+function calcRenta(baseGravable: number, year = new Date().getFullYear()): number {
+  const table = getIsrTable(year)
+  for (const tramo of [...table].reverse()) {
+    if (baseGravable >= tramo.desde) {
+      return round2((baseGravable - tramo.desde) * tramo.tasa + tramo.cuotaFija)
+    }
+  }
+  return 0
+}
+
+export { getIsrTable, ISR_TABLES }
+export type { IsrTramo }
 
 // ─── INSAFORP ─────────────────────────────────────────────────────────────────
 const INSAFORP_RATE = 0.01
@@ -103,6 +135,7 @@ export function calcPayrollItem(params: PayrollCalcParams): PayrollCalc {
     comisiones = 0,
     aguinaldo = 0,
     otrosIngresos = 0,
+    fiscalYear = new Date().getFullYear(),
   } = params
 
   const totalBruto = round2(salaryBase + horasExtra + bonos + comisiones + aguinaldo + otrosIngresos)
@@ -111,7 +144,7 @@ export function calcPayrollItem(params: PayrollCalcParams): PayrollCalc {
   const afpEmpleado = calcAfpEmpleado(totalBruto)
 
   const baseGravable = round2(totalBruto - isssEmpleado - afpEmpleado)
-  const rentaRetenida = calcRenta(baseGravable)
+  const rentaRetenida = calcRenta(baseGravable, fiscalYear)
 
   const otrosDeducciones = 0
   const totalDeducciones = round2(isssEmpleado + afpEmpleado + rentaRetenida + otrosDeducciones)

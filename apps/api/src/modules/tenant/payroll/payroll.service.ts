@@ -153,6 +153,9 @@ export class PayrollService {
       commsByEmp[c.employeeId].total += Number(c.amount)
     }
 
+    // Determine fiscal year from payroll period start date
+    const fiscalYear = new Date(period.startDate).getFullYear()
+
     // Calculate each employee's payroll item
     const itemsData = employees.map((emp) => {
       const salaryBase = Number(emp.salary)
@@ -161,6 +164,7 @@ export class PayrollService {
         salaryBase,
         afpInstitution: emp.afpInstitution,
         comisiones,
+        fiscalYear,
       })
 
       return {
