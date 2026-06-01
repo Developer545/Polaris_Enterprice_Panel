@@ -141,15 +141,27 @@ export default function ProductsPage() {
   // ── Mutations — productos ─────────────────────────────────────────────────
   const saveProd = useMutation({
     mutationFn: (values: any) => {
-      const { fraccionable: _f, ...rest } = values
-      const dto = {
-        ...rest,
-        tipoItem:         String(rest.tipoItem),
-        conversionFactor: rest.conversionFactor ?? 1,
-        saleUnitId:       rest.fraccionable ? rest.saleUnitId : null,
-        purchaseUnit:     rest.purchaseUnit || null,
-        imageUrl:         rest.imageUrl || null,   // '' → null para pasar validación Zod .url()
-        emoji:            rest.emoji    || null,
+      const isFrac = !!values.fraccionable
+      const dto: Record<string, any> = {
+        name:              values.name,
+        categoryId:        values.categoryId || null,
+        description:       values.description || null,
+        sku:               values.sku || null,
+        barcode:           values.barcode || null,
+        tipoItem:          String(values.tipoItem),
+        uniMedida:         Number(values.uniMedida ?? 59),
+        price:             Number(values.price),
+        cost:              Number(values.cost ?? 0),
+        priceWholesale:    values.priceWholesale    != null ? Number(values.priceWholesale)    : null,
+        priceDistribution: values.priceDistribution != null ? Number(values.priceDistribution) : null,
+        priceSpecial:      values.priceSpecial      != null ? Number(values.priceSpecial)      : null,
+        commissionAmount:  values.commissionAmount  != null ? Number(values.commissionAmount)  : null,
+        trackStock:        !!values.trackStock,
+        purchaseUnit:      values.purchaseUnit || null,
+        saleUnitId:        isFrac ? (values.saleUnitId || null) : null,
+        conversionFactor:  isFrac ? Number(values.conversionFactor ?? 1) : 1,
+        imageUrl:          values.imageUrl || null,
+        emoji:             values.emoji    || null,
       }
       return editProd?.id
         ? api.put(`/api/products/${editProd.id}`, dto)
@@ -475,7 +487,12 @@ export default function ProductsPage() {
                 <Select options={TIPO_ITEM.map(t => ({ value: t.value, label: t.label }))} style={{ borderRadius: 8 }} />
               </Form.Item>
             </Col>
-            <Col xs={24} sm={8}>
+            <Col xs={24}>
+              <Form.Item name="description" label="Descripción" style={{ marginBottom: 14 }}>
+                <Input.TextArea rows={2} style={{ borderRadius: 8 }} placeholder="Descripción opcional" />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
               <Form.Item
                 label="Ícono / Imagen (POS)"
                 tooltip="Emoji o foto del producto para el POS y listados"
@@ -495,11 +512,6 @@ export default function ProductsPage() {
                     />
                   )}
                 </Form.Item>
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={16}>
-              <Form.Item name="description" label="Descripción" style={{ marginBottom: 14 }}>
-                <Input.TextArea rows={2} style={{ borderRadius: 8 }} placeholder="Descripción opcional" />
               </Form.Item>
             </Col>
           </Row>

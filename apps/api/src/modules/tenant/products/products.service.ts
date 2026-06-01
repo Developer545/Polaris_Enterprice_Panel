@@ -15,9 +15,9 @@ export const CreateProductSchema = z.object({
   price:       z.number().positive(),
   cost:        z.number().nonnegative().optional().default(0),
   // Precios adicionales
-  priceWholesale:    z.number().positive().optional().nullable(),
-  priceDistribution: z.number().positive().optional().nullable(),
-  priceSpecial:      z.number().positive().optional().nullable(),
+  priceWholesale:    z.number().min(0).optional().nullable(),
+  priceDistribution: z.number().min(0).optional().nullable(),
+  priceSpecial:      z.number().min(0).optional().nullable(),
   commissionAmount:  z.number().min(0).optional().nullable(),
   imageUrl:    z.string().url().optional().nullable(),
   emoji:       z.string().max(10).optional().nullable(),
