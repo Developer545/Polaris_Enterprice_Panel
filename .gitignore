@@ -56,6 +56,9 @@ coverage/
 # Render production env (contains secrets)
 .env.render
 
+# Scripts with hardcoded credentials
+scripts/assign-images-direct.mjs
+
 # TypeScript build info
 *.tsbuildinfo
 
