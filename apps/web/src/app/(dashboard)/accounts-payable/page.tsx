@@ -3,11 +3,12 @@ import { useState, useMemo } from 'react'
 import {
   Table, Button, Tag, Typography, Modal, Form, InputNumber, Select, App,
   Row, Col, Statistic, Card, Space, Tooltip, DatePicker, Input, theme,
-  Popconfirm,
+  Spin,
 } from 'antd'
 import {
   DollarOutlined, ReloadOutlined, PlusOutlined, WarningOutlined,
   ClockCircleOutlined, CheckCircleOutlined, StopOutlined, FilterOutlined,
+  FundOutlined, UnorderedListOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
@@ -32,6 +33,14 @@ const FORMA_PAGO = [
   { value: '05', label: 'Cheque'         },
 ]
 
+const BUCKET_CONFIG = [
+  { key: 'current', label: 'Al corriente', color: '#52c41a' },
+  { key: 'd30',     label: '1–30 días',    color: '#faad14' },
+  { key: 'd60',     label: '31–60 días',   color: '#fa8c16' },
+  { key: 'd90',     label: '61–90 días',   color: '#ff4d4f' },
+  { key: 'd90plus', label: '+90 días',     color: '#cf1322' },
+]
+
 export default function AccountsPayablePage() {
   const { message } = App.useApp()
   const { token } = theme.useToken()
@@ -42,6 +51,7 @@ export default function AccountsPayablePage() {
   const [payModal,   setPayModal]   = useState<any>(null)
   const [filterStatus,   setFilterStatus]   = useState<string | undefined>()
   const [filterSupplier, setFilterSupplier] = useState<string | undefined>()
+  const [showAging,  setShowAging]  = useState(false)
 
   const [newForm] = Form.useForm()
   const [payForm] = Form.useForm()
@@ -63,6 +73,12 @@ export default function AccountsPayablePage() {
     enabled:  !!companyId,
   })
 
+  const agingQ = useQuery<any>({
+    queryKey: ['ap-aging', companyId],
+    queryFn:  () => api.get('/api/accounts-payable/aging', { params: { companyId } }).then(r => r.data),
+    enabled:  showAging && !!companyId,
+  })
+
   // ── Mutations ──────────────────────────────────────────────────────────────
   const createMutation = useMutation({
     mutationFn: (values: any) => api.post('/api/accounts-payable', { ...values, companyId }),
@@ -81,6 +97,7 @@ export default function AccountsPayablePage() {
     onSuccess: () => {
       message.success('Pago registrado')
       qc.invalidateQueries({ queryKey: ['accounts-payable'] })
+      qc.invalidateQueries({ queryKey: ['ap-aging'] })
       setPayModal(null)
       payForm.resetFields()
     },
@@ -108,7 +125,50 @@ export default function AccountsPayablePage() {
   const countPendiente = useMemo(() =>
     records.filter(r => ['PENDING', 'PARTIAL', 'OVERDUE'].includes(r.status)).length, [records])
 
-  // ── Columns ────────────────────────────────────────────────────────────────
+  // ── Aging data ─────────────────────────────────────────────────────────────
+  const agingData   = agingQ.data ?? { rows: [], buckets: {} }
+  const agingBuckets = agingData.buckets ?? {}
+  const agingRows    = agingData.rows ?? []
+
+  const agingColumns: ColumnsType<any> = [
+    {
+      title: 'Proveedor', key: 'supplier',
+      render: (_: any, r: any) => (
+        <Text style={{ fontSize: 13 }}>{r.supplier?.name ?? '—'}</Text>
+      ),
+    },
+    {
+      title: 'Descripción', dataIndex: 'description',
+      render: (v: string) => <Text style={{ fontSize: 12 }}>{v ?? '—'}</Text>,
+    },
+    {
+      title: 'Pendiente', key: 'pending', width: 110, align: 'right' as const,
+      render: (_: any, r: any) => (
+        <Text strong style={{ color: token.colorError }}>${Number(r.pending ?? 0).toFixed(2)}</Text>
+      ),
+    },
+    {
+      title: 'Vencimiento', dataIndex: 'dueDate', width: 115,
+      render: (v: string) => <Text style={{ fontSize: 12 }}>{v ? dayjs(v).format('DD/MM/YYYY') : '—'}</Text>,
+    },
+    {
+      title: 'Días vencido', dataIndex: 'daysPast', width: 110, align: 'center' as const,
+      render: (v: number) => (
+        <Text style={{ fontSize: 12, color: v === 0 ? token.colorSuccess : v <= 30 ? '#faad14' : v <= 60 ? '#fa8c16' : token.colorError }}>
+          {v === 0 ? 'Al corriente' : `${v} días`}
+        </Text>
+      ),
+    },
+    {
+      title: 'Tramo', dataIndex: 'bucket', width: 115,
+      render: (b: string) => {
+        const cfg = BUCKET_CONFIG.find(c => c.key === b)
+        return cfg ? <Tag color={cfg.color} style={{ borderRadius: 6, fontWeight: 500 }}>{cfg.label}</Tag> : <Tag>{b}</Tag>
+      },
+    },
+  ]
+
+  // ── Columns (lista) ────────────────────────────────────────────────────────
   const columns: ColumnsType<any> = [
     {
       title: 'Proveedor', key: 'supplier',
@@ -194,10 +254,10 @@ export default function AccountsPayablePage() {
   ]
 
   const kpis = [
-    { title: 'Por pagar',      value: `$${totalPendiente.toFixed(2)}`,  color: token.colorWarning,      icon: <ClockCircleOutlined /> },
-    { title: 'Vencido',        value: `$${totalVencido.toFixed(2)}`,    color: token.colorError,         icon: <WarningOutlined />     },
-    { title: 'Facturas vencidas', value: countVencido,                   color: token.colorError,         icon: <StopOutlined />        },
-    { title: 'Pendientes',     value: countPendiente,                    color: token.colorPrimary,       icon: <FilterOutlined />      },
+    { title: 'Por pagar',         value: `$${totalPendiente.toFixed(2)}`, color: token.colorWarning, icon: <ClockCircleOutlined /> },
+    { title: 'Vencido',           value: `$${totalVencido.toFixed(2)}`,   color: token.colorError,   icon: <WarningOutlined />     },
+    { title: 'Facturas vencidas', value: countVencido,                     color: token.colorError,   icon: <StopOutlined />        },
+    { title: 'Pendientes',        value: countPendiente,                   color: token.colorPrimary, icon: <FilterOutlined />      },
   ]
 
   return (
@@ -210,8 +270,21 @@ export default function AccountsPayablePage() {
         </div>
         <Space wrap>
           <Tooltip title="Recargar">
-            <Button icon={<ReloadOutlined />} onClick={() => qc.invalidateQueries({ queryKey: ['accounts-payable'] })} />
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => {
+                qc.invalidateQueries({ queryKey: ['accounts-payable'] })
+                qc.invalidateQueries({ queryKey: ['ap-aging'] })
+              }}
+            />
           </Tooltip>
+          <Button
+            icon={showAging ? <UnorderedListOutlined /> : <FundOutlined />}
+            onClick={() => setShowAging(v => !v)}
+            style={{ borderRadius: 8 }}
+          >
+            {showAging ? 'Lista' : 'Aging'}
+          </Button>
           <Button
             type="primary"
             icon={<PlusOutlined />}
@@ -246,66 +319,138 @@ export default function AccountsPayablePage() {
         ))}
       </Row>
 
-      {/* Filtros */}
-      <Card
-        size="small"
-        style={{ borderRadius: 10, marginBottom: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-        styles={{ body: { padding: '12px 16px' } }}
-      >
-        <Space wrap>
-          <Select
-            placeholder="Estado"
-            allowClear
-            style={{ width: 150 }}
-            value={filterStatus}
-            onChange={setFilterStatus}
-            options={Object.entries(STATUS_CONFIG).map(([k, v]) => ({ value: k, label: v.label }))}
-          />
-          <Select
-            placeholder="Proveedor"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            style={{ width: 220 }}
-            value={filterSupplier}
-            onChange={setFilterSupplier}
-            options={suppliers.map((s: any) => ({ value: s.id, label: s.name }))}
-          />
-          {(filterStatus || filterSupplier) && (
-            <Button onClick={() => { setFilterStatus(undefined); setFilterSupplier(undefined) }}>
-              Limpiar
-            </Button>
-          )}
-        </Space>
-      </Card>
+      {/* ── Vista Aging ─────────────────────────────────────────────────────── */}
+      {showAging && (
+        <div>
+          {/* Buckets */}
+          <Row gutter={[12, 12]} style={{ marginBottom: 14 }}>
+            {BUCKET_CONFIG.map(b => (
+              <Col xs={12} sm={12} md={4} key={b.key} style={{ flex: '1 1 0' }}>
+                <Card
+                  size="small"
+                  style={{ borderRadius: 10, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.07)', borderTop: `3px solid ${b.color}` }}
+                >
+                  <Statistic
+                    title={<Text style={{ fontSize: 11, color: token.colorTextSecondary }}>{b.label}</Text>}
+                    value={agingBuckets[b.key] != null ? `$${Number(agingBuckets[b.key]).toFixed(2)}` : '—'}
+                    valueStyle={{ fontSize: 18, fontWeight: 700, color: b.color }}
+                  />
+                </Card>
+              </Col>
+            ))}
+            <Col xs={12} sm={12} md={4} style={{ flex: '1 1 0' }}>
+              <Card
+                size="small"
+                style={{ borderRadius: 10, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.07)', borderTop: `3px solid ${token.colorPrimary}` }}
+              >
+                <Statistic
+                  title={<Text style={{ fontSize: 11, color: token.colorTextSecondary }}>Total</Text>}
+                  value={agingBuckets.total != null ? `$${Number(agingBuckets.total).toFixed(2)}` : '—'}
+                  valueStyle={{ fontSize: 18, fontWeight: 700, color: token.colorPrimary }}
+                />
+              </Card>
+            </Col>
+          </Row>
 
-      {/* Tabla */}
-      <Card
-        size="small"
-        style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-        styles={{ body: { padding: 0 } }}
-      >
-        <Table
-          size="small"
-          columns={columns}
-          dataSource={records}
-          rowKey="id"
-          loading={apQ.isLoading}
-          scroll={{ x: 900 }}
-          pagination={{
-            pageSize: 20,
-            showSizeChanger: true,
-            pageSizeOptions: ['20', '50', '100'],
-            showTotal: (t, range) => `${range[0]}–${range[1]} de ${t} cuentas`,
-            style: { padding: '8px 16px' },
-          }}
-          rowClassName={(r: any) => isOverdue(r) ? 'ant-table-row-danger' : ''}
-          onRow={(r: any) => ({
-            style: isOverdue(r) ? { background: token.colorErrorBg } : {},
-          })}
-          locale={{ emptyText: 'Sin cuentas por pagar' }}
-        />
-      </Card>
+          {/* Tabla aging */}
+          <Card
+            size="small"
+            style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+            styles={{ body: { padding: 0 } }}
+          >
+            {agingQ.isLoading ? (
+              <div style={{ textAlign: 'center', padding: 40 }}><Spin /></div>
+            ) : (
+              <Table
+                size="small"
+                columns={agingColumns}
+                dataSource={agingRows}
+                rowKey="id"
+                scroll={{ x: 800 }}
+                pagination={{
+                  pageSize: 20,
+                  showSizeChanger: true,
+                  pageSizeOptions: ['20', '50', '100'],
+                  showTotal: (t, range) => `${range[0]}–${range[1]} de ${t} cuentas`,
+                  style: { padding: '8px 16px' },
+                }}
+                onRow={(r: any) => ({
+                  style: r.bucket === 'd90plus' ? { background: '#fff1f0' }
+                    : r.bucket === 'd90' ? { background: '#fff7e6' }
+                    : undefined,
+                })}
+                locale={{ emptyText: 'Sin cuentas pendientes' }}
+              />
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* ── Vista Lista ──────────────────────────────────────────────────────── */}
+      {!showAging && (
+        <div>
+          {/* Filtros */}
+          <Card
+            size="small"
+            style={{ borderRadius: 10, marginBottom: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+            styles={{ body: { padding: '12px 16px' } }}
+          >
+            <Space wrap>
+              <Select
+                placeholder="Estado"
+                allowClear
+                style={{ width: 150 }}
+                value={filterStatus}
+                onChange={setFilterStatus}
+                options={Object.entries(STATUS_CONFIG).map(([k, v]) => ({ value: k, label: v.label }))}
+              />
+              <Select
+                placeholder="Proveedor"
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                style={{ width: 220 }}
+                value={filterSupplier}
+                onChange={setFilterSupplier}
+                options={suppliers.map((s: any) => ({ value: s.id, label: s.name }))}
+              />
+              {(filterStatus || filterSupplier) && (
+                <Button onClick={() => { setFilterStatus(undefined); setFilterSupplier(undefined) }}>
+                  Limpiar
+                </Button>
+              )}
+            </Space>
+          </Card>
+
+          {/* Tabla */}
+          <Card
+            size="small"
+            style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+            styles={{ body: { padding: 0 } }}
+          >
+            <Table
+              size="small"
+              columns={columns}
+              dataSource={records}
+              rowKey="id"
+              loading={apQ.isLoading}
+              scroll={{ x: 900 }}
+              pagination={{
+                pageSize: 20,
+                showSizeChanger: true,
+                pageSizeOptions: ['20', '50', '100'],
+                showTotal: (t, range) => `${range[0]}–${range[1]} de ${t} cuentas`,
+                style: { padding: '8px 16px' },
+              }}
+              rowClassName={(r: any) => isOverdue(r) ? 'ant-table-row-danger' : ''}
+              onRow={(r: any) => ({
+                style: isOverdue(r) ? { background: token.colorErrorBg } : {},
+              })}
+              locale={{ emptyText: 'Sin cuentas por pagar' }}
+            />
+          </Card>
+        </div>
+      )}
 
       {/* ── Modal: Nueva CxP ──────────────────────────────────────────────── */}
       <Modal
@@ -415,8 +560,11 @@ export default function AccountsPayablePage() {
               </Form.Item>
             </Col>
           </Row>
+          <Form.Item name="reference" label="Referencia" style={{ marginBottom: 14 }}>
+            <Input placeholder="N° cheque, transferencia, voucher..." />
+          </Form.Item>
           <Form.Item name="notes" label="Notas" style={{ marginBottom: 0 }}>
-            <Input.TextArea rows={2} placeholder="Referencia de pago, observaciones..." />
+            <Input.TextArea rows={2} placeholder="Observaciones..." />
           </Form.Item>
         </Form>
       </Modal>

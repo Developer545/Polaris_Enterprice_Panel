@@ -9,7 +9,7 @@ import {
   PlusOutlined, EyeOutlined, CheckCircleOutlined, ReloadOutlined,
   TeamOutlined, CalendarOutlined, DollarCircleOutlined, GiftOutlined,
   SunOutlined, BankOutlined, SettingOutlined, SafetyOutlined,
-  PercentageOutlined, CheckOutlined, PlayCircleOutlined,
+  PercentageOutlined, CheckOutlined, PlayCircleOutlined, FilePdfOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
@@ -112,7 +112,44 @@ export default function PayrollPage() {
   const [activeTab,    setActiveTab]    = useState('planillas')
   const [newModal,     setNewModal]     = useState(false)
   const [detailDrawer, setDetailDrawer] = useState<any>(null)
+  const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null)
   const [newForm]   = Form.useForm()
+
+  // ── PDF downloads ──────────────────────────────────────────────────────────
+
+  const downloadBoletaPdf = async (itemId: string, fileName?: string) => {
+    setDownloadingPdf(itemId)
+    try {
+      const res = await api.get(`/api/payroll/items/${itemId}/boleta`, { responseType: 'blob' })
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const a   = document.createElement('a')
+      a.href = url
+      a.download = fileName ?? `boleta_${itemId}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      message.error('Error al generar boleta PDF')
+    } finally {
+      setDownloadingPdf(null)
+    }
+  }
+
+  const downloadAllBoletas = async (periodId: string, periodName?: string) => {
+    setDownloadingPdf(periodId)
+    try {
+      const res = await api.get(`/api/payroll/periods/${periodId}/boletas`, { responseType: 'blob' })
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const a   = document.createElement('a')
+      a.href = url
+      a.download = `boletas_${(periodName ?? periodId).replace(/\s+/g, '_')}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      message.error('Error al generar boletas PDF')
+    } finally {
+      setDownloadingPdf(null)
+    }
+  }
 
   // Aguinaldo / Vacaciones / Quincena 25
   const [anioAguinaldo,   setAnioAguinaldo]   = useState(new Date().getFullYear())
@@ -219,6 +256,24 @@ export default function PayrollPage() {
     { title: 'ISSS Pat.', dataIndex: 'isssPatronal', render: (v: any) => <Text type="secondary">{fmt(Number(v ?? 0))}</Text> },
     { title: 'AFP Pat.',  dataIndex: 'afpPatronal',  render: (v: any) => <Text type="secondary">{fmt(Number(v ?? 0))}</Text> },
     { title: 'INSAFORP',  dataIndex: 'insaforp',     render: (v: any) => <Text type="secondary">{fmt(Number(v ?? 0))}</Text> },
+    {
+      title: '', key: 'boleta', width: 90, fixed: 'right' as const,
+      render: (r: any) => (
+        <Tooltip title="Descargar boleta PDF">
+          <Button
+            size="small"
+            icon={<FilePdfOutlined />}
+            loading={downloadingPdf === r.id}
+            onClick={() => {
+              const name = r.employee ? `${r.employee.firstName}_${r.employee.lastName}` : r.id
+              downloadBoletaPdf(r.id, `boleta_${name}.pdf`)
+            }}
+          >
+            Boleta
+          </Button>
+        </Tooltip>
+      ),
+    },
   ]
 
   const colsAguinaldo: ColumnsType<any> = [
@@ -308,6 +363,18 @@ export default function PayrollPage() {
                   onOk: () => payMutation.mutate(r.id),
                 })}>
                 Pagar
+              </Button>
+            </Tooltip>
+          )}
+          {['APPROVED', 'PAID'].includes(r.status) && (r._count?.items ?? 0) > 0 && (
+            <Tooltip title="Descargar todas las boletas PDF">
+              <Button
+                size="small"
+                icon={<FilePdfOutlined />}
+                loading={downloadingPdf === r.id}
+                onClick={() => downloadAllBoletas(r.id, r.name)}
+              >
+                Boletas
               </Button>
             </Tooltip>
           )}

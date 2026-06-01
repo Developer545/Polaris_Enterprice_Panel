@@ -72,4 +72,10 @@ export class AccountsPayableController {
   markOverdue(@CurrentUser() user: JwtAccessPayload, @Query('companyId') companyId?: string) {
     return this.svc.markOverdue(companyId ?? user.companyId, user)
   }
+
+  @Get('aging')
+  @RequirePermissions(PERMISSIONS.ACCOUNTS_PAYABLE_VIEW)
+  getAging(@CurrentUser() user: JwtAccessPayload, @Query('companyId') companyId?: string) {
+    return this.svc.getAging(companyId ?? user.companyId, user)
+  }
 }

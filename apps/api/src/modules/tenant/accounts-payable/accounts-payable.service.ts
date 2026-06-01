@@ -189,4 +189,57 @@ export class AccountsPayableService {
     })
     return { updated: result.count }
   }
+
+  /** Aging report: bucketed by 30/60/90/90+ days overdue */
+  async getAging(companyId: string, user: JwtAccessPayload) {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+    this.assertCompanyAccess(user, companyId)
+
+    // Fire-and-forget overdue update before computing aging
+    void db.accountPayable.updateMany({
+      where: { tenantId, companyId, ...buildBranchWhere(user), status: 'PENDING', dueDate: { lt: new Date() } },
+      data: { status: 'OVERDUE' },
+    }).catch(() => {})
+
+    const records = await db.accountPayable.findMany({
+      where: {
+        tenantId,
+        companyId,
+        ...buildBranchWhere(user),
+        status: { in: ['PENDING', 'PARTIAL', 'OVERDUE'] },
+      },
+      include: { supplier: { select: { id: true, name: true } } },
+      orderBy: { dueDate: 'asc' },
+    })
+
+    const now = Date.now()
+    const buckets = { current: 0, d30: 0, d60: 0, d90: 0, d90plus: 0 }
+    const rows = records.map(r => {
+      const pending = Number(r.amount) - Number(r.amountPaid)
+      const daysPast = Math.floor((now - new Date(r.dueDate).getTime()) / 86_400_000)
+      let bucket: keyof typeof buckets
+      if (daysPast <= 0)  bucket = 'current'
+      else if (daysPast <= 30)  bucket = 'd30'
+      else if (daysPast <= 60)  bucket = 'd60'
+      else if (daysPast <= 90)  bucket = 'd90'
+      else bucket = 'd90plus'
+      buckets[bucket] += pending
+      return { ...r, pending: round2(pending), daysPast: Math.max(0, daysPast), bucket }
+    })
+
+    return {
+      rows,
+      buckets: {
+        current:  round2(buckets.current),
+        d30:      round2(buckets.d30),
+        d60:      round2(buckets.d60),
+        d90:      round2(buckets.d90),
+        d90plus:  round2(buckets.d90plus),
+        total:    round2(Object.values(buckets).reduce((a, b) => a + b, 0)),
+      },
+    }
+  }
 }
+
+function round2(n: number) { return Math.round(n * 100) / 100 }

@@ -28,6 +28,12 @@ export class AccountsReceivableController {
     return this.svc.getStats(companyId ?? user.companyId, user)
   }
 
+  @Get('aging')
+  @RequirePermissions(PERMISSIONS.ACCOUNTS_RECEIVABLE_VIEW)
+  getAging(@CurrentUser() user: JwtAccessPayload, @Query('companyId') companyId?: string) {
+    return this.svc.getAging(companyId ?? user.companyId, user)
+  }
+
   @Get()
   @RequirePermissions(PERMISSIONS.ACCOUNTS_RECEIVABLE_VIEW)
   findAll(

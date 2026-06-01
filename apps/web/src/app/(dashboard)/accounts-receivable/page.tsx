@@ -3,10 +3,11 @@ import { useState } from 'react'
 import {
   Table, Button, Tag, Typography, Modal, Form, Select, InputNumber, Input,
   App, Row, Col, Statistic, Card, Space, Tooltip, Popconfirm, DatePicker, theme,
+  Spin,
 } from 'antd'
 import {
   PlusOutlined, ReloadOutlined, DollarOutlined, ClockCircleOutlined,
-  CheckCircleOutlined, StopOutlined, WarningOutlined,
+  CheckCircleOutlined, StopOutlined, WarningOutlined, FundOutlined, UnorderedListOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
@@ -33,6 +34,14 @@ const FORMA_PAGO = [
   { value: '05', label: 'Cheque'            },
 ]
 
+const BUCKET_CONFIG = [
+  { key: 'current', label: 'Al corriente', color: '#52c41a' },
+  { key: 'd30',     label: '1–30 días',    color: '#faad14' },
+  { key: 'd60',     label: '31–60 días',   color: '#fa8c16' },
+  { key: 'd90',     label: '61–90 días',   color: '#ff4d4f' },
+  { key: 'd90plus', label: '+90 días',     color: '#cf1322' },
+]
+
 export default function AccountsReceivablePage() {
   const { message } = App.useApp()
   const { token } = theme.useToken()
@@ -44,6 +53,7 @@ export default function AccountsReceivablePage() {
   const [filterStatus,  setFilterStatus]  = useState<string | undefined>()
   const [filterClient,  setFilterClient]  = useState<string | undefined>()
   const [dateRange,   setDateRange]   = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
+  const [showAging,   setShowAging]   = useState(false)
 
   const [newForm]   = Form.useForm()
   const [abonoForm] = Form.useForm()
@@ -76,6 +86,12 @@ export default function AccountsReceivablePage() {
     enabled:  !!companyId,
   })
 
+  const agingQ = useQuery<any>({
+    queryKey: ['ar-aging', companyId],
+    queryFn:  () => api.get('/api/accounts-receivable/aging', { params: { companyId } }).then(r => r.data),
+    enabled:  showAging && !!companyId,
+  })
+
   // ── Mutations ──────────────────────────────────────────────────────────────
 
   const createMutation = useMutation({
@@ -97,6 +113,7 @@ export default function AccountsReceivablePage() {
       message.success('Abono registrado')
       qc.invalidateQueries({ queryKey: ['accounts-receivable'] })
       qc.invalidateQueries({ queryKey: ['ar-stats'] })
+      qc.invalidateQueries({ queryKey: ['ar-aging'] })
       setAbonoModal(null)
       abonoForm.resetFields()
     },
@@ -109,11 +126,60 @@ export default function AccountsReceivablePage() {
       message.success('CxC cancelada')
       qc.invalidateQueries({ queryKey: ['accounts-receivable'] })
       qc.invalidateQueries({ queryKey: ['ar-stats'] })
+      qc.invalidateQueries({ queryKey: ['ar-aging'] })
     },
     onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error'),
   })
 
-  // ── Columns ───────────────────────────────────────────────────────────────
+  // ── Aging data ─────────────────────────────────────────────────────────────
+  const agingData    = agingQ.data ?? { rows: [], buckets: {} }
+  const agingBuckets = agingData.buckets ?? {}
+  const agingRows    = agingData.rows ?? []
+
+  const agingColumns: ColumnsType<any> = [
+    {
+      title: 'Cliente', key: 'client',
+      render: (_: any, r: any) => (
+        <Space direction="vertical" size={0}>
+          <Text style={{ fontSize: 13 }}>{r.client?.name ?? '—'}</Text>
+          {r.client?.numDocumento && (
+            <Text type="secondary" style={{ fontSize: 11 }}>{r.client.numDocumento}</Text>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: 'Descripción', dataIndex: 'description',
+      render: (v: string) => <Text style={{ fontSize: 12 }}>{v ?? '—'}</Text>,
+    },
+    {
+      title: 'Pendiente', key: 'pending', width: 110, align: 'right' as const,
+      render: (_: any, r: any) => (
+        <Text strong style={{ color: token.colorError }}>${Number(r.pending ?? 0).toFixed(2)}</Text>
+      ),
+    },
+    {
+      title: 'Vencimiento', dataIndex: 'dueDate', width: 115,
+      render: (v: string) => <Text style={{ fontSize: 12 }}>{v ? dayjs(v).format('DD/MM/YYYY') : '—'}</Text>,
+    },
+    {
+      title: 'Días vencido', dataIndex: 'daysPast', width: 110, align: 'center' as const,
+      render: (v: number) => (
+        <Text style={{ fontSize: 12, color: v === 0 ? token.colorSuccess : v <= 30 ? '#faad14' : v <= 60 ? '#fa8c16' : token.colorError }}>
+          {v === 0 ? 'Al corriente' : `${v} días`}
+        </Text>
+      ),
+    },
+    {
+      title: 'Tramo', dataIndex: 'bucket', width: 115,
+      render: (b: string) => {
+        const cfg = BUCKET_CONFIG.find(c => c.key === b)
+        return cfg ? <Tag color={cfg.color} style={{ borderRadius: 6, fontWeight: 500 }}>{cfg.label}</Tag> : <Tag>{b}</Tag>
+      },
+    },
+  ]
+
+  // ── Columns (lista) ────────────────────────────────────────────────────────
 
   const columns: ColumnsType<any> = [
     {
@@ -220,18 +286,29 @@ export default function AccountsReceivablePage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <Title level={4} style={{ margin: 0 }}>Cuentas por Cobrar</Title>
-        <Space>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+        <div>
+          <Title level={4} style={{ margin: '0 0 2px', fontWeight: 700 }}>Cuentas por Cobrar</Title>
+          <Text type="secondary" style={{ fontSize: 13 }}>Gestión de cobros a clientes</Text>
+        </div>
+        <Space wrap>
           <Tooltip title="Recargar">
             <Button
               icon={<ReloadOutlined />}
               onClick={() => {
                 qc.invalidateQueries({ queryKey: ['accounts-receivable'] })
                 qc.invalidateQueries({ queryKey: ['ar-stats'] })
+                qc.invalidateQueries({ queryKey: ['ar-aging'] })
               }}
             />
           </Tooltip>
+          <Button
+            icon={showAging ? <UnorderedListOutlined /> : <FundOutlined />}
+            onClick={() => setShowAging(v => !v)}
+            style={{ borderRadius: 8 }}
+          >
+            {showAging ? 'Lista' : 'Aging'}
+          </Button>
           <Button
             type="primary"
             icon={<PlusOutlined />}
@@ -270,61 +347,133 @@ export default function AccountsReceivablePage() {
         ))}
       </Row>
 
-      {/* Filtros */}
-      <Card size="small" style={{ borderRadius: 10, marginBottom: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-        styles={{ body: { padding: '12px 16px' } }}>
-        <Space wrap>
-          <Select
-            placeholder="Estado"
-            allowClear
-            style={{ width: 140 }}
-            value={filterStatus}
-            onChange={setFilterStatus}
-            options={Object.entries(STATUS_CONFIG).map(([k, v]) => ({ value: k, label: v.label }))}
-          />
-          <Select
-            placeholder="Cliente"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            style={{ width: 220 }}
-            value={filterClient}
-            onChange={setFilterClient}
-            options={(clients as any[]).map((c: any) => ({ value: c.id, label: c.name }))}
-          />
-          <RangePicker
-            value={dateRange}
-            onChange={(v) => setDateRange(v as any)}
-            format="DD/MM/YY"
-            placeholder={['Vence desde', 'Vence hasta']}
-          />
-          <Button onClick={() => { setFilterStatus(undefined); setFilterClient(undefined); setDateRange(null) }}>
-            Limpiar
-          </Button>
-        </Space>
-      </Card>
+      {/* ── Vista Aging ─────────────────────────────────────────────────────── */}
+      {showAging && (
+        <div>
+          {/* Buckets */}
+          <Row gutter={[12, 12]} style={{ marginBottom: 14 }}>
+            {BUCKET_CONFIG.map(b => (
+              <Col xs={12} sm={12} md={4} key={b.key} style={{ flex: '1 1 0' }}>
+                <Card
+                  size="small"
+                  style={{ borderRadius: 10, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.07)', borderTop: `3px solid ${b.color}` }}
+                >
+                  <Statistic
+                    title={<Text style={{ fontSize: 11, color: token.colorTextSecondary }}>{b.label}</Text>}
+                    value={agingBuckets[b.key] != null ? `$${Number(agingBuckets[b.key]).toFixed(2)}` : '—'}
+                    valueStyle={{ fontSize: 18, fontWeight: 700, color: b.color }}
+                  />
+                </Card>
+              </Col>
+            ))}
+            <Col xs={12} sm={12} md={4} style={{ flex: '1 1 0' }}>
+              <Card
+                size="small"
+                style={{ borderRadius: 10, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.07)', borderTop: `3px solid ${token.colorPrimary}` }}
+              >
+                <Statistic
+                  title={<Text style={{ fontSize: 11, color: token.colorTextSecondary }}>Total</Text>}
+                  value={agingBuckets.total != null ? `$${Number(agingBuckets.total).toFixed(2)}` : '—'}
+                  valueStyle={{ fontSize: 18, fontWeight: 700, color: token.colorPrimary }}
+                />
+              </Card>
+            </Col>
+          </Row>
 
-      {/* Tabla */}
-      <Card size="small" style={{ borderRadius: 10, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-        styles={{ body: { padding: 0 } }}>
-        <Table
-          size="small"
-          columns={columns}
-          dataSource={records}
-          rowKey="id"
-          loading={arQ.isLoading}
-          scroll={{ x: 900 }}
-          pagination={{
-            pageSize: 20,
-            showSizeChanger: true,
-            pageSizeOptions: ['20', '50', '100'],
-            showTotal: (t, range) => `${range[0]}–${range[1]} de ${t} registros`,
-            style: { padding: '8px 16px' },
-          }}
-          locale={{ emptyText: 'Sin cuentas por cobrar' }}
-          rowClassName={(r: any) => r.status === 'OVERDUE' ? 'ant-table-row-danger' : ''}
-        />
-      </Card>
+          {/* Tabla aging */}
+          <Card
+            size="small"
+            style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+            styles={{ body: { padding: 0 } }}
+          >
+            {agingQ.isLoading ? (
+              <div style={{ textAlign: 'center', padding: 40 }}><Spin /></div>
+            ) : (
+              <Table
+                size="small"
+                columns={agingColumns}
+                dataSource={agingRows}
+                rowKey="id"
+                scroll={{ x: 800 }}
+                pagination={{
+                  pageSize: 20,
+                  showSizeChanger: true,
+                  pageSizeOptions: ['20', '50', '100'],
+                  showTotal: (t, range) => `${range[0]}–${range[1]} de ${t} registros`,
+                  style: { padding: '8px 16px' },
+                }}
+                onRow={(r: any) => ({
+                  style: r.bucket === 'd90plus' ? { background: '#fff1f0' }
+                    : r.bucket === 'd90' ? { background: '#fff7e6' }
+                    : undefined,
+                })}
+                locale={{ emptyText: 'Sin cuentas pendientes' }}
+              />
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* ── Vista Lista ──────────────────────────────────────────────────────── */}
+      {!showAging && (
+        <div>
+          {/* Filtros */}
+          <Card size="small" style={{ borderRadius: 10, marginBottom: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+            styles={{ body: { padding: '12px 16px' } }}>
+            <Space wrap>
+              <Select
+                placeholder="Estado"
+                allowClear
+                style={{ width: 140 }}
+                value={filterStatus}
+                onChange={setFilterStatus}
+                options={Object.entries(STATUS_CONFIG).map(([k, v]) => ({ value: k, label: v.label }))}
+              />
+              <Select
+                placeholder="Cliente"
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                style={{ width: 220 }}
+                value={filterClient}
+                onChange={setFilterClient}
+                options={(clients as any[]).map((c: any) => ({ value: c.id, label: c.name }))}
+              />
+              <RangePicker
+                value={dateRange}
+                onChange={(v) => setDateRange(v as any)}
+                format="DD/MM/YY"
+                placeholder={['Vence desde', 'Vence hasta']}
+              />
+              <Button onClick={() => { setFilterStatus(undefined); setFilterClient(undefined); setDateRange(null) }}>
+                Limpiar
+              </Button>
+            </Space>
+          </Card>
+
+          {/* Tabla */}
+          <Card size="small" style={{ borderRadius: 10, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+            styles={{ body: { padding: 0 } }}>
+            <Table
+              size="small"
+              columns={columns}
+              dataSource={records}
+              rowKey="id"
+              loading={arQ.isLoading}
+              scroll={{ x: 900 }}
+              pagination={{
+                pageSize: 20,
+                showSizeChanger: true,
+                pageSizeOptions: ['20', '50', '100'],
+                showTotal: (t, range) => `${range[0]}–${range[1]} de ${t} registros`,
+                style: { padding: '8px 16px' },
+              }}
+              locale={{ emptyText: 'Sin cuentas por cobrar' }}
+              rowClassName={(r: any) => r.status === 'OVERDUE' ? 'ant-table-row-danger' : ''}
+            />
+          </Card>
+        </div>
+      )}
 
       {/* Modal nueva CxC */}
       <Modal

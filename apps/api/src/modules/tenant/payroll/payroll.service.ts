@@ -267,4 +267,57 @@ export class PayrollService {
       data: { status: 'PAID' },
     })
   }
+
+  // ── PDF helpers ───────────────────────────────────────────────────────────
+
+  /** Loads a single PayrollItem with its period + company for boleta generation. */
+  async getItemForPdf(itemId: string, user: JwtAccessPayload) {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+
+    const item = await db.payrollItem.findFirst({
+      where: { id: itemId, tenantId },
+      include: {
+        employee: { select: { id: true, firstName: true, lastName: true, position: true, dui: true, afpInstitution: true } },
+        payrollPeriod: {
+          select: { id: true, name: true, periodType: true, startDate: true, endDate: true, payDate: true, status: true, companyId: true },
+        },
+      },
+    })
+    if (!item) throw new NotFoundException('Ítem de planilla no encontrado')
+    if (item.payrollPeriod.companyId !== user.companyId) throw new ForbiddenException('Acceso no autorizado')
+
+    const company = await db.company.findFirst({
+      where: { id: user.companyId, tenantId },
+      select: { id: true, name: true, comercialName: true, nit: true, nrc: true, address: true, phone: true },
+    })
+
+    return { item, period: item.payrollPeriod, company }
+  }
+
+  /** Loads a full period with items for batch boleta generation. */
+  async getPeriodForPdf(periodId: string, user: JwtAccessPayload) {
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+
+    const period = await db.payrollPeriod.findFirst({
+      where: { id: periodId, tenantId, companyId: user.companyId },
+      include: {
+        items: {
+          include: {
+            employee: { select: { id: true, firstName: true, lastName: true, position: true, dui: true, afpInstitution: true } },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    })
+    if (!period) throw new NotFoundException('Período de planilla no encontrado')
+
+    const company = await db.company.findFirst({
+      where: { id: user.companyId, tenantId },
+      select: { id: true, name: true, comercialName: true, nit: true, nrc: true, address: true, phone: true },
+    })
+
+    return { period, company }
+  }
 }
