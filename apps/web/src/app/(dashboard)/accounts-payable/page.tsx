@@ -8,9 +8,10 @@ import {
 import {
   DollarOutlined, ReloadOutlined, PlusOutlined, WarningOutlined,
   ClockCircleOutlined, CheckCircleOutlined, StopOutlined, FilterOutlined,
-  FundOutlined, UnorderedListOutlined,
+  FundOutlined, UnorderedListOutlined, FilePdfOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { abrirAgingHtml } from '../../../lib/doc-viewer'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
 import dayjs from 'dayjs'
@@ -285,6 +286,15 @@ export default function AccountsPayablePage() {
           >
             {showAging ? 'Lista' : 'Aging'}
           </Button>
+          {showAging && agingData.rows.length > 0 && (
+            <Button
+              icon={<FilePdfOutlined />}
+              style={{ borderRadius: 8 }}
+              onClick={() => abrirAgingHtml(agingData.rows, agingData.buckets, 'CxP')}
+            >
+              Ver PDF
+            </Button>
+          )}
           <Button
             type="primary"
             icon={<PlusOutlined />}

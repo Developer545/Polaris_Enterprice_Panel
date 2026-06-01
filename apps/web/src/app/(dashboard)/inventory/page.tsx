@@ -17,13 +17,14 @@ import {
   ArrowDownOutlined, SlidersOutlined, DollarOutlined,
   FilterOutlined, HistoryOutlined, EditOutlined,
   SearchOutlined, ShoppingOutlined, SwapOutlined, InboxOutlined,
-  BarcodeOutlined, SendOutlined, FileExcelOutlined,
+  BarcodeOutlined, SendOutlined, FileExcelOutlined, EyeOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
 import { useBarcodeScanner } from '../../../hooks/use-barcode-scanner'
 import { downloadXlsx } from '../../../lib/download-xlsx'
+import { abrirReporteInventarioHtml } from '../../../lib/doc-viewer'
 import dayjs from 'dayjs'
 import type { ColumnsType } from 'antd/es/table'
 
@@ -647,6 +648,12 @@ export default function InventoryPage() {
           <Tooltip title="Recargar">
             <Button icon={<ReloadOutlined />} onClick={invalidateAll} />
           </Tooltip>
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() => abrirReporteInventarioHtml(allProducts)}
+          >
+            Ver Reporte
+          </Button>
           <Button
             icon={<FileExcelOutlined />}
             style={{ color: '#217346', borderColor: '#217346' }}

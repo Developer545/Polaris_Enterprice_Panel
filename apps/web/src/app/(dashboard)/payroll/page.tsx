@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
+import { abrirBoletaHtml } from '../../../lib/doc-viewer'
 import { useAppContext } from '../../../hooks/use-app-context'
 import dayjs from 'dayjs'
 import type { ColumnsType } from 'antd/es/table'
@@ -257,21 +258,32 @@ export default function PayrollPage() {
     { title: 'AFP Pat.',  dataIndex: 'afpPatronal',  render: (v: any) => <Text type="secondary">{fmt(Number(v ?? 0))}</Text> },
     { title: 'INSAFORP',  dataIndex: 'insaforp',     render: (v: any) => <Text type="secondary">{fmt(Number(v ?? 0))}</Text> },
     {
-      title: '', key: 'boleta', width: 90, fixed: 'right' as const,
+      title: '', key: 'boleta', width: 160, fixed: 'right' as const,
       render: (r: any) => (
-        <Tooltip title="Descargar boleta PDF">
-          <Button
-            size="small"
-            icon={<FilePdfOutlined />}
-            loading={downloadingPdf === r.id}
-            onClick={() => {
-              const name = r.employee ? `${r.employee.firstName}_${r.employee.lastName}` : r.id
-              downloadBoletaPdf(r.id, `boleta_${name}.pdf`)
-            }}
-          >
-            Boleta
-          </Button>
-        </Tooltip>
+        <Space size={4}>
+          <Tooltip title="Vista previa en navegador">
+            <Button
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => abrirBoletaHtml(r, detailQ.data)}
+            >
+              Ver
+            </Button>
+          </Tooltip>
+          <Tooltip title="Descargar boleta PDF">
+            <Button
+              size="small"
+              icon={<FilePdfOutlined />}
+              loading={downloadingPdf === r.id}
+              onClick={() => {
+                const name = r.employee ? `${r.employee.firstName}_${r.employee.lastName}` : r.id
+                downloadBoletaPdf(r.id, `boleta_${name}.pdf`)
+              }}
+            >
+              PDF
+            </Button>
+          </Tooltip>
+        </Space>
       ),
     },
   ]

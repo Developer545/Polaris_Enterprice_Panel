@@ -8,10 +8,11 @@ import {
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined,
   DollarOutlined, CalendarOutlined, SearchOutlined, SettingOutlined, TagOutlined,
-  FileExcelOutlined,
+  FileExcelOutlined, EyeOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { downloadXlsx } from '../../../lib/download-xlsx'
+import { abrirReporteGastosHtml } from '../../../lib/doc-viewer'
 import { api } from '../../../lib/api'
 import { useAppContext } from '../../../hooks/use-app-context'
 import dayjs from 'dayjs'
@@ -280,6 +281,15 @@ export default function ExpensesPage() {
         </div>
         <Space>
           <Button icon={<ReloadOutlined />} onClick={() => qc.invalidateQueries({ queryKey: ['expenses-all'] })} />
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() => abrirReporteGastosHtml(filtered, {
+              from: dateRange?.[0]?.format('DD/MM/YYYY'),
+              to:   dateRange?.[1]?.format('DD/MM/YYYY'),
+            })}
+          >
+            Ver Reporte
+          </Button>
           <Button
             icon={<FileExcelOutlined />}
             style={{ color: '#217346', borderColor: '#217346' }}

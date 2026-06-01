@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { downloadXlsx } from '../../../lib/download-xlsx'
 import { printCartaA4 } from '../../../lib/print-receipt'
+import { abrirDteHtml, abrirReporteVentasHtml } from '../../../lib/doc-viewer'
 import { useAppContext } from '../../../hooks/use-app-context'
 import dayjs from 'dayjs'
 import type { ColumnsType } from 'antd/es/table'
@@ -511,6 +512,15 @@ export default function SalesPage() {
             )}
           </Space>
           <Button
+            icon={<EyeOutlined />}
+            onClick={() => abrirReporteVentasHtml(filtered, {
+              from: dateRange?.[0]?.format('DD/MM/YYYY'),
+              to:   dateRange?.[1]?.format('DD/MM/YYYY'),
+            })}
+          >
+            Ver Reporte
+          </Button>
+          <Button
             icon={<FileExcelOutlined />}
             style={{ color: '#217346', borderColor: '#217346' }}
             onClick={async () => {
@@ -585,6 +595,16 @@ export default function SalesPage() {
         title={<Space><FileDoneOutlined />Detalle de venta</Space>}
         onCancel={() => setDetail(null)}
         footer={[
+          saleDetail?.dteDocument && (
+            <Button
+              key="preview"
+              icon={<EyeOutlined />}
+              style={{ borderRadius: 8 }}
+              onClick={() => abrirDteHtml(saleDetail.dteDocument, saleDetail)}
+            >
+              Vista Previa
+            </Button>
+          ),
           saleDetail?.dteDocument?.status === 'ACCEPTED' && (
             <Button
               key="pdf"
