@@ -75,6 +75,58 @@ export class UploadService {
     return (data.secure_url as string).replace('/upload/', '/upload/q_auto,f_auto/')
   }
 
+  async uploadImageFromUrl(url: string, folder?: string): Promise<string> {
+    if (process.env.IS_LOCAL_BUNDLE === '1') {
+      // Local: download the URL and save as file
+      const res = await fetch(url)
+      if (!res.ok) throw new BadRequestException('No se pudo descargar la imagen desde la URL')
+      const contentType = res.headers.get('content-type') ?? 'image/jpeg'
+      const ALLOWED = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml', 'image/webp', 'image/gif']
+      if (!ALLOWED.includes(contentType.split(';')[0].trim())) {
+        throw new BadRequestException('La URL no apunta a una imagen válida')
+      }
+      const buffer = Buffer.from(await res.arrayBuffer())
+      const ext = contentType.includes('png') ? 'png' : contentType.includes('svg') ? 'svg' : 'jpg'
+      return this.saveLocal({ data: buffer.toString('base64'), filename: `url-import.${ext}`, mimeType: contentType, folder })
+    }
+    return this.uploadUrlToCloudinary(url, folder)
+  }
+
+  private async uploadUrlToCloudinary(url: string, folder?: string): Promise<string> {
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME
+    const apiKey    = process.env.CLOUDINARY_API_KEY
+    const apiSecret = process.env.CLOUDINARY_API_SECRET
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      throw new BadRequestException('Cloudinary no configurado. Contacta al administrador.')
+    }
+
+    const destFolder = folder ?? 'polaris/productos'
+    const timestamp  = Math.round(Date.now() / 1000)
+    const paramStr   = `folder=${destFolder}&timestamp=${timestamp}`
+    const signature  = crypto.createHash('sha256').update(paramStr + apiSecret).digest('hex')
+
+    const formData = new FormData()
+    formData.append('file', url)          // Cloudinary accepts URL directly
+    formData.append('api_key', apiKey)
+    formData.append('timestamp', String(timestamp))
+    formData.append('signature', signature)
+    formData.append('folder', destFolder)
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!res.ok) {
+      const err = await res.json() as Record<string, any>
+      throw new BadRequestException((err?.error as any)?.message ?? 'Error subiendo imagen a Cloudinary')
+    }
+
+    const data = await res.json() as Record<string, any>
+    return (data.secure_url as string).replace('/upload/', '/upload/q_auto,f_auto/')
+  }
+
   async getGallery(folder?: string): Promise<GalleryItem[]> {
     if (process.env.IS_LOCAL_BUNDLE === '1') {
       return this.getLocalGallery()

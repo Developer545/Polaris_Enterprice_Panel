@@ -7,6 +7,7 @@ import {
 import {
   SmileOutlined, PictureOutlined, UploadOutlined,
   AppstoreOutlined, ReloadOutlined, SearchOutlined, CloseOutlined,
+  LinkOutlined,
 } from '@ant-design/icons'
 import dynamic from 'next/dynamic'
 import { api } from '../lib/api'
@@ -77,8 +78,8 @@ export function IconOrImagePicker({
   const { message }  = App.useApp()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Modo activo: 'emoji' | 'image'
-  const [mode, setMode] = useState<'emoji' | 'image'>(imageUrl ? 'image' : 'emoji')
+  // Modo activo: 'emoji' | 'image' | 'url'
+  const [mode, setMode] = useState<'emoji' | 'image' | 'url'>(imageUrl ? 'image' : 'emoji')
 
   // Sincroniza modo cuando el form carga un registro existente
   useEffect(() => {
@@ -92,6 +93,29 @@ export function IconOrImagePicker({
   function handleEmojiSelect(emojiData: any) {
     onChange({ emoji: emojiData.native as string, imageUrl: null })
     setEmojiModalOpen(false)
+  }
+
+  // ── URL from web ─────────────────────────────────────────────────────────
+  const [webUrl, setWebUrl]         = useState('')
+  const [urlUploading, setUrlUpload] = useState(false)
+
+  async function handleUrlImport() {
+    if (!webUrl.trim()) return
+    setUrlUpload(true)
+    try {
+      const res = await api.post<{ imageUrl: string }>('/api/upload/image-from-url', {
+        url: webUrl.trim(),
+        folder,
+      })
+      onChange({ emoji: null, imageUrl: res.data.imageUrl })
+      setWebUrl('')
+      setMode('image')
+      message.success('Imagen importada y guardada en Cloudinary')
+    } catch (e: any) {
+      message.error(e?.response?.data?.message ?? 'Error importando imagen')
+    } finally {
+      setUrlUpload(false)
+    }
   }
 
   // ── Image upload ─────────────────────────────────────────────────────────
@@ -172,11 +196,11 @@ export function IconOrImagePicker({
     : galleryImages
 
   // ── Switch de modo ────────────────────────────────────────────────────────
-  function handleModeChange(newMode: 'emoji' | 'image') {
+  function handleModeChange(newMode: 'emoji' | 'image' | 'url') {
     setMode(newMode)
-    // Limpiar el tipo opuesto
     if (newMode === 'emoji') onChange({ emoji: emoji ?? null, imageUrl: null })
-    else                     onChange({ emoji: null, imageUrl: imageUrl ?? null })
+    else if (newMode === 'image') onChange({ emoji: null, imageUrl: imageUrl ?? null })
+    // 'url' mode: don't clear — user is about to import
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -188,10 +212,11 @@ export function IconOrImagePicker({
       <Segmented
         size="small"
         value={mode}
-        onChange={v => handleModeChange(v as 'emoji' | 'image')}
+        onChange={v => handleModeChange(v as 'emoji' | 'image' | 'url')}
         options={[
           { value: 'emoji', icon: <SmileOutlined />, label: 'Emoji' },
-          { value: 'image', icon: <PictureOutlined />, label: 'Imagen' },
+          { value: 'image', icon: <PictureOutlined />, label: 'Archivo' },
+          { value: 'url',   icon: <LinkOutlined />,   label: 'URL web' },
         ]}
         style={{ marginBottom: 10 }}
       />
@@ -288,6 +313,49 @@ export function IconOrImagePicker({
               style={{ width: 100, marginTop: 26 }}
             />
           )}
+        </div>
+      )}
+
+      {/* ── Modo URL web ── */}
+      {mode === 'url' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 12, color: token.colorTextSecondary }}>
+            Pega la URL de una imagen de internet. Se guardará en Cloudinary.
+          </div>
+          <Input
+            prefix={<LinkOutlined style={{ color: token.colorTextQuaternary }} />}
+            placeholder="https://ejemplo.com/imagen.jpg"
+            value={webUrl}
+            onChange={e => setWebUrl(e.target.value)}
+            onPressEnter={handleUrlImport}
+            allowClear
+            style={{ borderRadius: 8 }}
+          />
+          {/* Preview de la URL antes de importar */}
+          {webUrl.trim() && (
+            <div style={{
+              width: 80, height: 80, borderRadius: 10, overflow: 'hidden',
+              border: `1px solid ${token.colorBorder}`, background: token.colorFillAlter,
+              flexShrink: 0,
+            }}>
+              <img
+                src={webUrl.trim()}
+                alt="preview"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+              />
+            </div>
+          )}
+          <Button
+            type="primary"
+            icon={<UploadOutlined />}
+            loading={urlUploading}
+            disabled={!webUrl.trim()}
+            onClick={handleUrlImport}
+            style={{ borderRadius: 8, alignSelf: 'flex-start' }}
+          >
+            Importar a Cloudinary
+          </Button>
         </div>
       )}
 

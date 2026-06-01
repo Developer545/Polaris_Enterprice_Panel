@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Body, Query } from '@nestjs/common'
 import { UploadService } from './upload.service'
-import { UploadImageSchema, UploadImageDto } from './upload.dto'
+import { UploadImageSchema, UploadImageDto, UploadImageFromUrlSchema, UploadImageFromUrlDto } from './upload.dto'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
 import { PERMISSIONS } from '@pos-dte/shared-types'
@@ -15,6 +15,15 @@ export class UploadController {
     @Body(new ZodValidationPipe(UploadImageSchema)) dto: UploadImageDto,
   ) {
     const imageUrl = await this.svc.uploadImage(dto)
+    return { imageUrl }
+  }
+
+  @Post('image-from-url')
+  @RequirePermissions(PERMISSIONS.PRODUCTS_CREATE)
+  async uploadImageFromUrl(
+    @Body(new ZodValidationPipe(UploadImageFromUrlSchema)) dto: UploadImageFromUrlDto,
+  ) {
+    const imageUrl = await this.svc.uploadImageFromUrl(dto.url, dto.folder)
     return { imageUrl }
   }
 

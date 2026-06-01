@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Table, Button, Tag, Input, Typography, Modal, Form, Select, InputNumber,
   App, Row, Col, Switch, Avatar, Divider, Card, Space, Tooltip, Drawer,
@@ -71,10 +71,17 @@ export default function ProductsPage() {
   const { companyId } = useAppContext()
 
   // product state
-  const [search, setSearch]       = useState('')
-  const [catFilter, setCatFilter] = useState<string | undefined>()
-  const [page, setPage]           = useState(1)
-  const PAGE_LIMIT                = 50
+  const [search, setSearch]           = useState('')
+  const [debouncedSearch, setDebounced] = useState('')
+  const [catFilter, setCatFilter]     = useState<string | undefined>()
+  const [page, setPage]               = useState(1)
+  const PAGE_LIMIT                    = 25
+
+  // Debounce: espera 400ms — también resetea página
+  useEffect(() => {
+    const t = setTimeout(() => { setDebounced(search); setPage(1) }, 400)
+    return () => clearTimeout(t)
+  }, [search])
   const [editProd, setEditProd]   = useState<any>(null)
   const [prodForm] = Form.useForm()
   const fraccionable = Form.useWatch('fraccionable', prodForm)
@@ -100,26 +107,29 @@ export default function ProductsPage() {
     queryKey: ['categories', companyId],
     queryFn: () => api.get('/api/categories', { params: { companyId } }).then(r => r.data),
     enabled: !!companyId,
+    staleTime: 5 * 60 * 1000, // 5 min — raramente cambian
   })
 
   const { data: units = [] } = useQuery<any[]>({
     queryKey: ['units', companyId],
     queryFn: () => api.get('/api/units', { params: { companyId } }).then(r => r.data),
     enabled: !!companyId,
+    staleTime: 5 * 60 * 1000,
   })
 
   const { data: productsResp, isLoading } = useQuery<{ data: any[]; total: number; page: number; limit: number }>({
-    queryKey: ['products', companyId, page, search, catFilter],
+    queryKey: ['products', companyId, page, debouncedSearch, catFilter],
     queryFn: () =>
       api.get('/api/products', {
         params: {
           companyId,
           page, limit: PAGE_LIMIT,
-          search: search || undefined,
+          search: debouncedSearch || undefined,
           categoryId: catFilter || undefined,
         },
       }).then(r => r.data),
     enabled: !!companyId,
+    staleTime: 30 * 1000, // 30 seg
     placeholderData: (prev) => prev,
   })
 
@@ -390,7 +400,7 @@ export default function ProductsPage() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between', alignItems: 'center' }}>
           <Space wrap size={8}>
             <Input prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
-              placeholder="Buscar nombre, SKU, código..." value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
+              placeholder="Buscar nombre, SKU, código..." value={search} onChange={e => setSearch(e.target.value)}
               allowClear style={{ width: 240, borderRadius: 8 }} />
             <Select placeholder="Categoría" allowClear value={catFilter} onChange={v => { setCatFilter(v); setPage(1) }}
               style={{ width: 160 }} options={categories.map(c => ({ value: c.id, label: c.name }))} />

@@ -11,6 +11,12 @@ export const UploadImageSchema = z.object({
 
 export type UploadImageDto = z.infer<typeof UploadImageSchema>
 
+export const UploadImageFromUrlSchema = z.object({
+  url:    z.string().url('URL inválida'),
+  folder: z.string().optional(),
+})
+export type UploadImageFromUrlDto = z.infer<typeof UploadImageFromUrlSchema>
+
 export interface GalleryItem {
   publicId:  string
   url:       string
