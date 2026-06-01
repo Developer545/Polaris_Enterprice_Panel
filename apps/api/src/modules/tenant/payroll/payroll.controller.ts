@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Put, Body, Param, Query, Res } from '@nestjs/common'
-import type { Response } from 'express'
+import type { FastifyReply } from 'fastify'
 import { PayrollService, CreatePeriodSchema } from './payroll.service'
 import { PayrollPdfService } from './payroll-pdf.service'
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe'
@@ -73,17 +73,15 @@ export class PayrollController {
   async downloadBoleta(
     @Param('itemId') itemId: string,
     @CurrentUser() user: JwtAccessPayload,
-    @Res() res: Response,
+    @Res() res: FastifyReply,
   ) {
     const { item, period, company } = await this.svc.getItemForPdf(itemId, user)
     const buffer = await this.pdf.generateBoleta(item, period, company)
     const empName = `${item.employee?.firstName ?? ''}_${item.employee?.lastName ?? ''}`.trim().replace(/\s+/g, '_')
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="boleta_${empName}_${period.name?.replace(/\s+/g, '_') ?? 'planilla'}.pdf"`,
-      'Content-Length': buffer.length,
-    })
-    res.end(buffer)
+    res.header('Content-Type', 'application/pdf')
+    res.header('Content-Disposition', `attachment; filename="boleta_${empName}_${period.name?.replace(/\s+/g, '_') ?? 'planilla'}.pdf"`)
+    res.header('Content-Length', buffer.length)
+    res.send(buffer)
   }
 
   /** GET /payroll/periods/:id/boletas — all pay slips for a period (multi-page PDF) */
@@ -92,15 +90,13 @@ export class PayrollController {
   async downloadAllBoletas(
     @Param('id') id: string,
     @CurrentUser() user: JwtAccessPayload,
-    @Res() res: Response,
+    @Res() res: FastifyReply,
   ) {
     const { period, company } = await this.svc.getPeriodForPdf(id, user)
     const buffer = await this.pdf.generateAllBoletas(period, company)
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="boletas_${period.name?.replace(/\s+/g, '_') ?? 'planilla'}.pdf"`,
-      'Content-Length': buffer.length,
-    })
-    res.end(buffer)
+    res.header('Content-Type', 'application/pdf')
+    res.header('Content-Disposition', `attachment; filename="boletas_${period.name?.replace(/\s+/g, '_') ?? 'planilla'}.pdf"`)
+    res.header('Content-Length', buffer.length)
+    res.send(buffer)
   }
 }
