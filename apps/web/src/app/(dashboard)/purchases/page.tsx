@@ -324,6 +324,54 @@ export default function PurchasesPage() {
             )}
           </Form.List>
 
+          <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Desglose IVA — Libro de Compras F-07</Text>
+          <Divider style={{ margin: '4px 0 12px', borderColor: token.colorBorderSecondary }} />
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="condicionOperacion" label={LBL('Condición de pago')} initialValue="1" style={MB}>
+                <Select options={[
+                  { value: '1', label: 'Contado' },
+                  { value: '2', label: 'Crédito' },
+                  { value: '3', label: 'Otro' },
+                ]} style={{ borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="supplierDocNumber" label={LBL('N° CCF / Factura proveedor')} style={MB}>
+                <Input placeholder="Ej: CCF-001-2026" style={INP_STYLE} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item name="totalGravada" label={LBL('Compras gravadas ($)')} style={MB}>
+                <InputNumber min={0} step={0.01} prefix="$" placeholder="0.00" style={{ width: '100%', borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="totalIva" label={LBL('IVA crédito fiscal ($)')} style={MB}>
+                <InputNumber min={0} step={0.01} prefix="$" placeholder="0.00" style={{ width: '100%', borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="ivaRete1" label={LBL('Ret. IVA 1% ($)')} style={MB}>
+                <InputNumber min={0} step={0.01} prefix="$" placeholder="0.00" style={{ width: '100%', borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item name="totalExenta" label={LBL('Compras exentas ($)')} style={MB}>
+                <InputNumber min={0} step={0.01} prefix="$" placeholder="0.00" style={{ width: '100%', borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="totalNoSuj" label={LBL('Compras no sujetas ($)')} style={MB}>
+                <InputNumber min={0} step={0.01} prefix="$" placeholder="0.00" style={{ width: '100%', borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
           <Text style={{ fontSize: 11, color: token.colorTextSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Observaciones</Text>
           <Divider style={{ margin: '4px 0 12px', borderColor: token.colorBorderSecondary }} />
           <Form.Item name="notes" style={{ marginBottom: 0 }}>

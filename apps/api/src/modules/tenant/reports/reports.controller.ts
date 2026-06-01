@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res } from '@nestjs/common'
+import { Controller, Get, Query, Res, ParseIntPipe, DefaultValuePipe } from '@nestjs/common'
 import type { FastifyReply } from 'fastify'
 import { ReportsService } from './reports.service'
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator'
@@ -61,5 +61,27 @@ export class ReportsController {
       .header('Content-Type', XLSX_MIME)
       .header('Content-Disposition', `attachment; filename="reporte_gastos_${date}.xlsx"`)
       .send(buffer)
+  }
+
+  @Get('iva-ventas')
+  @RequirePermissions(PERMISSIONS.SALES_VIEW)
+  async ivaVentas(
+    @CurrentUser() user: JwtAccessPayload,
+    @Query('companyId') companyId?: string,
+    @Query('month', new DefaultValuePipe(new Date().getMonth() + 1), ParseIntPipe) month?: number,
+    @Query('year',  new DefaultValuePipe(new Date().getFullYear()),  ParseIntPipe) year?:  number,
+  ) {
+    return this.svc.ivaBookVentas(companyId ?? user.companyId, user, month!, year!)
+  }
+
+  @Get('iva-compras')
+  @RequirePermissions(PERMISSIONS.PURCHASES_VIEW)
+  async ivaCompras(
+    @CurrentUser() user: JwtAccessPayload,
+    @Query('companyId') companyId?: string,
+    @Query('month', new DefaultValuePipe(new Date().getMonth() + 1), ParseIntPipe) month?: number,
+    @Query('year',  new DefaultValuePipe(new Date().getFullYear()),  ParseIntPipe) year?:  number,
+  ) {
+    return this.svc.ivaBookCompras(companyId ?? user.companyId, user, month!, year!)
   }
 }

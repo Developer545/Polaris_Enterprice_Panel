@@ -16,6 +16,14 @@ export const CreatePurchaseOrderSchema = z.object({
   companyId: z.string().cuid(),
   supplierId: z.string().cuid(),
   orderNumber: z.string().optional().nullable(),
+  condicionOperacion: z.enum(['1', '2', '3']).default('1'), // 1=Contado, 2=Crédito, 3=Otro
+  supplierDocNumber: z.string().optional().nullable(),       // N° CCF/factura del proveedor
+  // Desglose IVA — requerido para Libro de Compras F-07
+  totalGravada: z.number().nonnegative().optional().nullable(),
+  totalIva: z.number().nonnegative().optional().nullable(),
+  totalExenta: z.number().nonnegative().optional().nullable(),
+  totalNoSuj: z.number().nonnegative().optional().nullable(),
+  ivaRete1: z.number().nonnegative().optional().nullable(),
   expectedDate: z.string().datetime().optional().nullable(),
   notes: z.string().optional().nullable(),
   items: z.array(PurchaseOrderItemSchema).min(1),
@@ -138,12 +146,19 @@ export class PurchasesService {
         companyId: dto.companyId,
         supplierId: dto.supplierId,
         orderNumber: resolvedOrderNumber,
+        condicionOperacion: dto.condicionOperacion ?? '1',
+        supplierDocNumber: dto.supplierDocNumber ?? null,
         expectedDate: dto.expectedDate ? new Date(dto.expectedDate) : null,
         notes: dto.notes,
         status: 'DRAFT',
         subtotal: new Decimal(subtotal),
         tax: new Decimal(tax),
         total: new Decimal(total),
+        totalGravada: new Decimal(dto.totalGravada ?? 0),
+        totalIva:     new Decimal(dto.totalIva     ?? 0),
+        totalExenta:  new Decimal(dto.totalExenta  ?? 0),
+        totalNoSuj:   new Decimal(dto.totalNoSuj   ?? 0),
+        ivaRete1:     new Decimal(dto.ivaRete1     ?? 0),
         items: {
           create: dto.items.map(item => ({
             productId: item.productId,

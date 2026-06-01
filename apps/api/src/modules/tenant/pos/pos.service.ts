@@ -28,6 +28,7 @@ export const CreateSaleSchema = z.object({
   clientId: z.string().cuid().optional().nullable(),
   tipoDte: z.enum(['01', '03']).default('01'), // 01=CF, 03=CCF
   condicionOperacion: z.enum(['1', '2', '3']).default('1'), // 1=Contado, 2=Crédito, 3=Otro
+  daysCredit: z.number().int().min(1).max(365).default(30).optional(), // plazo en días para CxC auto
   sellerId: z.string().cuid().optional().nullable(), // invoice-level seller (can be overridden per item)
   items: z.array(SaleLineSchema).min(1),
   payments: z.array(z.object({
@@ -482,6 +483,27 @@ export class PosService {
       if (commRecords.length > 0) {
         await db.commissionRecord.createMany({ data: commRecords })
       }
+    }
+
+    // Auto-CxC: venta a crédito con cliente identificado → crear cuenta por cobrar
+    if (dto.condicionOperacion === '2' && dto.clientId) {
+      const daysCredit = dto.daysCredit ?? 30
+      const dueDate = new Date(Date.now() + daysCredit * 24 * 60 * 60 * 1000)
+      const label = dto.emitDte ? numeroControl : sale.id.slice(-8)
+      await db.accountReceivable.create({
+        data: {
+          tenantId,
+          companyId: dto.companyId,
+          branchId: dto.branchId,
+          clientId: dto.clientId,
+          saleId: sale.id,
+          description: `Venta a crédito — ${label}`,
+          amount: new Decimal(Number(sale.totalPagar)),
+          amountPaid: new Decimal(0),
+          dueDate,
+          status: 'PENDING',
+        },
+      }).catch(err => this.logger.warn(`CxC auto-create failed for sale ${sale.id}: ${err?.message}`))
     }
 
     // BullMQ best-effort — el outbox en PG ya garantiza que no se pierde el DTE.

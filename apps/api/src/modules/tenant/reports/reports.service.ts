@@ -394,6 +394,169 @@ export class ReportsService {
     return wb.xlsx.writeBuffer() as unknown as Promise<Buffer>
   }
 
+  // ─── Libro IVA Ventas (F-07 Sección I + II) ───────────────────────────────
+
+  async ivaBookVentas(companyId: string, user: JwtAccessPayload, month: number, year: number) {
+    this.assertCompanyAccess(user, companyId)
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+
+    const from = new Date(year, month - 1, 1, 0, 0, 0)
+    const to   = new Date(year, month, 0, 23, 59, 59)
+
+    const [company, sales] = await Promise.all([
+      db.company.findFirst({
+        where: { id: companyId, tenantId },
+        select: { name: true, comercialName: true, nit: true, nrc: true },
+      }),
+      db.sale.findMany({
+        where: {
+          tenantId, companyId,
+          createdAt: { gte: from, lte: to },
+          tipoDte: { in: ['01', '03', '05', '06'] },
+          dteDocument: { status: 'ACCEPTED' },
+        },
+        include: {
+          client:      { select: { name: true, numDocumento: true, nrc: true } },
+          dteDocument: { select: { tipoDte: true, numeroControl: true, codigoGeneracion: true, status: true } },
+        },
+        orderBy: { createdAt: 'asc' },
+        take: 5_000,
+      }),
+    ])
+
+    const svDate = (d: Date) => new Intl.DateTimeFormat('es-SV', {
+      timeZone: 'America/El_Salvador',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(d)
+
+    // Sección I — CCF, NC, ND (ventas a contribuyentes)
+    const contribuyentes = sales
+      .filter(s => ['03', '05', '06'].includes(s.tipoDte))
+      .map((s, i) => ({
+        correlativo:      i + 1,
+        fecha:            svDate(s.createdAt),
+        numeroControl:    s.dteDocument?.numeroControl ?? '—',
+        codigoGeneracion: s.dteDocument?.codigoGeneracion ?? '—',
+        tipoDte:          s.tipoDte,
+        nitReceptor:      s.client?.numDocumento ?? '—',
+        nrcReceptor:      s.client?.nrc          ?? '—',
+        nombreReceptor:   s.client?.name         ?? 'Contribuyente',
+        totalExenta:      Number(s.totalExenta  ?? 0),
+        totalNoSuj:       Number(s.totalNoSuj   ?? 0),
+        totalGravada:     Number(s.totalGravada  ?? 0),
+        totalIva:         Number(s.totalIva      ?? 0),
+        ivaRete1:         Number(s.ivaRete1      ?? 0),
+        totalPagar:       Number(s.totalPagar    ?? 0),
+      }))
+
+    // Sección II — CF (ventas a consumidores finales)
+    const consumidores = sales
+      .filter(s => s.tipoDte === '01')
+      .map((s, i) => ({
+        correlativo:  i + 1,
+        fecha:        svDate(s.createdAt),
+        numeroControl: s.dteDocument?.numeroControl ?? '—',
+        totalExenta:  Number(s.totalExenta  ?? 0),
+        totalNoSuj:   Number(s.totalNoSuj   ?? 0),
+        totalGravada: Number(s.totalGravada  ?? 0),
+        totalIva:     Number(s.totalIva      ?? 0),
+        totalPagar:   Number(s.totalPagar    ?? 0),
+      }))
+
+    const sum = <T extends object>(arr: T[], key: keyof T) =>
+      arr.reduce((acc, r) => acc + Number(r[key] ?? 0), 0)
+
+    return {
+      company: { name: company?.comercialName ?? company?.name ?? '', nit: company?.nit ?? '', nrc: company?.nrc ?? '' },
+      period: { month, year },
+      contribuyentes,
+      consumidores,
+      totalesContribuyentes: {
+        exenta:   r2(sum(contribuyentes, 'totalExenta')),
+        noSuj:    r2(sum(contribuyentes, 'totalNoSuj')),
+        gravada:  r2(sum(contribuyentes, 'totalGravada')),
+        iva:      r2(sum(contribuyentes, 'totalIva')),
+        ivaRete1: r2(sum(contribuyentes, 'ivaRete1')),
+        total:    r2(sum(contribuyentes, 'totalPagar')),
+      },
+      totalesConsumidores: {
+        exenta:  r2(sum(consumidores, 'totalExenta')),
+        noSuj:   r2(sum(consumidores, 'totalNoSuj')),
+        gravada: r2(sum(consumidores, 'totalGravada')),
+        iva:     r2(sum(consumidores, 'totalIva')),
+        total:   r2(sum(consumidores, 'totalPagar')),
+      },
+    }
+  }
+
+  // ─── Libro IVA Compras (F-07 Sección III) ─────────────────────────────────
+
+  async ivaBookCompras(companyId: string, user: JwtAccessPayload, month: number, year: number) {
+    this.assertCompanyAccess(user, companyId)
+    const { tenantId } = getCurrentTenant()
+    const db = this.getDb()
+
+    const from = new Date(year, month - 1, 1, 0, 0, 0)
+    const to   = new Date(year, month, 0, 23, 59, 59)
+
+    const [company, orders] = await Promise.all([
+      db.company.findFirst({
+        where: { id: companyId, tenantId },
+        select: { name: true, comercialName: true, nit: true, nrc: true },
+      }),
+      db.purchaseOrder.findMany({
+        where: {
+          tenantId, companyId,
+          createdAt: { gte: from, lte: to },
+          status: { in: ['PARTIAL', 'RECEIVED'] },
+        },
+        include: {
+          supplier: { select: { name: true, nit: true, nrc: true } },
+        },
+        orderBy: { createdAt: 'asc' },
+        take: 5_000,
+      }),
+    ])
+
+    const svDate = (d: Date) => new Intl.DateTimeFormat('es-SV', {
+      timeZone: 'America/El_Salvador',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(d)
+
+    const compras = orders.map((o, i) => ({
+      correlativo:      i + 1,
+      fecha:            svDate(o.createdAt),
+      supplierDocNumber: o.supplierDocNumber ?? '—',
+      nitProveedor:     o.supplier?.nit  ?? '—',
+      nrcProveedor:     o.supplier?.nrc  ?? '—',
+      nombreProveedor:  o.supplier?.name ?? '—',
+      totalExenta:      Number(o.totalExenta  ?? 0),
+      totalNoSuj:       Number(o.totalNoSuj   ?? 0),
+      totalGravada:     Number(o.totalGravada  ?? 0),
+      totalIva:         Number(o.totalIva      ?? 0),
+      ivaRete1:         Number(o.ivaRete1      ?? 0),
+      total:            Number(o.total         ?? 0),
+    }))
+
+    const sum = <T extends object>(arr: T[], key: keyof T) =>
+      arr.reduce((acc, r) => acc + Number(r[key] ?? 0), 0)
+
+    return {
+      company: { name: company?.comercialName ?? company?.name ?? '', nit: company?.nit ?? '', nrc: company?.nrc ?? '' },
+      period: { month, year },
+      compras,
+      totales: {
+        exenta:  r2(sum(compras, 'totalExenta')),
+        noSuj:   r2(sum(compras, 'totalNoSuj')),
+        gravada: r2(sum(compras, 'totalGravada')),
+        iva:     r2(sum(compras, 'totalIva')),
+        ivaRete1:r2(sum(compras, 'ivaRete1')),
+        total:   r2(sum(compras, 'total')),
+      },
+    }
+  }
+
   // ─── Expenses report ──────────────────────────────────────────────────────
 
   async expensesXlsx(
@@ -478,3 +641,5 @@ export class ReportsService {
     return wb.xlsx.writeBuffer() as unknown as Promise<Buffer>
   }
 }
+
+function r2(n: number) { return Math.round(n * 100) / 100 }

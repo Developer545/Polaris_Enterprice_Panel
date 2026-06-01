@@ -58,6 +58,7 @@ export class AccountsPayableService {
       include: {
         supplier: { select: { id: true, name: true } },
         purchaseOrder: { select: { id: true, orderNumber: true } },
+        payments: { orderBy: { createdAt: 'asc' } },
       },
       orderBy: { dueDate: 'asc' },
       take: 200,
@@ -72,6 +73,7 @@ export class AccountsPayableService {
       include: {
         supplier: true,
         purchaseOrder: { include: { items: true } },
+        payments: { orderBy: { createdAt: 'asc' } },
       },
     })
     if (!ap) throw new NotFoundException('Cuenta por pagar no encontrada')
@@ -160,16 +162,29 @@ export class AccountsPayableService {
 
     const newStatus = newPaid >= total ? 'PAID' : 'PARTIAL'
 
-    return db.accountPayable.update({
-      where: { id },
-      data: {
-        amountPaid:    new Decimal(newPaid),
-        status:        newStatus as never,
-        paymentMethod: dto.paymentMethod ?? null,
-        ...(dto.reference ? { reference: dto.reference } : {}),
-        ...(dto.notes     ? { notes: dto.notes }         : {}),
-      },
-    })
+    return db.$transaction([
+      db.apPayment.create({
+        data: {
+          tenantId,
+          accountPayableId: id,
+          amount:        new Decimal(dto.amount),
+          paymentMethod: dto.paymentMethod ?? '01',
+          reference:     dto.reference ?? null,
+          notes:         dto.notes     ?? null,
+        },
+      }),
+      db.accountPayable.update({
+        where: { id },
+        data: {
+          amountPaid:    new Decimal(newPaid),
+          status:        newStatus as never,
+          paymentMethod: dto.paymentMethod ?? null,
+          ...(dto.reference ? { reference: dto.reference } : {}),
+          ...(dto.notes     ? { notes: dto.notes }         : {}),
+        },
+        include: { payments: { orderBy: { createdAt: 'desc' } } },
+      }),
+    ]).then(([, updated]) => updated)
   }
 
   async markOverdue(companyId: string, user: JwtAccessPayload) {

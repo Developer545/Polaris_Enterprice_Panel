@@ -527,24 +527,56 @@ export default function AccountsPayablePage() {
         okText="Registrar pago"
         okButtonProps={{ style: { background: token.colorSuccess, borderColor: token.colorSuccess, borderRadius: 8, fontWeight: 600 } }}
         cancelButtonProps={{ style: { borderRadius: 8 } }}
-        width={460}
+        width={500}
         style={{ top: 40 }}
         destroyOnClose
       >
         {payModal && (
-          <div style={{ marginBottom: 16, padding: '10px 14px', background: token.colorFillAlter, borderRadius: 8 }}>
-            <Text strong>{payModal.supplier?.name ?? payModal.supplierName}</Text>
-            <br />
-            <Text type="secondary" style={{ fontSize: 12 }}>{payModal.description}</Text>
-            <br />
-            <Space style={{ marginTop: 6 }}>
-              <Text>Total: <Text strong>${Number(payModal.amount).toFixed(2)}</Text></Text>
-              <Text>Abonado: <Text style={{ color: token.colorSuccess }}>${Number(payModal.amountPaid ?? payModal.paid ?? 0).toFixed(2)}</Text></Text>
-              <Text>Pendiente: <Text style={{ color: token.colorError, fontWeight: 600 }}>
-                ${(Number(payModal.amount) - Number(payModal.amountPaid ?? payModal.paid ?? 0)).toFixed(2)}
-              </Text></Text>
-            </Space>
-          </div>
+          <>
+            <div style={{ marginBottom: 14, padding: '10px 14px', background: token.colorFillAlter, borderRadius: 8 }}>
+              <Text strong>{payModal.supplier?.name ?? payModal.supplierName}</Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>{payModal.description}</Text>
+              <br />
+              <Space style={{ marginTop: 6 }}>
+                <Text>Total: <Text strong>${Number(payModal.amount).toFixed(2)}</Text></Text>
+                <Text>Abonado: <Text style={{ color: token.colorSuccess }}>${Number(payModal.amountPaid ?? 0).toFixed(2)}</Text></Text>
+                <Text>Pendiente: <Text style={{ color: token.colorError, fontWeight: 600 }}>
+                  ${(Number(payModal.amount) - Number(payModal.amountPaid ?? 0)).toFixed(2)}
+                </Text></Text>
+              </Space>
+            </div>
+
+            {/* Historial de abonos previos */}
+            {(payModal.payments ?? []).length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <Text style={{ fontSize: 11, color: token.colorTextSecondary, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.3px', display: 'block', marginBottom: 6 }}>
+                  Historial de abonos
+                </Text>
+                <div style={{ maxHeight: 120, overflowY: 'auto', border: `1px solid ${token.colorBorderSecondary}`, borderRadius: 6 }}>
+                  {(payModal.payments ?? []).map((pmt: any, i: number) => (
+                    <div key={pmt.id ?? i} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '6px 10px', borderBottom: i < payModal.payments.length - 1 ? `1px solid ${token.colorBorderSecondary}` : 'none',
+                      background: i % 2 === 0 ? 'transparent' : token.colorFillAlter,
+                    }}>
+                      <div>
+                        <Text style={{ fontSize: 11 }}>
+                          {pmt.paymentDate ? dayjs(pmt.paymentDate).format('DD/MM/YYYY') : '—'}
+                        </Text>
+                        {pmt.reference && (
+                          <Text type="secondary" style={{ fontSize: 10, marginLeft: 6 }}>Ref: {pmt.reference}</Text>
+                        )}
+                      </div>
+                      <Text style={{ fontSize: 12, fontWeight: 600, color: token.colorSuccess }}>
+                        ${Number(pmt.amount).toFixed(2)}
+                      </Text>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
         <Form
           form={payForm}
@@ -557,7 +589,7 @@ export default function AccountsPayablePage() {
               <Form.Item name="amount" label="Monto a pagar ($)" rules={[{ required: true }]} style={{ marginBottom: 14 }}>
                 <InputNumber
                   min={0.01}
-                  max={payModal ? Number(payModal.amount) - Number(payModal.amountPaid ?? payModal.paid ?? 0) : undefined}
+                  max={payModal ? Number(payModal.amount) - Number(payModal.amountPaid ?? 0) : undefined}
                   precision={2}
                   prefix="$"
                   style={{ width: '100%' }}

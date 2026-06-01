@@ -83,6 +83,14 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    key: 'fiscal',
+    label: 'Fiscal / Contable',
+    icon: <FileTextOutlined />,
+    items: [
+      { key: '/iva-book', label: 'Libros IVA (F-07)', icon: <FileTextOutlined />, module: 'ventas' },
+    ],
+  },
+  {
     key: 'config',
     label: 'Configuración',
     icon: <SettingOutlined />,

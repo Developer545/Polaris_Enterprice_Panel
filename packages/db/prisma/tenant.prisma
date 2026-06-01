@@ -587,28 +587,37 @@ model Supplier {
 }
 
 model PurchaseOrder {
-  id             String              @id @default(cuid())
-  tenantId       String
-  companyId      String
-  company        Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  supplierId     String
-  supplier       Supplier            @relation(fields: [supplierId], references: [id])
-  orderNumber    String
-  status         PurchaseOrderStatus @default(DRAFT)
-  expectedDate   DateTime?
-  receivedDate   DateTime?
-  subtotal       Decimal             @default(0) @db.Decimal(10, 2)
-  tax            Decimal             @default(0) @db.Decimal(10, 2)
-  total          Decimal             @default(0) @db.Decimal(10, 2)
-  notes          String?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  id                 String              @id @default(cuid())
+  tenantId           String
+  companyId          String
+  company            Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  supplierId         String
+  supplier           Supplier            @relation(fields: [supplierId], references: [id])
+  orderNumber        String
+  status             PurchaseOrderStatus @default(DRAFT)
+  condicionOperacion String              @default("1")  // 1=Contado, 2=Crédito, 3=Otro
+  supplierDocNumber  String?                            // N° CCF/factura recibida del proveedor
+  expectedDate       DateTime?
+  receivedDate       DateTime?
+  subtotal           Decimal             @default(0) @db.Decimal(10, 2)
+  tax                Decimal             @default(0) @db.Decimal(10, 2)
+  total              Decimal             @default(0) @db.Decimal(10, 2)
+  // Desglose IVA para Libro de Compras F-07
+  totalGravada       Decimal             @default(0) @db.Decimal(10, 2)
+  totalIva           Decimal             @default(0) @db.Decimal(10, 2)
+  totalExenta        Decimal             @default(0) @db.Decimal(10, 2)
+  totalNoSuj         Decimal             @default(0) @db.Decimal(10, 2)
+  ivaRete1           Decimal             @default(0) @db.Decimal(10, 2)
+  notes              String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   items              PurchaseOrderItem[]
   accountsPayable    AccountPayable[]
   inventoryMovements InventoryMovement[]
 
   @@index([tenantId, companyId])
+  @@index([tenantId, companyId, createdAt])
 }
 
 model PurchaseOrderItem {
@@ -646,9 +655,27 @@ model AccountPayable {
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
+  payments        ApPayment[]
+
   @@index([tenantId, companyId])
   @@index([tenantId, companyId, branchId])
   @@index([tenantId, companyId, status])
+}
+
+model ApPayment {
+  id               String         @id @default(cuid())
+  tenantId         String
+  accountPayableId String
+  accountPayable   AccountPayable @relation(fields: [accountPayableId], references: [id], onDelete: Cascade)
+  amount           Decimal        @db.Decimal(10, 2)
+  paymentDate      DateTime       @default(now())
+  paymentMethod    String         @default("01")  // 01=Efectivo 02=Tarjeta ...
+  reference        String?
+  notes            String?
+  createdAt        DateTime       @default(now())
+
+  @@index([accountPayableId])
+  @@index([tenantId])
 }
 
 model ExpenseCategory {

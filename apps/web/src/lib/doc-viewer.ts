@@ -595,3 +595,210 @@ export function abrirAgingHtml(
 
   openTab(html)
 }
+
+// ─── 7. LIBRO IVA VENTAS (F-07 Sección I + II) ─────────────────────────────
+
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
+  'Septiembre','Octubre','Noviembre','Diciembre']
+const TIPO_DTE_LABEL: Record<string, string> = { '01':'CF','03':'CCF','05':'NC','06':'ND' }
+
+export function abrirLibroIvaVentasHtml(data: any) {
+  const c  = data.company ?? {}
+  const p  = data.period  ?? {}
+  const tc = data.totalesContribuyentes ?? {}
+  const tf = data.totalesConsumidores   ?? {}
+  const contribuyentes: any[] = data.contribuyentes ?? []
+  const consumidores:   any[] = data.consumidores   ?? []
+  const periodo = `${MESES[(p.month ?? 1) - 1]} ${p.year}`
+
+  const printBtn = `<div class="no-print">
+    <button class="btn-close" onclick="window.close()">Cerrar</button>
+    <button class="btn-print" onclick="window.print()">Imprimir / Guardar PDF</button>
+  </div>`
+
+  const rowsI = contribuyentes.map((r: any, i: number) => `
+    <tr style="${i%2===0?'':'background:#eff6ff'}">
+      <td class="c">${r.correlativo}</td><td>${r.fecha}</td>
+      <td style="font-family:monospace;font-size:8px">${r.numeroControl}</td>
+      <td class="c">${TIPO_DTE_LABEL[r.tipoDte]??r.tipoDte}</td>
+      <td>${r.nitReceptor}</td><td>${r.nombreReceptor}</td>
+      <td class="r">${d2(r.totalExenta)}</td><td class="r">${d2(r.totalNoSuj)}</td>
+      <td class="r">${d2(r.totalGravada)}</td><td class="r">${d2(r.totalIva)}</td>
+      <td class="r">${d2(r.ivaRete1)}</td>
+      <td class="r" style="font-weight:600">${d2(r.totalPagar)}</td>
+    </tr>`).join('')
+
+  const rowsII = consumidores.map((r: any, i: number) => `
+    <tr style="${i%2===0?'':'background:#eff6ff'}">
+      <td class="c">${r.correlativo}</td><td>${r.fecha}</td>
+      <td style="font-family:monospace;font-size:8px">${r.numeroControl}</td>
+      <td class="r">${d2(r.totalExenta)}</td><td class="r">${d2(r.totalNoSuj)}</td>
+      <td class="r">${d2(r.totalGravada)}</td><td class="r">${d2(r.totalIva)}</td>
+      <td class="r" style="font-weight:600">${d2(r.totalPagar)}</td>
+    </tr>`).join('')
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <title>Libro IVA Ventas</title>
+  <style>${BASE_CSS}table thead th{font-size:8px}table tbody td{font-size:9px}
+  .sb{margin:20px 0 8px;border-top:2px solid ${BORDER};padding-top:12px}
+  .st{font-size:12px;font-weight:700;color:${PRIMARY};margin-bottom:8px}
+  .lh{background:${PRIMARY};color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-radius:3px}
+  </style></head><body>
+  ${printBtn}
+  <div class="page" style="max-width:960px">
+    <div class="header">
+      <div><h1>${c.name}</h1>
+        <p>NIT: ${c.nit||'—'} | NRC: ${c.nrc||'—'}</p>
+        <p>LIBRO DE VENTAS — IMPUESTO AL VALOR AGREGADO (IVA)</p>
+      </div>
+      <div class="badge">${periodo}<small>F-07</small></div>
+    </div>
+    <div class="body">
+      <div class="st">SECCIÓN I — VENTAS A CONTRIBUYENTES (CCF / NC / ND)</div>
+      <div class="lh">
+        <span style="font-weight:bold">LIBRO DE VENTAS A CONTRIBUYENTES</span>
+        <span style="font-size:10px">NIT: ${c.nit||'—'} · Período: ${periodo}</span>
+      </div>
+      <table><thead><tr>
+        <th class="c">N°</th><th>Fecha</th><th>N° Control DTE</th>
+        <th class="c">Tipo</th><th>NIT Receptor</th><th>Nombre Receptor</th>
+        <th class="r">Exentas</th><th class="r">No Suj.</th><th class="r">Gravadas</th>
+        <th class="r">Déb.Fiscal</th><th class="r">Ret.1%</th><th class="r">Total</th>
+      </tr></thead>
+      <tbody>${rowsI||'<tr><td colspan="12" style="text-align:center;padding:12px;color:#888">Sin documentos CCF/NC/ND</td></tr>'}</tbody>
+      <tfoot><tr style="background:${PRIMARY};color:#fff;font-weight:bold">
+        <td colspan="6" style="padding:5px 8px">TOTALES SECCIÓN I</td>
+        <td class="r">${d2(tc.exenta)}</td><td class="r">${d2(tc.noSuj)}</td>
+        <td class="r">${d2(tc.gravada)}</td><td class="r">${d2(tc.iva)}</td>
+        <td class="r">${d2(tc.ivaRete1)}</td><td class="r">${d2(tc.total)}</td>
+      </tr></tfoot></table>
+      <div class="sb"></div>
+      <div class="st">SECCIÓN II — VENTAS A CONSUMIDORES FINALES (CF)</div>
+      <div class="lh">
+        <span style="font-weight:bold">LIBRO DE VENTAS A CONSUMIDORES FINALES</span>
+        <span style="font-size:10px">NIT: ${c.nit||'—'} · Período: ${periodo}</span>
+      </div>
+      <table><thead><tr>
+        <th class="c">N°</th><th>Fecha</th><th>N° Control DTE</th>
+        <th class="r">Exentas</th><th class="r">No Suj.</th>
+        <th class="r">Gravadas</th><th class="r">IVA Inc.</th><th class="r">Total</th>
+      </tr></thead>
+      <tbody>${rowsII||'<tr><td colspan="8" style="text-align:center;padding:12px;color:#888">Sin documentos CF</td></tr>'}</tbody>
+      <tfoot><tr style="background:${PRIMARY};color:#fff;font-weight:bold">
+        <td colspan="3" style="padding:5px 8px">TOTALES SECCIÓN II</td>
+        <td class="r">${d2(tf.exenta)}</td><td class="r">${d2(tf.noSuj)}</td>
+        <td class="r">${d2(tf.gravada)}</td><td class="r">${d2(tf.iva)}</td>
+        <td class="r">${d2(tf.total)}</td>
+      </tr></tfoot></table>
+      <div class="sb"></div>
+      <div class="st">RESUMEN CONSOLIDADO</div>
+      <table style="max-width:520px"><thead><tr>
+        <th>Categoría</th><th class="r">Exentas</th><th class="r">No Suj.</th>
+        <th class="r">Gravadas</th><th class="r">IVA</th><th class="r">Total</th>
+      </tr></thead><tbody>
+        <tr><td>Ventas a Contribuyentes</td>
+          <td class="r">${d2(tc.exenta)}</td><td class="r">${d2(tc.noSuj)}</td>
+          <td class="r">${d2(tc.gravada)}</td><td class="r">${d2(tc.iva)}</td>
+          <td class="r" style="font-weight:600">${d2(tc.total)}</td>
+        </tr>
+        <tr style="background:#eff6ff"><td>Ventas a Consumidores</td>
+          <td class="r">${d2(tf.exenta)}</td><td class="r">${d2(tf.noSuj)}</td>
+          <td class="r">${d2(tf.gravada)}</td><td class="r">${d2(tf.iva)}</td>
+          <td class="r" style="font-weight:600">${d2(tf.total)}</td>
+        </tr>
+        <tr style="background:${PRIMARY};color:#fff;font-weight:bold">
+          <td style="padding:5px 8px">GRAN TOTAL</td>
+          <td class="r">${d2((tc.exenta||0)+(tf.exenta||0))}</td>
+          <td class="r">${d2((tc.noSuj||0)+(tf.noSuj||0))}</td>
+          <td class="r">${d2((tc.gravada||0)+(tf.gravada||0))}</td>
+          <td class="r">${d2((tc.iva||0)+(tf.iva||0))}</td>
+          <td class="r">${d2((tc.total||0)+(tf.total||0))}</td>
+        </tr>
+      </tbody></table>
+    </div>
+    <div class="footer-note">
+      Libro de IVA generado el ${new Date().toLocaleString('es-SV')} — Ministerio de Hacienda El Salvador — F-07
+    </div>
+  </div></body></html>`
+  openTab(html)
+}
+
+// ─── 8. LIBRO IVA COMPRAS (F-07 Sección III) ────────────────────────────────
+
+export function abrirLibroIvaComprasHtml(data: any) {
+  const c = data.company ?? {}
+  const p = data.period  ?? {}
+  const t = data.totales ?? {}
+  const compras: any[] = data.compras ?? []
+  const periodo = `${MESES[(p.month ?? 1) - 1]} ${p.year}`
+
+  const printBtn = `<div class="no-print">
+    <button class="btn-close" onclick="window.close()">Cerrar</button>
+    <button class="btn-print" onclick="window.print()">Imprimir / Guardar PDF</button>
+  </div>`
+
+  const rows = compras.map((r: any, i: number) => `
+    <tr style="${i%2===0?'':'background:#eff6ff'}">
+      <td class="c">${r.correlativo}</td><td>${r.fecha}</td>
+      <td style="font-family:monospace;font-size:8px">${r.supplierDocNumber}</td>
+      <td>${r.nitProveedor}</td><td>${r.nombreProveedor}</td>
+      <td class="r">${d2(r.totalExenta)}</td><td class="r">${d2(r.totalNoSuj)}</td>
+      <td class="r">${d2(r.totalGravada)}</td><td class="r">${d2(r.totalIva)}</td>
+      <td class="r">${d2(r.ivaRete1)}</td>
+      <td class="r" style="font-weight:600">${d2(r.total)}</td>
+    </tr>`).join('')
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <title>Libro IVA Compras</title>
+  <style>${BASE_CSS}table thead th{font-size:8px}table tbody td{font-size:9px}
+  .st{font-size:12px;font-weight:700;color:${PRIMARY};margin-bottom:8px}
+  .lh{background:${PRIMARY};color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-radius:3px}
+  </style></head><body>
+  ${printBtn}
+  <div class="page" style="max-width:960px">
+    <div class="header">
+      <div><h1>${c.name}</h1>
+        <p>NIT: ${c.nit||'—'} | NRC: ${c.nrc||'—'}</p>
+        <p>LIBRO DE COMPRAS — IMPUESTO AL VALOR AGREGADO (IVA)</p>
+      </div>
+      <div class="badge">${periodo}<small>F-07 Secc.III</small></div>
+    </div>
+    <div class="body">
+      <div class="st">SECCIÓN III — COMPRAS A CONTRIBUYENTES (CCF RECIBIDOS)</div>
+      <div class="lh">
+        <span style="font-weight:bold">LIBRO DE COMPRAS — CRÉDITO FISCAL</span>
+        <span style="font-size:10px">NIT: ${c.nit||'—'} · Período: ${periodo}</span>
+      </div>
+      <table><thead><tr>
+        <th class="c">N°</th><th>Fecha</th><th>N° Doc. Proveedor</th>
+        <th>NIT Proveedor</th><th>Nombre Proveedor</th>
+        <th class="r">Exentas</th><th class="r">No Suj.</th><th class="r">Gravadas</th>
+        <th class="r">Créd.Fiscal</th><th class="r">Ret.IVA</th><th class="r">Total</th>
+      </tr></thead>
+      <tbody>${rows||'<tr><td colspan="11" style="text-align:center;padding:12px;color:#888">Sin compras recibidas en el período</td></tr>'}</tbody>
+      <tfoot><tr style="background:${PRIMARY};color:#fff;font-weight:bold">
+        <td colspan="5" style="padding:5px 8px">TOTALES</td>
+        <td class="r">${d2(t.exenta)}</td><td class="r">${d2(t.noSuj)}</td>
+        <td class="r">${d2(t.gravada)}</td><td class="r">${d2(t.iva)}</td>
+        <td class="r">${d2(t.ivaRete1)}</td><td class="r">${d2(t.total)}</td>
+      </tr></tfoot></table>
+      <div style="display:flex;justify-content:flex-end;margin-top:16px">
+        <table style="width:340px"><tbody>
+          <tr><td>Total compras exentas</td><td class="r">${d2(t.exenta)}</td></tr>
+          <tr style="background:#eff6ff"><td>Total compras no sujetas</td><td class="r">${d2(t.noSuj)}</td></tr>
+          <tr><td>Total compras gravadas</td><td class="r">${d2(t.gravada)}</td></tr>
+          <tr style="background:#eff6ff"><td>Total crédito fiscal (IVA 13%)</td><td class="r">${d2(t.iva)}</td></tr>
+          <tr><td>Total IVA retenido (1%)</td><td class="r">${d2(t.ivaRete1)}</td></tr>
+          <tr style="background:${PRIMARY};color:#fff;font-weight:bold">
+            <td style="padding:6px 8px">TOTAL COMPRAS DEL PERÍODO</td>
+            <td class="r" style="font-size:13px">${d2(t.total)}</td>
+          </tr>
+        </tbody></table>
+      </div>
+    </div>
+    <div class="footer-note">
+      Libro de IVA Compras generado el ${new Date().toLocaleString('es-SV')} — Ministerio de Hacienda El Salvador — F-07
+    </div>
+  </div></body></html>`
+  openTab(html)
+}
