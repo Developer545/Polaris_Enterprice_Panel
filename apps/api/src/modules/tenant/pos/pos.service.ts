@@ -14,9 +14,9 @@ import { z } from 'zod'
 
 export const SaleLineSchema = z.object({
   productId: z.string().min(1),
-  quantity: z.number().positive(),
-  unitPrice: z.number().positive().optional(), // override if custom price
-  discount: z.number().nonnegative().default(0),
+  quantity: z.coerce.number().positive(),
+  unitPrice: z.coerce.number().positive().optional(), // override if custom price
+  discount: z.coerce.number().nonnegative().default(0),
   sellerId: z.string().min(1).optional().nullable(),
   priceType: z.enum(['STANDARD', 'WHOLESALE', 'DISTRIBUTION', 'SPECIAL']).optional().nullable(),
 })
@@ -33,7 +33,7 @@ export const CreateSaleSchema = z.object({
   items: z.array(SaleLineSchema).min(1),
   payments: z.array(z.object({
     formaPago: z.string().length(2), // 01=Efectivo,02=Tarjeta,03=Transferencia,etc.
-    amount: z.number().positive(),
+    amount: z.coerce.number().positive(),
     reference: z.string().optional(),
   })),
   notes: z.string().optional(),
