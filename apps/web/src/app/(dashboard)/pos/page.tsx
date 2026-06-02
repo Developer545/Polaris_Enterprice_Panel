@@ -312,7 +312,18 @@ export default function PosPage() {
       qc.invalidateQueries({ queryKey: ['open-register'] })
       qc.invalidateQueries({ queryKey: ['products'] })
     },
-    onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error al registrar venta'),
+    onError: (e: any) => {
+      const data = e?.response?.data
+      const fieldErrors = data?.errors
+      if (fieldErrors) {
+        const details = Object.entries(fieldErrors)
+          .map(([k, v]) => `${k}: ${(v as string[]).join(', ')}`)
+          .join(' | ')
+        message.error(`Validación: ${details}`, 8)
+      } else {
+        message.error(data?.message ?? 'Error al registrar venta')
+      }
+    },
   })
 
   function resetClient() {
