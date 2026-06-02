@@ -15,7 +15,7 @@ import { z } from 'zod'
 // ─── Zod Schemas ──────────────────────────────────────────────────────────────
 
 export const CreatePeriodSchema = z.object({
-  companyId: z.string().cuid(),
+  companyId: z.string().min(1),
   name: z.string().min(1).max(100),
   periodType: z.enum(['MONTHLY', 'BIWEEKLY']).default('MONTHLY'),
   startDate: z.coerce.date(),

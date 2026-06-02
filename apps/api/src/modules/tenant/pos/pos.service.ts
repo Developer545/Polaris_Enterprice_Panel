@@ -13,23 +13,23 @@ import { useBullDteQueue } from '../../../config/env'
 import { z } from 'zod'
 
 export const SaleLineSchema = z.object({
-  productId: z.string().cuid(),
+  productId: z.string().min(1),
   quantity: z.number().positive(),
   unitPrice: z.number().positive().optional(), // override if custom price
   discount: z.number().nonnegative().default(0),
-  sellerId: z.string().cuid().optional().nullable(),
+  sellerId: z.string().min(1).optional().nullable(),
   priceType: z.enum(['STANDARD', 'WHOLESALE', 'DISTRIBUTION', 'SPECIAL']).optional().nullable(),
 })
 
 export const CreateSaleSchema = z.object({
-  companyId: z.string().cuid(),
-  branchId: z.string().cuid(),
-  cashRegisterId: z.string().cuid(),
-  clientId: z.string().cuid().optional().nullable(),
+  companyId: z.string().min(1),
+  branchId: z.string().min(1),
+  cashRegisterId: z.string().min(1),
+  clientId: z.string().min(1).optional().nullable(),
   tipoDte: z.enum(['01', '03']).default('01'), // 01=CF, 03=CCF
   condicionOperacion: z.enum(['1', '2', '3']).default('1'), // 1=Contado, 2=Crédito, 3=Otro
   daysCredit: z.number().int().min(1).max(365).default(30).optional(), // plazo en días para CxC auto
-  sellerId: z.string().cuid().optional().nullable(), // invoice-level seller (can be overridden per item)
+  sellerId: z.string().min(1).optional().nullable(), // invoice-level seller (can be overridden per item)
   items: z.array(SaleLineSchema).min(1),
   payments: z.array(z.object({
     formaPago: z.string().length(2), // 01=Efectivo,02=Tarjeta,03=Transferencia,etc.

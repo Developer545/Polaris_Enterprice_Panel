@@ -7,7 +7,7 @@ import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const CreateUnitSchema = z.object({
-  companyId: z.string().cuid(),
+  companyId: z.string().min(1),
   name:      z.string().min(1).max(50),
   symbol:    z.string().max(10).optional().nullable(),
 })

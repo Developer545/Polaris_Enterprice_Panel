@@ -7,10 +7,10 @@ import { buildBranchWhere, assertBranchAccess, resolveWriteBranchId } from '../.
 import { z } from 'zod'
 
 export const CreateArSchema = z.object({
-  companyId:   z.string().cuid(),
+  companyId:   z.string().min(1),
   branchId:    z.string().optional().nullable(),
-  clientId:    z.string().cuid(),
-  saleId:      z.string().cuid().optional(),
+  clientId:    z.string().min(1),
+  saleId:      z.string().min(1).optional(),
   description: z.string().min(2),
   amount:      z.number().positive(),
   dueDate:     z.string().datetime(),

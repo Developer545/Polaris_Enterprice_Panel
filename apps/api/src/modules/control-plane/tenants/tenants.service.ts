@@ -13,7 +13,7 @@ export const CreateTenantSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   phone: z.string().optional(),
-  planId: z.string().cuid(),
+  planId: z.string().min(1),
   dbStrategy: z.enum(['NEON_SHARED', 'NEON_DEDICATED', 'LOCAL_DEDICATED']),
   dbUrl: z.string().optional(),
 })
@@ -22,7 +22,7 @@ export const UpdateTenantSchema = z.object({
   name: z.string().min(2).optional(),
   email: z.string().email().optional(),
   phone: z.string().optional(),
-  planId: z.string().cuid().optional(),
+  planId: z.string().min(1).optional(),
   status: z.enum(['TRIAL', 'ACTIVE', 'SUSPENDED', 'CANCELLED']).optional(),
   dbStrategy: z.enum(['NEON_SHARED', 'NEON_DEDICATED', 'LOCAL_DEDICATED']).optional(),
   dbUrl: z.string().optional(),

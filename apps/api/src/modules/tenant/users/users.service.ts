@@ -17,9 +17,9 @@ export const CreateUserSchema = z.object({
   password: z.string().min(8),
   name: z.string().min(2),
   phone: z.string().optional(),
-  roleId: z.string().cuid(),
-  companyId: z.string().cuid(),
-  branchIds: z.array(z.string().cuid()).optional(),
+  roleId: z.string().min(1),
+  companyId: z.string().min(1),
+  branchIds: z.array(z.string().min(1)).optional(),
 })
 
 export const UpdateUserSchema = CreateUserSchema.partial().omit({ password: true }).extend({

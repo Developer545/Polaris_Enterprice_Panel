@@ -12,7 +12,7 @@ import { assertCanInvalidateDte, assertValidDteJson, INVALIDATION_EVENT_VERSION 
 import { z } from 'zod'
 
 export const AnulacionSchema = z.object({
-  saleId: z.string().cuid(),
+  saleId: z.string().min(1),
   motivo: z.string().trim().min(5),
   nombreResponsable: z.string().trim().min(1),
   tipDocResponsable: z.string().length(2),
@@ -25,7 +25,7 @@ export const AnulacionSchema = z.object({
 export type AnulacionDto = z.infer<typeof AnulacionSchema>
 
 export const RetornoSchema = z.object({
-  saleId: z.string().cuid(),
+  saleId: z.string().min(1),
   motivo: z.string().trim().min(5),
   nombreResponsable: z.string().trim().min(1),
   tipDocResponsable: z.string().length(2),
@@ -38,7 +38,7 @@ export const RetornoSchema = z.object({
 export type RetornoDto = z.infer<typeof RetornoSchema>
 
 export const OperacionEspecialSchema = z.object({
-  saleId: z.string().cuid(),
+  saleId: z.string().min(1),
   tipoOperacion: z.enum(['01', '02', '03', '04', '05', '99']),
   motivo: z.string().trim().min(5),
   nombreResponsable: z.string().trim().min(1),

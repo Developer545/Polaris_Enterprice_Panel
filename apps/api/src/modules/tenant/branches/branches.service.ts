@@ -6,7 +6,7 @@ import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const CreateBranchSchema = z.object({
-  companyId: z.string().cuid(),
+  companyId: z.string().min(1),
   name: z.string().min(2),
   address: z.string().optional(),
   departamentoCod: z.string().optional().nullable(),

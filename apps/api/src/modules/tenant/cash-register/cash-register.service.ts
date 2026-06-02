@@ -7,8 +7,8 @@ import { buildBranchWhere, assertBranchAccess } from '../../../common/branch-sco
 import { z } from 'zod'
 
 export const OpenRegisterSchema = z.object({
-  companyId: z.string().cuid(),
-  branchId: z.string().cuid(),
+  companyId: z.string().min(1),
+  branchId: z.string().min(1),
   openingBalance: z.number().nonnegative().default(0),
   notes: z.string().optional(),
 })

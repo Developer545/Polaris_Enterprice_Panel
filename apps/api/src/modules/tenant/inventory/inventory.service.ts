@@ -7,9 +7,9 @@ import { buildBranchWhere, assertBranchAccess } from '../../../common/branch-sco
 import { z } from 'zod'
 
 export const AdjustStockSchema = z.object({
-  companyId:  z.string().cuid(),
-  branchId:   z.string().cuid().optional(),
-  productId:  z.string().cuid(),
+  companyId:  z.string().min(1),
+  branchId:   z.string().min(1).optional(),
+  productId:  z.string().min(1),
   type:       z.enum(['IN', 'OUT', 'ADJUST']),
   quantity:   z.number().nonnegative(),
   unitCost:   z.number().nonnegative().optional(),
@@ -18,10 +18,10 @@ export const AdjustStockSchema = z.object({
 })
 
 export const TransferStockSchema = z.object({
-  companyId:    z.string().cuid(),
-  productId:    z.string().cuid(),
-  fromBranchId: z.string().cuid(),
-  toBranchId:   z.string().cuid(),
+  companyId:    z.string().min(1),
+  productId:    z.string().min(1),
+  fromBranchId: z.string().min(1),
+  toBranchId:   z.string().min(1),
   quantity:     z.number().positive(),
   reason:       z.string().min(2).max(500),
 })

@@ -5,7 +5,7 @@ import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const CreateCategorySchema = z.object({
-  companyId: z.string().cuid(),
+  companyId: z.string().min(1),
   name: z.string().min(2),
   description: z.string().optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),

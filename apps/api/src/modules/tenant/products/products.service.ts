@@ -6,8 +6,8 @@ import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const CreateProductSchema = z.object({
-  companyId:   z.string().cuid(),
-  categoryId:  z.string().cuid().optional().nullable(),
+  companyId:   z.string().min(1),
+  categoryId:  z.string().min(1).optional().nullable(),
   name:        z.string().min(2),
   description: z.string().optional().nullable(),
   sku:         z.string().optional().nullable(),
@@ -30,7 +30,7 @@ export const CreateProductSchema = z.object({
   minStock:   z.number().nonnegative().optional().default(0),
   // Units / Fractions
   purchaseUnit:     z.string().max(50).optional().nullable(),
-  saleUnitId:       z.string().cuid().optional().nullable(),
+  saleUnitId:       z.string().min(1).optional().nullable(),
   conversionFactor: z.number().positive().optional().default(1),
 })
 

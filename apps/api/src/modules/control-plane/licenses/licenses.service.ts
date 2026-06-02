@@ -111,7 +111,7 @@ export const HeartbeatSchema = z.object({
 })
 
 const CommandResultSchema = z.object({
-  id:     z.string().cuid(),
+  id:     z.string().min(1),
   status: z.enum(['RUNNING', 'SUCCEEDED', 'FAILED']),
   result: z.record(z.unknown()).optional(),
   error:  z.string().max(1000).optional(),

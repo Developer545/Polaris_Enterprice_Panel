@@ -6,7 +6,7 @@ import { buildBranchWhere, resolveWriteBranchId } from '../../../common/branch-s
 import { z } from 'zod'
 
 export const CreateClientSchema = z.object({
-  companyId: z.string().cuid(),
+  companyId: z.string().min(1),
   branchId: z.string().optional().nullable(),
   name: z.string().min(2),
   comercialName: z.string().optional().nullable(),   // Nombre comercial (Jurídica)

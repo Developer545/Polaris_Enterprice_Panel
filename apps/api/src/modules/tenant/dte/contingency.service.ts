@@ -15,7 +15,7 @@ import {
 import { z } from 'zod'
 
 export const ContingenciaSchema = z.object({
-  branchId: z.string().cuid().optional(),
+  branchId: z.string().min(1).optional(),
   tipoContingencia: z.number().int().min(1).max(5).optional(),
   motivoContingencia: z.string().trim().max(150).optional(),
   nombreResponsable: z.string().trim().min(1).optional(),

@@ -6,15 +6,15 @@ import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const PurchaseOrderItemSchema = z.object({
-  productId: z.string().cuid(),
+  productId: z.string().min(1),
   productName: z.string().min(1),
   quantity: z.number().positive(),
   unitCost: z.number().nonnegative(),
 })
 
 export const CreatePurchaseOrderSchema = z.object({
-  companyId: z.string().cuid(),
-  supplierId: z.string().cuid(),
+  companyId: z.string().min(1),
+  supplierId: z.string().min(1),
   orderNumber: z.string().optional().nullable(),
   condicionOperacion: z.enum(['1', '2', '3']).default('1'), // 1=Contado, 2=Crédito, 3=Otro
   supplierDocNumber: z.string().optional().nullable(),       // N° CCF/factura del proveedor
@@ -30,7 +30,7 @@ export const CreatePurchaseOrderSchema = z.object({
 })
 
 export const UpdatePurchaseOrderSchema = z.object({
-  supplierId: z.string().cuid().optional(),
+  supplierId: z.string().min(1).optional(),
   orderNumber: z.string().optional().nullable(),
   expectedDate: z.string().datetime().optional().nullable(),
   notes: z.string().optional().nullable(),
@@ -38,13 +38,13 @@ export const UpdatePurchaseOrderSchema = z.object({
 })
 
 export const ReceiveItemSchema = z.object({
-  itemId: z.string().cuid(),
+  itemId: z.string().min(1),
   receivedQty: z.number().nonnegative(),
 })
 
 export const ReceivePurchaseOrderSchema = z.object({
   items: z.array(ReceiveItemSchema).min(1),
-  branchId: z.string().cuid(),
+  branchId: z.string().min(1),
   createAccountPayable: z.boolean().default(true),
   dueDate: z.string().datetime().optional().nullable(),
 })

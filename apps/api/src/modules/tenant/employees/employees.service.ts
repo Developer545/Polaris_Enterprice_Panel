@@ -6,10 +6,10 @@ import { buildBranchWhere, assertBranchAccess } from '../../../common/branch-sco
 import { z } from 'zod'
 
 export const CreateEmployeeSchema = z.object({
-  companyId: z.string().cuid(),
-  branchId: z.string().cuid().optional().nullable(),
-  cargoId: z.string().cuid().optional().nullable(),
-  groupId: z.string().cuid().optional().nullable(),
+  companyId: z.string().min(1),
+  branchId: z.string().min(1).optional().nullable(),
+  cargoId: z.string().min(1).optional().nullable(),
+  groupId: z.string().min(1).optional().nullable(),
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
   dui: z.string().optional().nullable(),
@@ -38,7 +38,7 @@ export const CreateEmployeeSchema = z.object({
 export const UpdateEmployeeSchema = CreateEmployeeSchema.partial().omit({ companyId: true })
 
 export const CreateCargoSchema = z.object({
-  companyId: z.string().cuid(),
+  companyId: z.string().min(1),
   nombre: z.string().min(1).max(100),
   descripcion: z.string().optional().nullable(),
   activo: z.boolean().optional().default(true),
@@ -47,7 +47,7 @@ export const CreateCargoSchema = z.object({
 export const UpdateCargoSchema = CreateCargoSchema.partial().omit({ companyId: true })
 
 export const CreateGroupSchema = z.object({
-  companyId: z.string().cuid(),
+  companyId: z.string().min(1),
   name: z.string().min(1).max(100),
   description: z.string().optional().nullable(),
   commissionType: z.enum(['PERCENT_SOLD', 'PERCENT_GOAL']).optional().nullable(),

@@ -6,8 +6,8 @@ import { z } from 'zod'
 import { Decimal } from '@prisma/client/runtime/library'
 
 export const CreateSalesGoalSchema = z.object({
-  companyId: z.string().cuid(),
-  groupId: z.string().cuid().optional().nullable(),
+  companyId: z.string().min(1),
+  groupId: z.string().min(1).optional().nullable(),
   name: z.string().min(1).max(200),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),

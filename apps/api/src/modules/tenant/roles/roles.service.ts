@@ -7,7 +7,7 @@ import { z } from 'zod'
 const VALID_PERMISSIONS = Object.values(PERMISSIONS)
 
 export const CreateRoleSchema = z.object({
-  companyId: z.string().cuid(),
+  companyId: z.string().min(1),
   name: z.string().min(2),
   description: z.string().optional(),
   permissions: z.record(z.string(), z.boolean()),

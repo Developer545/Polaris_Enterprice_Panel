@@ -5,7 +5,7 @@ import type { JwtAccessPayload } from '@pos-dte/shared-types'
 import { z } from 'zod'
 
 export const CreateSupplierSchema = z.object({
-  companyId: z.string().cuid(),
+  companyId: z.string().min(1),
   name: z.string().min(2),
   contactName: z.string().optional().nullable(),
   email: z.string().email().optional().nullable(),

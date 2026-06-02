@@ -7,7 +7,7 @@ import { buildBranchWhere, resolveWriteBranchId } from '../../../common/branch-s
 import { z } from 'zod'
 
 export const CreateExpenseCategorySchema = z.object({
-  companyId: z.string().cuid(),
+  companyId: z.string().min(1),
   name: z.string().min(2),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#6b7280'),
 })
@@ -15,9 +15,9 @@ export const CreateExpenseCategorySchema = z.object({
 export const UpdateExpenseCategorySchema = CreateExpenseCategorySchema.partial().omit({ companyId: true })
 
 export const CreateExpenseSchema = z.object({
-  companyId: z.string().cuid(),
+  companyId: z.string().min(1),
   branchId: z.string().optional().nullable(),
-  categoryId: z.string().cuid().optional().nullable(),
+  categoryId: z.string().min(1).optional().nullable(),
   description: z.string().min(2),
   amount: z.number().positive(),
   date: z.string().datetime(),

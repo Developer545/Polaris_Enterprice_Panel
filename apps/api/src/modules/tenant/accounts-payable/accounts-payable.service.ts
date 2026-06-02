@@ -7,10 +7,10 @@ import { buildBranchWhere, resolveWriteBranchId } from '../../../common/branch-s
 import { z } from 'zod'
 
 export const CreateAccountPayableSchema = z.object({
-  companyId: z.string().cuid(),
+  companyId: z.string().min(1),
   branchId: z.string().optional().nullable(),
-  supplierId: z.string().cuid(),
-  purchaseOrderId: z.string().cuid().optional().nullable(),
+  supplierId: z.string().min(1),
+  purchaseOrderId: z.string().min(1).optional().nullable(),
   description: z.string().min(2),
   amount: z.number().positive(),
   dueDate: z.string().datetime(),
