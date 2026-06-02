@@ -53,6 +53,8 @@ export function LoginSplitBase({ companyId: propCompanyId = '', children }: Logi
         localStorage.setItem('userEmail',          res.data.user.email)
         localStorage.setItem('roleId',             res.data.user.roleId)
         localStorage.setItem('branchIds',          JSON.stringify(res.data.user.branchIds ?? []))
+        const firstBranch = (res.data.user.branchIds ?? [])[0]
+        if (firstBranch) localStorage.setItem('branchId', firstBranch)
         localStorage.setItem('permissions',        JSON.stringify(perms))
         localStorage.setItem('canViewAllBranches', isOwner ? '1' : '0')
       }
