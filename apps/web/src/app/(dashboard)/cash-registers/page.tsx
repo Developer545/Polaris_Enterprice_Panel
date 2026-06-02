@@ -62,6 +62,17 @@ export default function CashRegistersPage() {
     enabled: !!branchId,
   })
 
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches-list', companyId],
+    queryFn: () => api.get('/api/branches', { params: { companyId } }).then(r => r.data),
+    enabled: !!companyId,
+    staleTime: 10 * 60_000,
+  })
+  const currentBranch = useMemo(
+    () => (branches as any[]).find(b => b.id === branchId) ?? null,
+    [branches, branchId],
+  )
+
   const activeRegister = useMemo(
     () => (registers as any[]).find(r => !r.closedAt) ?? null,
     [registers],
@@ -150,6 +161,10 @@ export default function CashRegistersPage() {
       render: (r: any) => <Text style={{ fontSize: 13, fontWeight: 500 }}>{r.openedBy?.name ?? '—'}</Text>,
     },
     {
+      title: 'Sucursal', key: 'branch',
+      render: (r: any) => <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{r.branch?.name ?? '—'}</Text>,
+    },
+    {
       title: 'Estado', key: 'estado', width: 100,
       render: (r: any) => r.closedAt
         ? <Tag style={{ borderRadius: 4, fontWeight: 500 }}>Cerrada</Tag>
@@ -212,6 +227,9 @@ export default function CashRegistersPage() {
               </Text>
               {activeRegister && (
                 <Text type="secondary" style={{ fontSize: 12, marginLeft: 10 }}>
+                  {activeRegister.branch?.name && (
+                    <><BankOutlined style={{ marginRight: 4 }} />{activeRegister.branch.name} · </>
+                  )}
                   {activeRegister.openedBy?.name} · Desde {dayjs(activeRegister.openedAt).format('DD/MM/YY HH:mm')}
                 </Text>
               )}
@@ -316,9 +334,20 @@ export default function CashRegistersPage() {
         style={{ top: 40 }}
         styles={{ header: { borderBottom: `1px solid ${token.colorBorderSecondary}`, paddingBottom: 16 }, body: { paddingTop: 16 } }}
       >
-        <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 20 }}>
+        <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 16 }}>
           Ingresa el efectivo con el que abres la caja (fondo de cambio).
         </Text>
+
+        <div style={{ marginBottom: 16 }}>
+          {LBL('Sucursal')}
+          <Input
+            size="large"
+            prefix={<BankOutlined style={{ color: 'var(--text-secondary)' }} />}
+            value={currentBranch?.name ?? branchId ?? '—'}
+            readOnly
+            style={{ marginTop: 6, borderRadius: 8, background: token.colorFillAlter, cursor: 'default' }}
+          />
+        </div>
 
         <div style={{ marginBottom: 16 }}>
           {LBL('Monto inicial (efectivo en caja)')}
@@ -590,6 +619,9 @@ export default function CashRegistersPage() {
 
               <Descriptions size="small" column={2} style={{ marginBottom: 16 }}
                 styles={{ label: { color: token.colorTextSecondary, fontSize: 12 }, content: { fontSize: 13 } }}>
+                <Descriptions.Item label="Sucursal" span={2}>
+                  <Text style={{ fontSize: 13, fontWeight: 500 }}>{detailRecord.branch?.name ?? '—'}</Text>
+                </Descriptions.Item>
                 <Descriptions.Item label="Estado">
                   {detailRecord.closedAt
                     ? <Tag style={{ borderRadius: 4 }}>Cerrada</Tag>
