@@ -117,18 +117,25 @@ export default function CashRegistersPage() {
   const effectiveBranchId = modalBranchId || branchId
 
   const openMutation = useMutation({
-    mutationFn: () => api.post('/api/cash-registers/open', {
-      companyId,
-      branchId: effectiveBranchId,
-      openingBalance: montoInicial,
-      notes: notasApertura || undefined,
-    }),
+    mutationFn: (payload: { companyId: string; branchId: string; openingBalance: number; notes?: string }) =>
+      api.post('/api/cash-registers/open', payload),
     onSuccess: () => {
       message.success('Caja abierta')
       qc.invalidateQueries({ queryKey: ['cash-registers'] })
       setOpenModal(false); setMontoInicial(0); setNotasApertura(''); setModalBranchId('')
     },
-    onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error al abrir caja'),
+    onError: (e: any) => {
+      const data = e?.response?.data
+      const fieldErrors = data?.errors
+      if (fieldErrors) {
+        const details = Object.entries(fieldErrors)
+          .map(([k, v]) => `${k}: ${(v as string[]).join(', ')}`)
+          .join(' | ')
+        message.error(`Validación: ${details}`, 8)
+      } else {
+        message.error(data?.message ?? 'Error al abrir caja')
+      }
+    },
   })
 
   const closeMutation = useMutation({
@@ -328,10 +335,15 @@ export default function CashRegistersPage() {
         open={openModal}
         title={<Space><UnlockOutlined />Abrir Caja</Space>}
         onCancel={() => setOpenModal(false)}
-        onOk={() => openMutation.mutate()}
+        onOk={() => openMutation.mutate({
+          companyId,
+          branchId: effectiveBranchId,
+          openingBalance: montoInicial,
+          notes: notasApertura || undefined,
+        })}
         confirmLoading={openMutation.isPending}
         okText="Abrir Caja"
-        okButtonProps={{ style: { background: primary, borderColor: primary, borderRadius: 8, fontWeight: 600 }, disabled: !effectiveBranchId }}
+        okButtonProps={{ style: { background: primary, borderColor: primary, borderRadius: 8, fontWeight: 600 }, disabled: !effectiveBranchId || !companyId }}
         cancelButtonProps={{ style: { borderRadius: 8 } }}
         width={420}
         destroyOnHidden
