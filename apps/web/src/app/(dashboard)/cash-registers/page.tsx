@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import {
   Card, Row, Col, Button, InputNumber, Table, Tag, Statistic,
-  Modal, Descriptions, Space, Divider, Input, theme, Typography, App, Tooltip, Badge,
+  Modal, Descriptions, Space, Divider, Input, Select, theme, Typography, App, Tooltip, Badge,
 } from 'antd'
 import {
   LockOutlined, UnlockOutlined, DollarCircleOutlined,
@@ -48,6 +48,7 @@ export default function CashRegistersPage() {
   const [openModal, setOpenModal]       = useState(false)
   const [montoInicial, setMontoInicial] = useState<number>(0)
   const [notasApertura, setNotasApertura] = useState('')
+  const [modalBranchId, setModalBranchId] = useState<string>('')
 
   const [closeModal, setCloseModal]     = useState(false)
   const [arqueoBilletes, setArqueoBilletes] = useState<Record<string, number>>({})
@@ -113,16 +114,19 @@ export default function CashRegistersPage() {
   const totalContado = parseFloat((totalContadoBilletes + totalContadoMonedas).toFixed(2))
   const diferenciaCierre = parseFloat((totalContado - montoEsperado).toFixed(2))
 
+  const effectiveBranchId = modalBranchId || branchId
+
   const openMutation = useMutation({
     mutationFn: () => api.post('/api/cash-registers/open', {
-      companyId, branchId,
+      companyId,
+      branchId: effectiveBranchId,
       openingBalance: montoInicial,
       notes: notasApertura || undefined,
     }),
     onSuccess: () => {
       message.success('Caja abierta')
       qc.invalidateQueries({ queryKey: ['cash-registers'] })
-      setOpenModal(false); setMontoInicial(0); setNotasApertura('')
+      setOpenModal(false); setMontoInicial(0); setNotasApertura(''); setModalBranchId('')
     },
     onError: (e: any) => message.error(e?.response?.data?.message ?? 'Error al abrir caja'),
   })
@@ -254,7 +258,7 @@ export default function CashRegistersPage() {
               type="primary"
               icon={<UnlockOutlined />}
               style={{ background: primary, borderColor: primary, borderRadius: 8, fontWeight: 600 }}
-              onClick={() => { setOpenModal(true); setMontoInicial(0); setNotasApertura('') }}
+              onClick={() => { setOpenModal(true); setMontoInicial(0); setNotasApertura(''); setModalBranchId('') }}
             >
               Abrir Caja
             </Button>
@@ -327,7 +331,7 @@ export default function CashRegistersPage() {
         onOk={() => openMutation.mutate()}
         confirmLoading={openMutation.isPending}
         okText="Abrir Caja"
-        okButtonProps={{ style: { background: primary, borderColor: primary, borderRadius: 8, fontWeight: 600 } }}
+        okButtonProps={{ style: { background: primary, borderColor: primary, borderRadius: 8, fontWeight: 600 }, disabled: !effectiveBranchId }}
         cancelButtonProps={{ style: { borderRadius: 8 } }}
         width={420}
         destroyOnHidden
@@ -340,13 +344,26 @@ export default function CashRegistersPage() {
 
         <div style={{ marginBottom: 16 }}>
           {LBL('Sucursal')}
-          <Input
-            size="large"
-            prefix={<BankOutlined style={{ color: 'var(--text-secondary)' }} />}
-            value={currentBranch?.name ?? branchId ?? '—'}
-            readOnly
-            style={{ marginTop: 6, borderRadius: 8, background: token.colorFillAlter, cursor: 'default' }}
-          />
+          {branchId ? (
+            <Input
+              size="large"
+              prefix={<BankOutlined style={{ color: 'var(--text-secondary)' }} />}
+              value={currentBranch?.name ?? branchId}
+              readOnly
+              style={{ marginTop: 6, borderRadius: 8, background: token.colorFillAlter, cursor: 'default' }}
+            />
+          ) : (
+            <Select
+              size="large"
+              style={{ width: '100%', marginTop: 6 }}
+              placeholder="Selecciona una sucursal"
+              value={modalBranchId || undefined}
+              onChange={(v) => setModalBranchId(v)}
+              options={(branches as any[]).map((b: any) => ({ value: b.id, label: b.name }))}
+              showSearch
+              optionFilterProp="label"
+            />
+          )}
         </div>
 
         <div style={{ marginBottom: 16 }}>
